@@ -18,24 +18,6 @@ public:
 	// Sets default values for this pawn's properties
 	APlayerPawn();
 
-	UPROPERTY(EditAnywhere)
-	float Speed;
-	
-	UPROPERTY(EditAnywhere)
-	float StrafeModifier;
-
-	UPROPERTY(EditAnywhere)
-	float StrafeConeAngle;
-
-	UPROPERTY(EditAnywhere)
-	USceneComponent* VisibleComponent;
-
-	UPROPERTY(EditAnywhere)
-	UCameraComponent* CameraComponent;
-
-	UPROPERTY(EditAnywhere)
-	UBoxComponent* ColliderComponent;
-
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -53,8 +35,28 @@ public:
 
 	UFUNCTION()
 	void InputFire();
+
 	UFUNCTION()
 	void InputForward(float AxisValue);
+
 	UFUNCTION()
 	void InputRight(float AxisValue);
+
+	UPROPERTY(EditAnywhere)
+	float Speed = 200.0f;
+
+	UPROPERTY(EditAnywhere)
+	float StrafeModifier = 0.5f;
+
+	UPROPERTY(EditAnywhere)
+	float StrafeConeAngle = 0.9f;
+
+	UPROPERTY(EditAnywhere)
+	UStaticMeshComponent* VisibleComponent;
+
+	UPROPERTY(EditAnywhere)
+	UCameraComponent* CameraComponent;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* ColliderComponent;
 };

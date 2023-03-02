@@ -14,18 +14,22 @@ APlayerPawn::APlayerPawn()
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	// Rig prefab
-	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	RootComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider")); 
+	UBoxComponent* Collider = (UBoxComponent*)RootComponent;
 
-	VisibleComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+	Collider->SetCollisionProfileName(FName("Pawn"), true);
+	
+	VisibleComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Root"));
 	VisibleComponent->SetupAttachment(RootComponent);
 
-	ColliderComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider"));
-	ColliderComponent->SetupAttachment(RootComponent);
+	static ConstructorHelpers::FObjectFinder<UStaticMesh>MeshAsset(TEXT("/Script/Engine.StaticMesh'/Game/Meshes/cube.cube'"));
+	VisibleComponent->SetStaticMesh(MeshAsset.Object);
+
+	VisibleComponent->SetRelativeScale3D(FVector(30.0f, 30.0f, 30.0f));
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	CameraComponent->SetupAttachment(RootComponent);
-	CameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 250.0f));
+	CameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 500.0f));
 	CameraComponent->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
 
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
@@ -36,7 +40,7 @@ void APlayerPawn::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("playerpawn spawned"));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("playerpawn spawned"));
 }
 
 // Called every frame
@@ -71,9 +75,6 @@ void APlayerPawn::Tick(float DeltaTime)
 		FVector ActorForward = GetActorForwardVector();
 
 		float Angle = acos(Move.Dot(ActorForward) / (Move.Length() * ActorForward.Length()));
-		FString S = FString::SanitizeFloat(Angle);
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, S);
-
 		// TODO cleanup
 		if (Angle > StrafeConeAngle)
 		{
