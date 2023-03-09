@@ -33,7 +33,10 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	UFUNCTION()
-	void InputFire();
+	void InputStartFire();
+
+	UFUNCTION()
+	void InputStopFire();
 
 	UFUNCTION()
 	void InputForward(float AxisValue);

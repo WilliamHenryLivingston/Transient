@@ -27,9 +27,15 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	bool UseProjectile = true;
+
+	UPROPERTY(EditAnywhere)
+	float FireCooldown = 0.25f;
 	
 	UPROPERTY(EditAnywhere)
 	UStaticMesh* TempProjectileMesh;
+
+	UPROPERTY(EditAnywhere)
+	FVector MuzzleLocation;
 
 	UPROPERTY(EditAnywhere)
 	UStaticMeshComponent* VisibleComponent;
@@ -41,4 +47,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	void WeaponFire();
+
+private:
+	float CurrentFireCooldown;
 };

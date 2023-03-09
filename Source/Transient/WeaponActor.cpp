@@ -25,20 +25,23 @@ void AWeaponActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (CurrentFireCooldown > 0.0f)
+	{
+		CurrentFireCooldown -= DeltaTime;
+	}
 }
 
 void AWeaponActor::WeaponFire()
 {
+	if (CurrentFireCooldown > 0.0f) return;
+
 	if (UseProjectile)
 	{
 		FActorSpawnParameters SpawnInfo;
 
 		AProjectileActor* Projectile = GetWorld()->SpawnActor<AProjectileActor>(SpawnInfo);
 		
-		FVector MuzzleLocation = GetActorLocation() + (GetActorForwardVector() * 10.0f);
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, MuzzleLocation.ToString());
-
-		Projectile->SetActorLocation(MuzzleLocation);
+		Projectile->SetActorLocation(GetActorLocation() + (GetActorRotation().RotateVector(MuzzleLocation)));
 		Projectile->SetActorRotation(GetActorRotation());
 		Projectile->DamageProfile = DamageProfile;
 
@@ -48,4 +51,6 @@ void AWeaponActor::WeaponFire()
 	{
 
 	}
+
+	CurrentFireCooldown = FireCooldown;
 }

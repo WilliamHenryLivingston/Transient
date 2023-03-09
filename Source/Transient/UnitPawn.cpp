@@ -35,6 +35,10 @@ void AUnitPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (Firing && Weapon != nullptr)
+	{
+		Weapon->WeaponFire();
+	}
 }
 
 void AUnitPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -70,12 +74,9 @@ void AUnitPawn::UnitFaceTowards(FVector Target)
 	SetActorRotation(NewRotation);
 }
 
-void AUnitPawn::UnitFire()
+void AUnitPawn::UnitSetFiring(bool NewFiring)
 {
-	if (Weapon != nullptr)
-	{
-		Weapon->WeaponFire();
-	}
+	Firing = NewFiring;
 }
 
 void AUnitPawn::UnitTakeDamage(FDamageProfile* Profile)
@@ -90,7 +91,7 @@ void AUnitPawn::UnitEquipWeapon(AWeaponActor* TargetWeapon)
 
 	Weapon = TargetWeapon;
 	Weapon->AttachToActor(this, FAttachmentTransformRules(EAttachmentRule::KeepRelative, false));
-	Weapon->SetActorRelativeLocation(FVector(60.0f, 0.0f, 0.0f));
+	Weapon->SetActorRelativeLocation(FVector(70.0f, 0.0f, 0.0f));
 }
 
 void AUnitPawn::OnUnitFace(FRotator Rotation)

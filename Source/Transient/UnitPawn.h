@@ -42,7 +42,7 @@ protected:
 
 	void UnitFaceTowards(FVector Target);
 
-	void UnitFire();
+	void UnitSetFiring(bool NewFiring);
 
 	virtual void OnUnitFace(FRotator Rotation);
 	
@@ -54,4 +54,7 @@ public:
 	void UnitTakeDamage(FDamageProfile* Profile);
 
 	void UnitEquipWeapon(AWeaponActor* TargetWeapon);
+
+private:
+	bool Firing;
 };

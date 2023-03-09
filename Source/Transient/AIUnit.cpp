@@ -11,9 +11,11 @@ void AAIUnit::Tick(float DeltaTime)
         UnitFaceTowards(FollowLocation);
 
         float Distance = (FollowLocation - GetActorLocation()).Length();
-        if (Distance > 200.0f)
+        if (Distance > 300.0f)
         {
             UnitMoveTowards(FollowLocation, DeltaTime);
         }
+
+        UnitSetFiring(Distance < 600.0f);
     }
 }

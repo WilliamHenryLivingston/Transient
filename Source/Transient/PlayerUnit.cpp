@@ -48,12 +48,18 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 {
 	PlayerInputComponent->BindAxis("Forward", this, &APlayerUnit::InputForward);
 	PlayerInputComponent->BindAxis("Right", this, &APlayerUnit::InputRight);
-	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &APlayerUnit::InputFire);
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &APlayerUnit::InputStartFire);
+	PlayerInputComponent->BindAction("Fire", IE_Released, this, &APlayerUnit::InputStopFire);
 }
 
-void APlayerUnit::InputFire()
+void APlayerUnit::InputStartFire()
 {
-	UnitFire();
+	UnitSetFiring(true);
+}
+
+void APlayerUnit::InputStopFire()
+{
+	UnitSetFiring(false);
 }
 
 void APlayerUnit::InputForward(float AxisValue)

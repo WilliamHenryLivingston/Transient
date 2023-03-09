@@ -17,7 +17,7 @@ public:
 	AProjectileActor();
 
 	UPROPERTY(EditAnywhere)
-	float Speed = 100.0f;
+	float Speed = 500.0f;
 
 	UPROPERTY(EditAnywhere)
 	FDamageProfile DamageProfile;
