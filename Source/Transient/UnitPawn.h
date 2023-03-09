@@ -4,6 +4,8 @@
 #include "GameFramework/Pawn.h"
 #include "Components/BoxComponent.h"
 
+#include "WeaponActor.h"
+
 #include "UnitPawn.generated.h"
 
 UCLASS()
@@ -25,7 +27,13 @@ protected:
 	float StrafeConeAngle = 0.9f;
 
 	UPROPERTY(EditAnywhere)
+	float Health = 300.0f;
+
+	UPROPERTY(EditAnywhere)
 	UStaticMeshComponent* VisibleComponent;
+
+	UPROPERTY(EditInstanceOnly)
+	AWeaponActor* Weapon;
 
 protected:
 	virtual void BeginPlay() override;
@@ -34,11 +42,16 @@ protected:
 
 	void UnitFaceTowards(FVector Target);
 
-	virtual void OnUnitFace(FRotator Rotation);
+	void UnitFire();
 
+	virtual void OnUnitFace(FRotator Rotation);
+	
 public:	
 	virtual void Tick(float DeltaTime) override;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	void UnitTakeDamage(FDamageProfile* Profile);
+
+	void UnitEquipWeapon(AWeaponActor* TargetWeapon);
 };

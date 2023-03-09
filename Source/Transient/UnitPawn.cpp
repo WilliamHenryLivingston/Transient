@@ -7,9 +7,8 @@ AUnitPawn::AUnitPawn()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	RootComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider"));
+	RootComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("RootCollider"));
 	UBoxComponent* Collider = (UBoxComponent*)RootComponent;
-
 	Collider->SetSimulatePhysics(true);
 	Collider->SetLinearDamping(20.0f);
 	Collider->BodyInstance.bLockXRotation = true;
@@ -17,15 +16,19 @@ AUnitPawn::AUnitPawn()
 	Collider->SetEnableGravity(true);
 	Collider->SetCollisionProfileName(FName("Pawn"), true);
 
-	VisibleComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Root"));
+	VisibleComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Visible"));
 	VisibleComponent->SetupAttachment(RootComponent);
-	VisibleComponent->SetRelativeScale3D(FVector(30.0f, 30.0f, 30.0f));
+	VisibleComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AUnitPawn::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (Weapon != nullptr)
+	{
+		UnitEquipWeapon(Weapon);
+	}
 }
 
 void AUnitPawn::Tick(float DeltaTime)
@@ -65,6 +68,29 @@ void AUnitPawn::UnitFaceTowards(FVector Target)
 
 	OnUnitFace(NewRotation);
 	SetActorRotation(NewRotation);
+}
+
+void AUnitPawn::UnitFire()
+{
+	if (Weapon != nullptr)
+	{
+		Weapon->WeaponFire();
+	}
+}
+
+void AUnitPawn::UnitTakeDamage(FDamageProfile* Profile)
+{
+	Health -= Profile->KineticDamage;
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::SanitizeFloat(Health));
+}
+
+void AUnitPawn::UnitEquipWeapon(AWeaponActor* TargetWeapon)
+{
+	// TODO: Dequip current.
+
+	Weapon = TargetWeapon;
+	Weapon->AttachToActor(this, FAttachmentTransformRules(EAttachmentRule::KeepRelative, false));
+	Weapon->SetActorRelativeLocation(FVector(60.0f, 0.0f, 0.0f));
 }
 
 void AUnitPawn::OnUnitFace(FRotator Rotation)

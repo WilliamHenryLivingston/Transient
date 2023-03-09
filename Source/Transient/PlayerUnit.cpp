@@ -53,7 +53,7 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 void APlayerUnit::InputFire()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("fire"));
+	UnitFire();
 }
 
 void APlayerUnit::InputForward(float AxisValue)

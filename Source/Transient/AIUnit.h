@@ -1,7 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
 #include "UnitPawn.h"
+
 #include "AIUnit.generated.h"
 
 UCLASS()
