@@ -50,9 +50,15 @@ protected:
 	void UnitSetTriggerPulled(bool NewTriggerPulled);
 
 	virtual void OnUnitFace(FRotator Rotation);
+
+	TArray<AWeaponActor*> UnitGetNearbyWeapons();
 	
 public:
 	void UnitTakeDamage(FDamageProfile* Profile);
 
 	void UnitEquipWeapon(AWeaponActor* TargetWeapon);
+
+	AWeaponActor* UnitGetWeapon();
+	
+	void UnitDie();
 };

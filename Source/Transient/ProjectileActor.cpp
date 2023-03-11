@@ -9,7 +9,7 @@ AProjectileActor::AProjectileActor() {
 	this->ColliderComponent = (UBoxComponent*)this->RootComponent;
 	this->ColliderComponent->SetCollisionProfileName(FName("OverlapAll"), true);
 	this->ColliderComponent->SetCollisionObjectType(ECollisionChannel::ECC_GameTraceChannel1);
-	this->ColliderComponent->OnComponentBeginOverlap.AddDynamic(this, &AProjectileActor::OnHitTargetUnchecked);
+	this->ColliderComponent->OnComponentBeginOverlap.AddDynamic(this, &AProjectileActor::OnCollideUnchecked);
 
 	this->VisibleComponent = this->CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Visible"));
 	this->VisibleComponent->SetupAttachment(this->RootComponent);
@@ -28,7 +28,7 @@ void AProjectileActor::Tick(float DeltaTime) {
 	SetActorLocation(GetActorLocation() + Move);
 }
 
-void AProjectileActor::OnHitTargetUnchecked(
+void AProjectileActor::OnCollideUnchecked(
 	UPrimitiveComponent* Into,
 	AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherIdx,
 	bool FromSweep, const FHitResult &Sweep

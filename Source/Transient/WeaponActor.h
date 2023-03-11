@@ -12,7 +12,6 @@ class TRANSIENT_API AWeaponActor : public AActor {
 	GENERATED_BODY()
 
 private:
-
 	UPROPERTY(EditAnywhere)
 	UStaticMeshComponent* VisibleComponent;
 
@@ -26,6 +25,9 @@ protected:
 	bool TriggerPulled;
 
 public:
+	static TArray<AWeaponActor*> WorldItems;
+
+public:
 	AWeaponActor();
 
 	virtual void Tick(float DeltaTime) override;
@@ -35,4 +37,8 @@ protected:
 
 public:
 	void WeaponSetTriggerPulled(bool NewTriggerPulled);
+
+	void WeaponOnEquip(AActor* Unit);
+
+	void WeaponOnDequip();
 };

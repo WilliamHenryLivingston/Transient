@@ -38,6 +38,9 @@ private:
 	void InputStopFire();
 
 	UFUNCTION()
+	void InputInteract();
+
+	UFUNCTION()
 	void InputForward(float AxisValue);
 
 	UFUNCTION()

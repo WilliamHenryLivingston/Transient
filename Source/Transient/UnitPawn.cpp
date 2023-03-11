@@ -24,7 +24,7 @@ void AUnitPawn::BeginPlay() {
 	Super::BeginPlay();
 
 	if (this->Weapon != nullptr) {
-		UnitEquipWeapon(this->Weapon);
+		this->UnitEquipWeapon(this->Weapon);
 	}
 }
 
@@ -66,14 +66,52 @@ void AUnitPawn::UnitTakeDamage(FDamageProfile* Profile) {
 	this->Health -= Profile->KineticDamage;
 
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::SanitizeFloat(Health));
+
+	if (this->Health <= 0.0f) {
+		this->UnitDie();
+	}
+}
+
+void AUnitPawn::UnitDie() {
+	if (this->Weapon != nullptr) {
+		this->UnitEquipWeapon(nullptr);
+	}
+
+	this->Destroy();
 }
 
 void AUnitPawn::UnitEquipWeapon(AWeaponActor* NewWeapon) {
-	// TODO: Dequip current.
+	if (this->Weapon != nullptr && this->Weapon != NewWeapon) {
+		this->Weapon->WeaponOnDequip();
+		this->Weapon = nullptr;
+	}
 
-	this->Weapon = NewWeapon;
-	this->Weapon->AttachToActor(this, FAttachmentTransformRules(EAttachmentRule::KeepRelative, false));
-	this->Weapon->SetActorRelativeLocation(FVector(70.0f, 0.0f, 0.0f));
+	if (NewWeapon != nullptr) {
+		this->Weapon = NewWeapon;
+		this->Weapon->WeaponOnEquip(this);
+	}
+}
+
+AWeaponActor* AUnitPawn::UnitGetWeapon() {
+	return this->Weapon;
+}
+
+TArray<AWeaponActor*> AUnitPawn::UnitGetNearbyWeapons() {
+	FVector CurrentLocation = this->GetActorLocation();
+
+	TArray<AWeaponActor*> NearbyWeapons;
+
+	for (int i = 0; i < AWeaponActor::WorldItems.Num(); i++) {
+		AWeaponActor* CheckWeapon = AWeaponActor::WorldItems[i];
+
+		float Distance = (CheckWeapon->GetActorLocation() - CurrentLocation).Size();
+
+		if (Distance < 100.0f) {
+			NearbyWeapons.Push(CheckWeapon);
+		}
+	}
+
+	return NearbyWeapons;
 }
 
 void AUnitPawn::OnUnitFace(FRotator Rotation) {

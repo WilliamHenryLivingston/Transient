@@ -1,5 +1,6 @@
 #include "PlayerUnit.h"
 
+#include "Engine/EngineTypes.h"
 #include "Camera/CameraComponent.h"
 #include "Components/StaticMeshComponent.h"
 
@@ -23,6 +24,7 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAxis("Right", this, &APlayerUnit::InputRight);
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &APlayerUnit::InputStartFire);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &APlayerUnit::InputStopFire);
+	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &APlayerUnit::InputInteract);
 }
 
 void APlayerUnit::Tick(float DeltaTime) {
@@ -48,6 +50,17 @@ void APlayerUnit::Tick(float DeltaTime) {
 
 void APlayerUnit::OnUnitFace(FRotator Rotation) {
 	this->CameraComponent->SetRelativeRotation(FRotator(-90.0f, -Rotation.Yaw, 0.0f));
+}
+
+void APlayerUnit::InputInteract() {
+	TArray<AWeaponActor*> CurrentNearbyWeapons = this->UnitGetNearbyWeapons();
+
+	if (CurrentNearbyWeapons.Num() > 0) {
+		this->UnitEquipWeapon(CurrentNearbyWeapons[0]);
+	}
+	else {
+		this->UnitEquipWeapon(nullptr);
+	}
 }
 
 void APlayerUnit::InputStartFire() {
