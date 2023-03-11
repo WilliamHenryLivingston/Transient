@@ -44,13 +44,13 @@ void AUnitPawn::UnitMoveTowards(FVector Target, float DeltaTime) {
 	this->SetActorLocation(this->GetActorLocation() + Move);
 }
 
-void AUnitPawn::UnitFaceTowards(FVector Target) {
+void AUnitPawn::UnitFaceTowards(FVector Target, float DeltaTime) {
 	FRotator CurrentRotation = this->GetActorRotation();
 	FVector CurrentLocation = this->GetActorLocation();
 
 	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(CurrentLocation, Target);
 
-	FRotator NewRotation = FRotator(CurrentRotation.Pitch, LookAtRotation.Yaw, CurrentRotation.Roll);
+	FRotator NewRotation = FRotator(FQuat::Slerp(CurrentRotation.Quaternion(), LookAtRotation.Quaternion(), DeltaTime * this->TurnSpeed));
 
 	this->OnUnitFace(NewRotation);
 	this->SetActorRotation(NewRotation);

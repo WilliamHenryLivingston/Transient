@@ -6,7 +6,7 @@ void AAIUnit::Tick(float DeltaTime) {
     if (this->FollowTarget != nullptr) {
         FVector FollowLocation = this->FollowTarget->GetActorLocation();
 
-        this->UnitFaceTowards(FollowLocation);
+        this->UnitFaceTowards(FollowLocation, DeltaTime);
 
         float Distance = (FollowLocation - this->GetActorLocation()).Length();
         if (Distance > 300.0f) {

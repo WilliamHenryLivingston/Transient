@@ -17,6 +17,9 @@ private:
 	float Speed = 200.0f;
 
 	UPROPERTY(EditAnywhere)
+	float TurnSpeed = 20.0f;
+
+	UPROPERTY(EditAnywhere)
 	float StrafeModifier = 0.5f;
 
 	UPROPERTY(EditAnywhere)
@@ -45,7 +48,7 @@ protected:
 protected:
 	void UnitMoveTowards(FVector Target, float DeltaTime);
 
-	void UnitFaceTowards(FVector Target);
+	void UnitFaceTowards(FVector Target, float DeltaTime);
 
 	void UnitSetTriggerPulled(bool NewTriggerPulled);
 

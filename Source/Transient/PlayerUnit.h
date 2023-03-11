@@ -18,6 +18,8 @@ private:
 
 	FVector2D MovementInput;
 
+	float CurrentForcedDilation;
+
 public:
 	APlayerUnit();
 
@@ -45,4 +47,10 @@ private:
 
 	UFUNCTION()
 	void InputRight(float AxisValue);
+
+	UFUNCTION()
+	void InputStartDilate();
+
+	UFUNCTION()
+	void InputStopDilate();
 };

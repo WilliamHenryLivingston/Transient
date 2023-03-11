@@ -6,6 +6,8 @@
 
 APlayerUnit::APlayerUnit() {
 	this->PrimaryActorTick.bCanEverTick = true;
+	
+	this->CurrentForcedDilation = 1.0f;
 
 	this->CameraComponent = this->CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	this->CameraComponent->SetupAttachment(this->RootComponent);
@@ -25,15 +27,19 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &APlayerUnit::InputStartFire);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &APlayerUnit::InputStopFire);
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &APlayerUnit::InputInteract);
+	PlayerInputComponent->BindAction("Dilate", IE_Pressed, this, &APlayerUnit::InputStartDilate);
+	PlayerInputComponent->BindAction("Dilate", IE_Released, this, &APlayerUnit::InputStopDilate);
 }
 
 void APlayerUnit::Tick(float DeltaTime) {
+	DeltaTime = DeltaTime * (1.0f / this->CurrentForcedDilation);
+
 	Super::Tick(DeltaTime);
 
 	FHitResult MouseHit = FHitResult();
 	this->GetWorld()->GetFirstPlayerController()->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery1, false, MouseHit);
 
-	this->UnitFaceTowards(MouseHit.ImpactPoint);
+	this->UnitFaceTowards(MouseHit.ImpactPoint, DeltaTime);
 
 	if (!this->MovementInput.IsZero())
 	{
@@ -77,4 +83,14 @@ void APlayerUnit::InputForward(float AxisValue) {
 
 void APlayerUnit::InputRight(float AxisValue) {
 	this->MovementInput.X = FMath::Clamp<float>(AxisValue, -1.0f, 1.0f);
+}
+
+void APlayerUnit::InputStartDilate() {
+	this->GetWorld()->GetWorldSettings()->SetTimeDilation(0.25);
+	this->CurrentForcedDilation = 0.25;
+}
+
+void APlayerUnit::InputStopDilate() {
+	this->GetWorld()->GetWorldSettings()->SetTimeDilation(1.0);
+	this->CurrentForcedDilation = 1.0;
 }
