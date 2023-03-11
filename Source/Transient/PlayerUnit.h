@@ -9,12 +9,8 @@
 #include "PlayerUnit.generated.h"
 
 UCLASS()
-class TRANSIENT_API APlayerUnit : public AUnitPawn
-{
+class TRANSIENT_API APlayerUnit : public AUnitPawn {
 	GENERATED_BODY()
-
-public:
-	APlayerUnit();
 
 private:
 	UPROPERTY(EditAnywhere)
@@ -22,16 +18,19 @@ private:
 
 	FVector2D MovementInput;
 
+public:
+	APlayerUnit();
+
+	virtual void Tick(float DeltaTime) override;
+
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
 protected:
 	virtual void BeginPlay() override;
 
 	virtual void OnUnitFace(FRotator Rotation) override;
 
-public:	
-	virtual void Tick(float DeltaTime) override;
-
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
+private:
 	UFUNCTION()
 	void InputStartFire();
 

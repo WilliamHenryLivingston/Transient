@@ -9,14 +9,10 @@
 #include "UnitPawn.generated.h"
 
 UCLASS()
-class TRANSIENT_API AUnitPawn : public APawn
-{
+class TRANSIENT_API AUnitPawn : public APawn {
 	GENERATED_BODY()
 
-public:
-	AUnitPawn();
-
-protected:
+private:
 	UPROPERTY(EditAnywhere)
 	float Speed = 200.0f;
 
@@ -32,29 +28,31 @@ protected:
 	UPROPERTY(EditAnywhere)
 	UStaticMeshComponent* VisibleComponent;
 
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* ColliderComponent;
+
 	UPROPERTY(EditInstanceOnly)
 	AWeaponActor* Weapon;
+
+public:
+	AUnitPawn();
+
+	virtual void Tick(float DeltaTime) override;
 
 protected:
 	virtual void BeginPlay() override;
 
+protected:
 	void UnitMoveTowards(FVector Target, float DeltaTime);
 
 	void UnitFaceTowards(FVector Target);
 
-	void UnitSetFiring(bool NewFiring);
+	void UnitSetTriggerPulled(bool NewTriggerPulled);
 
 	virtual void OnUnitFace(FRotator Rotation);
 	
-public:	
-	virtual void Tick(float DeltaTime) override;
-
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
+public:
 	void UnitTakeDamage(FDamageProfile* Profile);
 
 	void UnitEquipWeapon(AWeaponActor* TargetWeapon);
-
-private:
-	bool Firing;
 };

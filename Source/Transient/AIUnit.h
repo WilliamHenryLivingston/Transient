@@ -7,8 +7,7 @@
 #include "AIUnit.generated.h"
 
 UCLASS()
-class TRANSIENT_API AAIUnit : public AUnitPawn
-{
+class TRANSIENT_API AAIUnit : public AUnitPawn {
 	GENERATED_BODY()
 	
 private:

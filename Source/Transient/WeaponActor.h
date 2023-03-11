@@ -3,51 +3,36 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
+#include "ProjectileActor.h"
+
 #include "WeaponActor.generated.h"
 
-USTRUCT()
-struct FDamageProfile
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	float KineticDamage;
-};
-
 UCLASS()
-class TRANSIENT_API AWeaponActor : public AActor
-{
+class TRANSIENT_API AWeaponActor : public AActor {
 	GENERATED_BODY()
-	
-public:	
-	AWeaponActor();
 
-	UPROPERTY(EditAnywhere)
-	FDamageProfile DamageProfile;
-
-	UPROPERTY(EditAnywhere)
-	bool UseProjectile = true;
-
-	UPROPERTY(EditAnywhere)
-	float FireCooldown = 0.25f;
-	
-	UPROPERTY(EditAnywhere)
-	UStaticMesh* TempProjectileMesh;
-
-	UPROPERTY(EditAnywhere)
-	FVector MuzzleLocation;
+private:
 
 	UPROPERTY(EditAnywhere)
 	UStaticMeshComponent* VisibleComponent;
 
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* ColliderComponent;
+
+protected:
+	UPROPERTY(EditAnywhere)
+	FVector MuzzleLocation;
+
+	bool TriggerPulled;
+
+public:
+	AWeaponActor();
+
+	virtual void Tick(float DeltaTime) override;
+
 protected:
 	virtual void BeginPlay() override;
 
-public:	
-	virtual void Tick(float DeltaTime) override;
-
-	void WeaponFire();
-
-private:
-	float CurrentFireCooldown;
+public:
+	void WeaponSetTriggerPulled(bool NewTriggerPulled);
 };

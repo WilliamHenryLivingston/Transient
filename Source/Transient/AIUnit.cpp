@@ -1,21 +1,18 @@
 #include "AIUnit.h"
 
-void AAIUnit::Tick(float DeltaTime)
-{
+void AAIUnit::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
-    if (FollowTarget != nullptr)
-    {
-        FVector FollowLocation = FollowTarget->GetActorLocation();
+    if (this->FollowTarget != nullptr) {
+        FVector FollowLocation = this->FollowTarget->GetActorLocation();
 
-        UnitFaceTowards(FollowLocation);
+        this->UnitFaceTowards(FollowLocation);
 
-        float Distance = (FollowLocation - GetActorLocation()).Length();
-        if (Distance > 300.0f)
-        {
-            UnitMoveTowards(FollowLocation, DeltaTime);
+        float Distance = (FollowLocation - this->GetActorLocation()).Length();
+        if (Distance > 300.0f) {
+            this->UnitMoveTowards(FollowLocation, DeltaTime);
         }
 
-        UnitSetFiring(Distance < 600.0f);
+        this->UnitSetTriggerPulled(Distance < 600.0f);
     }
 }

@@ -3,98 +3,79 @@
 #include "Components/BoxComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
-AUnitPawn::AUnitPawn()
-{
-	PrimaryActorTick.bCanEverTick = true;
+AUnitPawn::AUnitPawn() {
+	this->PrimaryActorTick.bCanEverTick = true;
 
-	RootComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("RootCollider"));
-	UBoxComponent* Collider = (UBoxComponent*)RootComponent;
-	Collider->SetSimulatePhysics(true);
-	Collider->SetLinearDamping(20.0f);
-	Collider->BodyInstance.bLockXRotation = true;
-	Collider->BodyInstance.bLockYRotation = true;
-	Collider->SetEnableGravity(true);
-	Collider->SetCollisionProfileName(FName("Pawn"), true);
+	this->RootComponent = this->CreateDefaultSubobject<UBoxComponent>(TEXT("RootCollider"));
+	this->ColliderComponent = (UBoxComponent*)this->RootComponent;
+	this->ColliderComponent->SetSimulatePhysics(true);
+	this->ColliderComponent->SetLinearDamping(20.0f);
+	this->ColliderComponent->BodyInstance.bLockXRotation = true;
+	this->ColliderComponent->BodyInstance.bLockYRotation = true;
+	this->ColliderComponent->SetEnableGravity(true);
+	this->ColliderComponent->SetCollisionProfileName(FName("Pawn"), true);
 
-	VisibleComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Visible"));
-	VisibleComponent->SetupAttachment(RootComponent);
-	VisibleComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	this->VisibleComponent = this->CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Visible"));
+	this->VisibleComponent->SetupAttachment(this->RootComponent);
+	this->VisibleComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
-void AUnitPawn::BeginPlay()
-{
+void AUnitPawn::BeginPlay() {
 	Super::BeginPlay();
 
-	if (Weapon != nullptr)
-	{
-		UnitEquipWeapon(Weapon);
+	if (this->Weapon != nullptr) {
+		UnitEquipWeapon(this->Weapon);
 	}
 }
 
-void AUnitPawn::Tick(float DeltaTime)
-{
+void AUnitPawn::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
-
-	if (Firing && Weapon != nullptr)
-	{
-		Weapon->WeaponFire();
-	}
 }
 
-void AUnitPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-}
-
-void AUnitPawn::UnitMoveTowards(FVector Target, float DeltaTime)
-{
-	FVector Move = (Target - GetActorLocation()).GetSafeNormal() * Speed * DeltaTime;
-	FVector ActorForward = GetActorForwardVector();
+void AUnitPawn::UnitMoveTowards(FVector Target, float DeltaTime) {
+	FVector Move = (Target - this->GetActorLocation()).GetSafeNormal() * this->Speed * DeltaTime;
+	FVector ActorForward = this->GetActorForwardVector();
 
 	float Angle = acos(Move.Dot(ActorForward) / (Move.Length() * ActorForward.Length()));
-	if (Angle > StrafeConeAngle)
-	{
+	if (Angle > StrafeConeAngle) {
 		Target *= StrafeModifier;
 	}
 
-	SetActorLocation(GetActorLocation() + Move);
+	this->SetActorLocation(this->GetActorLocation() + Move);
 }
 
-void AUnitPawn::UnitFaceTowards(FVector Target)
-{
-	FRotator CurrentRotation = GetActorRotation();
-	FVector CurrentLocation = GetActorLocation();
+void AUnitPawn::UnitFaceTowards(FVector Target) {
+	FRotator CurrentRotation = this->GetActorRotation();
+	FVector CurrentLocation = this->GetActorLocation();
 
 	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(CurrentLocation, Target);
 
 	FRotator NewRotation = FRotator(CurrentRotation.Pitch, LookAtRotation.Yaw, CurrentRotation.Roll);
 
-	OnUnitFace(NewRotation);
-	SetActorRotation(NewRotation);
+	this->OnUnitFace(NewRotation);
+	this->SetActorRotation(NewRotation);
 }
 
-void AUnitPawn::UnitSetFiring(bool NewFiring)
-{
-	Firing = NewFiring;
+void AUnitPawn::UnitSetTriggerPulled(bool NewTriggerPulled) {
+	if (this->Weapon != nullptr) {
+		this->Weapon->WeaponSetTriggerPulled(NewTriggerPulled);
+	}
 }
 
-void AUnitPawn::UnitTakeDamage(FDamageProfile* Profile)
-{
-	Health -= Profile->KineticDamage;
+void AUnitPawn::UnitTakeDamage(FDamageProfile* Profile) {
+	this->Health -= Profile->KineticDamage;
+
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::SanitizeFloat(Health));
 }
 
-void AUnitPawn::UnitEquipWeapon(AWeaponActor* TargetWeapon)
-{
+void AUnitPawn::UnitEquipWeapon(AWeaponActor* NewWeapon) {
 	// TODO: Dequip current.
 
-	Weapon = TargetWeapon;
-	Weapon->AttachToActor(this, FAttachmentTransformRules(EAttachmentRule::KeepRelative, false));
-	Weapon->SetActorRelativeLocation(FVector(70.0f, 0.0f, 0.0f));
+	this->Weapon = NewWeapon;
+	this->Weapon->AttachToActor(this, FAttachmentTransformRules(EAttachmentRule::KeepRelative, false));
+	this->Weapon->SetActorRelativeLocation(FVector(70.0f, 0.0f, 0.0f));
 }
 
-void AUnitPawn::OnUnitFace(FRotator Rotation)
-{
+void AUnitPawn::OnUnitFace(FRotator Rotation) {
 
 }
