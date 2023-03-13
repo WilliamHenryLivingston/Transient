@@ -9,7 +9,6 @@ AUnitPawn::AUnitPawn() {
 	this->RootComponent = this->CreateDefaultSubobject<UBoxComponent>(TEXT("RootCollider"));
 	this->ColliderComponent = (UBoxComponent*)this->RootComponent;
 	this->ColliderComponent->SetSimulatePhysics(true);
-	this->ColliderComponent->SetLinearDamping(20.0f);
 	this->ColliderComponent->BodyInstance.bLockXRotation = true;
 	this->ColliderComponent->BodyInstance.bLockYRotation = true;
 	this->ColliderComponent->SetEnableGravity(true);
@@ -51,9 +50,10 @@ void AUnitPawn::UnitFaceTowards(FVector Target, float DeltaTime) {
 	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(CurrentLocation, Target);
 
 	FRotator NewRotation = FRotator(FQuat::Slerp(CurrentRotation.Quaternion(), LookAtRotation.Quaternion(), DeltaTime * this->TurnSpeed));
+	FRotator LockedNewRotation = FRotator(0.0f, NewRotation.Yaw, 0.0f);
 
-	this->OnUnitFace(NewRotation);
-	this->SetActorRotation(NewRotation);
+	this->OnUnitFace(LockedNewRotation);
+	this->SetActorRotation(LockedNewRotation);
 }
 
 void AUnitPawn::UnitSetTriggerPulled(bool NewTriggerPulled) {

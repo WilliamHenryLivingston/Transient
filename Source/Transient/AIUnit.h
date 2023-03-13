@@ -12,8 +12,18 @@ class TRANSIENT_API AAIUnit : public AUnitPawn {
 	
 private:
 	UPROPERTY(EditAnywhere)
-	AActor* FollowTarget;
+	float DetectionDistance = 60.0f;
+
+	UPROPERTY(EditAnywhere)
+	AActor* AgroTarget;
+
+	float IdleActionCooldown;
+
+	float IdleTargetYaw;
 
 public:	
 	virtual void Tick(float DeltaTime) override;
+
+private:
+	AActor* AICheckDetection();
 };
