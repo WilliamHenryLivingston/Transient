@@ -1,0 +1,10 @@
+GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("..."));
+
+#include "DrawDebugHelpers.h"
+
+    DrawDebugLine(
+        this->GetWorld(),
+        CurrentLocation, DetectionRayEnd,
+        FColor::Blue,
+        false, 1.0f, 0, 0.1f
+    );

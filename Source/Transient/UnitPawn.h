@@ -4,19 +4,20 @@
 #include "GameFramework/Pawn.h"
 #include "Components/BoxComponent.h"
 
+#include "WeaponActor.h"
+
 #include "UnitPawn.generated.h"
 
 UCLASS()
-class TRANSIENT_API AUnitPawn : public APawn
-{
+class TRANSIENT_API AUnitPawn : public APawn {
 	GENERATED_BODY()
 
-public:
-	AUnitPawn();
-
-protected:
+private:
 	UPROPERTY(EditAnywhere)
 	float Speed = 200.0f;
+
+	UPROPERTY(EditAnywhere)
+	float TurnSpeed = 20.0f;
 
 	UPROPERTY(EditAnywhere)
 	float StrafeModifier = 0.5f;
@@ -25,20 +26,42 @@ protected:
 	float StrafeConeAngle = 0.9f;
 
 	UPROPERTY(EditAnywhere)
+	float Health = 300.0f;
+
+	UPROPERTY(EditAnywhere)
 	UStaticMeshComponent* VisibleComponent;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* ColliderComponent;
+
+	UPROPERTY(EditInstanceOnly)
+	AWeaponActor* Weapon;
+
+public:
+	AUnitPawn();
+
+	virtual void Tick(float DeltaTime) override;
 
 protected:
 	virtual void BeginPlay() override;
 
+protected:
 	void UnitMoveTowards(FVector Target, float DeltaTime);
 
-	void UnitFaceTowards(FVector Target);
+	void UnitFaceTowards(FVector Target, float DeltaTime);
+
+	void UnitSetTriggerPulled(bool NewTriggerPulled);
 
 	virtual void OnUnitFace(FRotator Rotation);
 
-public:	
-	virtual void Tick(float DeltaTime) override;
+	TArray<AWeaponActor*> UnitGetNearbyWeapons();
+	
+public:
+	void UnitTakeDamage(FDamageProfile* Profile);
 
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	void UnitEquipWeapon(AWeaponActor* TargetWeapon);
 
+	AWeaponActor* UnitGetWeapon();
+	
+	void UnitDie();
 };

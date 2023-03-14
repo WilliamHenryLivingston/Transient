@@ -1,19 +1,44 @@
 #include "AIUnit.h"
 
-void AAIUnit::Tick(float DeltaTime)
-{
+void AAIUnit::BeginPlay() {
+	Super::BeginPlay();
+
+    this->NavNode = AAINavNode::AINavGraphNearestNode(this->GetActorLocation());
+}
+
+void AAIUnit::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
-    if (FollowTarget != nullptr)
-    {
-        FVector FollowLocation = FollowTarget->GetActorLocation();
+    if (this->AgroTarget != nullptr) {
+        FVector MoveTowards = this->AgroTarget->GetActorLocation();
 
-        UnitFaceTowards(FollowLocation);
-
-        float Distance = (FollowLocation - GetActorLocation()).Length();
-        if (Distance > 200.0f)
-        {
-            UnitMoveTowards(FollowLocation, DeltaTime);
-        }
+        this->UnitSetTriggerPulled((MoveTowards - this->GetActorLocation()).Length() < 600.0f);
+        this->UnitFaceTowards(MoveTowards, DeltaTime);
+        this->UnitMoveTowards(MoveTowards, DeltaTime);
     }
+
+    this->AgroTarget = this->AICheckDetection();
+}
+
+AUnitPawn* AAIUnit::AICheckDetection() {
+    FVector CurrentLocation = this->GetActorLocation();
+    FVector DetectionRayEnd = CurrentLocation + (this->GetActorRotation().RotateVector(FVector(this->DetectionDistance, 0.0f, 0.0f)));
+
+    FHitResult DetectionRayHit;
+
+    this->GetWorld()->DebugDrawTraceTag = "AIDetection";
+    FCollisionQueryParams DetectionRayParams = FCollisionQueryParams(FName("AIDetection"));
+    DetectionRayParams.AddIgnoredActor(this);
+
+    this->GetWorld()->LineTraceSingleByChannel(
+        DetectionRayHit,
+        CurrentLocation, DetectionRayEnd,
+        ECollisionChannel::ECC_Visibility, DetectionRayParams
+    );
+
+    AActor* AnyHitActor = DetectionRayHit.GetActor();
+
+    if (AnyHitActor == nullptr) return nullptr;
+
+    return Cast<AUnitPawn>(AnyHitActor);
 }

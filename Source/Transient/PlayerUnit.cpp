@@ -1,72 +1,96 @@
 #include "PlayerUnit.h"
 
+#include "Engine/EngineTypes.h"
 #include "Camera/CameraComponent.h"
 #include "Components/StaticMeshComponent.h"
 
-APlayerUnit::APlayerUnit()
-{
-	PrimaryActorTick.bCanEverTick = true;
+APlayerUnit::APlayerUnit() {
+	this->PrimaryActorTick.bCanEverTick = true;
+	
+	this->CurrentForcedDilation = 1.0f;
 
-	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	CameraComponent->SetupAttachment(RootComponent);
-	CameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 500.0f));
-	CameraComponent->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
+	this->CameraComponent = this->CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	this->CameraComponent->SetupAttachment(this->RootComponent);
+	this->CameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 500.0f));
+	this->CameraComponent->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
 
-	AutoPossessPlayer = EAutoReceiveInput::Player0;
+	this->AutoPossessPlayer = EAutoReceiveInput::Player0;
 }
 
-void APlayerUnit::BeginPlay()
-{
+void APlayerUnit::BeginPlay() {
 	Super::BeginPlay();
-
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("..."));
 }
 
-void APlayerUnit::Tick(float DeltaTime)
-{
+void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {
+	PlayerInputComponent->BindAxis("Forward", this, &APlayerUnit::InputForward);
+	PlayerInputComponent->BindAxis("Right", this, &APlayerUnit::InputRight);
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &APlayerUnit::InputStartFire);
+	PlayerInputComponent->BindAction("Fire", IE_Released, this, &APlayerUnit::InputStopFire);
+	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &APlayerUnit::InputInteract);
+	PlayerInputComponent->BindAction("Dilate", IE_Pressed, this, &APlayerUnit::InputStartDilate);
+	PlayerInputComponent->BindAction("Dilate", IE_Released, this, &APlayerUnit::InputStopDilate);
+}
+
+void APlayerUnit::Tick(float DeltaTime) {
+	DeltaTime = DeltaTime * (1.0f / this->CurrentForcedDilation);
+
 	Super::Tick(DeltaTime);
 
 	FHitResult MouseHit = FHitResult();
-	GetWorld()->GetFirstPlayerController()->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery1, false, MouseHit);
+	this->GetWorld()->GetFirstPlayerController()->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery1, false, MouseHit);
 
-	UnitFaceTowards(MouseHit.ImpactPoint);
+	this->UnitFaceTowards(MouseHit.ImpactPoint, DeltaTime);
 
-	if (!MovementInput.IsZero())
+	if (!this->MovementInput.IsZero())
 	{
-		MovementInput = MovementInput.GetSafeNormal() * 20.0f;
+		FVector2D AdjustedInput = this->MovementInput.GetSafeNormal() * 20.0f;
 
-		FVector NewLocation = GetActorLocation();
+		FVector NewLocation = this->GetActorLocation();
 
-		NewLocation += CameraComponent->GetRightVector() * MovementInput.X;
-		NewLocation += CameraComponent->GetUpVector() * MovementInput.Y;
+		NewLocation += this->CameraComponent->GetRightVector() * AdjustedInput.X;
+		NewLocation += this->CameraComponent->GetUpVector() * AdjustedInput.Y;
 
-		UnitMoveTowards(NewLocation, DeltaTime);
+		this->UnitMoveTowards(NewLocation, DeltaTime);
 	}
 }
 
-void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	PlayerInputComponent->BindAxis("Forward", this, &APlayerUnit::InputForward);
-	PlayerInputComponent->BindAxis("Right", this, &APlayerUnit::InputRight);
-	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &APlayerUnit::InputFire);
+void APlayerUnit::OnUnitFace(FRotator Rotation) {
+	this->CameraComponent->SetRelativeRotation(FRotator(-90.0f, -Rotation.Yaw, 0.0f));
 }
 
-void APlayerUnit::InputFire()
-{
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("fire"));
+void APlayerUnit::InputInteract() {
+	TArray<AWeaponActor*> CurrentNearbyWeapons = this->UnitGetNearbyWeapons();
+
+	if (CurrentNearbyWeapons.Num() > 0) {
+		this->UnitEquipWeapon(CurrentNearbyWeapons[0]);
+	}
+	else {
+		this->UnitEquipWeapon(nullptr);
+	}
 }
 
-void APlayerUnit::InputForward(float AxisValue)
-{
-	MovementInput.Y = FMath::Clamp<float>(AxisValue, -1.0f, 1.0f);
+void APlayerUnit::InputStartFire() {
+	this->UnitSetTriggerPulled(true);
 }
 
-void APlayerUnit::InputRight(float AxisValue)
-{
-	MovementInput.X = FMath::Clamp<float>(AxisValue, -1.0f, 1.0f);
+void APlayerUnit::InputStopFire() {
+	this->UnitSetTriggerPulled(false);
 }
 
-void APlayerUnit::OnUnitFace(FRotator Rotation)
-{
-	CameraComponent->SetRelativeRotation(FRotator(-90.0f, -Rotation.Yaw, 0.0f));
+void APlayerUnit::InputForward(float AxisValue) {
+	this->MovementInput.Y = FMath::Clamp<float>(AxisValue, -1.0f, 1.0f);
+}
+
+void APlayerUnit::InputRight(float AxisValue) {
+	this->MovementInput.X = FMath::Clamp<float>(AxisValue, -1.0f, 1.0f);
+}
+
+void APlayerUnit::InputStartDilate() {
+	this->GetWorld()->GetWorldSettings()->SetTimeDilation(0.25);
+	this->CurrentForcedDilation = 0.25;
+}
+
+void APlayerUnit::InputStopDilate() {
+	this->GetWorld()->GetWorldSettings()->SetTimeDilation(1.0);
+	this->CurrentForcedDilation = 1.0;
 }
