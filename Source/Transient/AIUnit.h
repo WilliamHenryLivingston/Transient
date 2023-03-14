@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 
 #include "UnitPawn.h"
+#include "AINavNode.h"
 
 #include "AIUnit.generated.h"
 
@@ -15,15 +16,16 @@ private:
 	float DetectionDistance = 60.0f;
 
 	UPROPERTY(EditAnywhere)
-	AActor* AgroTarget;
+	AUnitPawn* AgroTarget;
 
-	float IdleActionCooldown;
+	AAINavNode* NavNode;
 
-	float IdleTargetYaw;
-
-public:	
+public:
 	virtual void Tick(float DeltaTime) override;
 
+protected:
+	virtual void BeginPlay() override;
+
 private:
-	AActor* AICheckDetection();
+	AUnitPawn* AICheckDetection();
 };

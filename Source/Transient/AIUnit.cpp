@@ -1,37 +1,33 @@
 #include "AIUnit.h"
 
-#include "PlayerUnit.h"
+void AAIUnit::BeginPlay() {
+	Super::BeginPlay();
+
+    this->NavNode = AAINavNode::AINavGraphNearestNode(this->GetActorLocation());
+}
 
 void AAIUnit::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
+    FVector MoveTowards;
+
     if (this->AgroTarget != nullptr) {
-        FVector TargetLocation = this->AgroTarget->GetActorLocation();
+        MoveTowards = this->AgroTarget->GetActorLocation();
 
-        this->UnitFaceTowards(TargetLocation, DeltaTime);
-
-        float Distance = (TargetLocation - this->GetActorLocation()).Length();
-        if (Distance > 300.0f) {
-            this->UnitMoveTowards(TargetLocation, DeltaTime);
-        }
-
-        this->UnitSetTriggerPulled(Distance < 600.0f);
+        this->UnitSetTriggerPulled((MoveTowards - this->GetActorLocation()).Length() < 600.0f);
     }
     else {
-        if (this->IdleActionCooldown > 0.0f) {
-            this->IdleActionCooldown -= DeltaTime;
-        }
-        else {
-            this->IdleTargetYaw = this->GetActorRotation().Yaw + 10.0f;
-            this->IdleActionCooldown = 1.0f;
-        }
-        
-        this->UnitFaceTowards(FRotator(0.0f, this->IdleTargetYaw, 0.0f).RotateVector(FVector(10.0f, 0.0f, 0.0f)), DeltaTime);
+        // TODO: Pathfind patrol?
+        MoveTowards = this->NavNode->GetActorLocation();
+
         this->AgroTarget = this->AICheckDetection();
     }
+    
+    this->UnitFaceTowards(MoveTowards, DeltaTime);
+    this->UnitMoveTowards(MoveTowards, DeltaTime);
 }
 
-AActor* AAIUnit::AICheckDetection() {
+AUnitPawn* AAIUnit::AICheckDetection() {
     FVector CurrentLocation = this->GetActorLocation();
     FVector DetectionRayEnd = CurrentLocation + (this->GetActorRotation().RotateVector(FVector(this->DetectionDistance, 0.0f, 0.0f)));
 
@@ -51,7 +47,5 @@ AActor* AAIUnit::AICheckDetection() {
 
     if (AnyHitActor == nullptr) return nullptr;
 
-    if (Cast<APlayerUnit>(AnyHitActor) != nullptr) return AnyHitActor;
-
-    return nullptr;
+    return Cast<AUnitPawn>(AnyHitActor);
 }
