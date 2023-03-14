@@ -9,22 +9,15 @@ void AAIUnit::BeginPlay() {
 void AAIUnit::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
-    FVector MoveTowards;
-
     if (this->AgroTarget != nullptr) {
-        MoveTowards = this->AgroTarget->GetActorLocation();
+        FVector MoveTowards = this->AgroTarget->GetActorLocation();
 
         this->UnitSetTriggerPulled((MoveTowards - this->GetActorLocation()).Length() < 600.0f);
+        this->UnitFaceTowards(MoveTowards, DeltaTime);
+        this->UnitMoveTowards(MoveTowards, DeltaTime);
     }
-    else {
-        // TODO: Pathfind patrol?
-        MoveTowards = this->NavNode->GetActorLocation();
 
-        this->AgroTarget = this->AICheckDetection();
-    }
-    
-    this->UnitFaceTowards(MoveTowards, DeltaTime);
-    this->UnitMoveTowards(MoveTowards, DeltaTime);
+    this->AgroTarget = this->AICheckDetection();
 }
 
 AUnitPawn* AAIUnit::AICheckDetection() {

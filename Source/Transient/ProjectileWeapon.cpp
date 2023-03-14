@@ -12,9 +12,9 @@ void AProjectileWeapon::Tick(float DeltaTime) {
         FActorSpawnParameters SpawnInfo;
 
         AProjectileActor* Projectile = this->GetWorld()->SpawnActor<AProjectileActor>(this->ProjectileType, SpawnInfo);
-        Projectile->SetActorLocation(GetActorLocation() + (GetActorRotation().RotateVector(this->MuzzleLocation)));
-        Projectile->SetActorRotation(GetActorRotation());
+        Projectile->SetActorLocation(this->GetActorLocation() + (this->GetActorRotation().RotateVector(this->MuzzleLocation)));
+        Projectile->SetActorRotation(this->GetActorRotation());
 
-        this->CurrentFireCooldown = FireCooldownTime;
+        this->CurrentFireCooldown = this->FireCooldownTime;
     }
 }
