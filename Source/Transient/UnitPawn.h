@@ -5,6 +5,7 @@
 #include "Components/BoxComponent.h"
 
 #include "WeaponActor.h"
+#include "UnitAnimInstance.h"
 
 #include "UnitPawn.generated.h"
 
@@ -29,13 +30,19 @@ private:
 	float Health = 300.0f;
 
 	UPROPERTY(EditAnywhere)
-	UStaticMeshComponent* VisibleComponent;
-
-	UPROPERTY(EditAnywhere)
 	UBoxComponent* ColliderComponent;
 
 	UPROPERTY(EditInstanceOnly)
 	AWeaponActor* Weapon;
+
+	USkeletalMeshComponent* RigComponent;
+	UnitAnimInstance* Animation;
+
+	FVector MoveTarget;
+	bool HasMoveTarget;
+
+	FVector FaceTarget;
+	bool HasFaceTarget;
 
 public:
 	AUnitPawn();
@@ -46,13 +53,13 @@ protected:
 	virtual void BeginPlay() override;
 
 protected:
-	void UnitMoveTowards(FVector Target, float DeltaTime);
+	void UnitPostTick(float DeltaTime);
 
-	void UnitFaceTowards(FVector Target, float DeltaTime);
+	void UnitMoveTowards(FVector Target);
+
+	void UnitFaceTowards(FVector Target);
 
 	void UnitSetTriggerPulled(bool NewTriggerPulled);
-
-	virtual void OnUnitFace(FRotator Rotation);
 
 	TArray<AWeaponActor*> UnitGetNearbyWeapons();
 	

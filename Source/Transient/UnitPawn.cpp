@@ -13,10 +13,6 @@ AUnitPawn::AUnitPawn() {
 	this->ColliderComponent->BodyInstance.bLockYRotation = true;
 	this->ColliderComponent->SetEnableGravity(true);
 	this->ColliderComponent->SetCollisionProfileName(FName("Pawn"), true);
-
-	this->VisibleComponent = this->CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Visible"));
-	this->VisibleComponent->SetupAttachment(this->RootComponent);
-	this->VisibleComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AUnitPawn::BeginPlay() {
@@ -25,35 +21,59 @@ void AUnitPawn::BeginPlay() {
 	if (this->Weapon != nullptr) {
 		this->UnitEquipWeapon(this->Weapon);
 	}
+
+	this->RigComponent = Cast<USkeletalMeshComponent>(this->FindComponentByClass(USkeletalMeshComponent::StaticClass()));
+	if (this->RigComponent != nullptr) {
+		this->Animation = Cast<UnitAnimInstance>(this->RigComponent->GetAnimInstance());
+	}
 }
 
 void AUnitPawn::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
+
+	this->HasMoveTarget = false;
+	this->HasFaceTarget = false;
 }
 
-void AUnitPawn::UnitMoveTowards(FVector Target, float DeltaTime) {
-	FVector Move = (Target - this->GetActorLocation()).GetSafeNormal() * this->Speed * DeltaTime;
-	FVector ActorForward = this->GetActorForwardVector();
-
-	float Angle = acos(Move.Dot(ActorForward) / (Move.Length() * ActorForward.Length()));
-	if (Angle > StrafeConeAngle) {
-		Target *= StrafeModifier;
+void AUnitPawn::UnitPostTick(float DeltaTime) {
+	if (this->Animation != nullptr) {
+		this->Animation->ScriptAuto_IsMoving = this->HasMoveTarget;
 	}
 
-	this->SetActorLocation(this->GetActorLocation() + Move);
+	if (this->HasMoveTarget) {
+		FVector CurrentLocation = this->GetActorLocation();
+		FVector Move = (this->MoveTarget - CurrentLocation).GetSafeNormal() * this->Speed * DeltaTime;
+		FVector ActorForward = this->GetActorForwardVector();
+
+		float Angle = acos(Move.Dot(ActorForward) / (Move.Length() * ActorForward.Length()));
+		if (Angle > StrafeConeAngle) {
+			Move *= StrafeModifier;
+		}
+
+		this->SetActorLocation(CurrentLocation + Move);
+	}
+
+	if (this->HasFaceTarget) {
+		FRotator CurrentRotation = this->GetActorRotation();
+		FVector CurrentLocation = this->GetActorLocation();
+
+		FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(CurrentLocation, this->FaceTarget);
+
+		FRotator NewRotation = FRotator(FQuat::Slerp(CurrentRotation.Quaternion(), LookAtRotation.Quaternion(), DeltaTime * this->TurnSpeed));
+		FRotator LockedNewRotation = FRotator(0.0f, NewRotation.Yaw, 0.0f);
+
+		this->SetActorRotation(LockedNewRotation);
+	}
 }
 
-void AUnitPawn::UnitFaceTowards(FVector Target, float DeltaTime) {
-	FRotator CurrentRotation = this->GetActorRotation();
-	FVector CurrentLocation = this->GetActorLocation();
+void AUnitPawn::UnitMoveTowards(FVector Target) {
+	this->MoveTarget = Target;
+	this->HasMoveTarget = true;
+}
 
-	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(CurrentLocation, Target);
-
-	FRotator NewRotation = FRotator(FQuat::Slerp(CurrentRotation.Quaternion(), LookAtRotation.Quaternion(), DeltaTime * this->TurnSpeed));
-	FRotator LockedNewRotation = FRotator(0.0f, NewRotation.Yaw, 0.0f);
-
-	this->OnUnitFace(LockedNewRotation);
-	this->SetActorRotation(LockedNewRotation);
+void AUnitPawn::UnitFaceTowards(FVector Target) {
+	this->FaceTarget = Target;
+	this->HasFaceTarget = true;
 }
 
 void AUnitPawn::UnitSetTriggerPulled(bool NewTriggerPulled) {
@@ -112,8 +132,4 @@ TArray<AWeaponActor*> AUnitPawn::UnitGetNearbyWeapons() {
 	}
 
 	return NearbyWeapons;
-}
-
-void AUnitPawn::OnUnitFace(FRotator Rotation) {
-
 }

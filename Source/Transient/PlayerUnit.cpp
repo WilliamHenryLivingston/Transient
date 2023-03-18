@@ -3,16 +3,24 @@
 #include "Engine/EngineTypes.h"
 #include "Camera/CameraComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 
 APlayerUnit::APlayerUnit() {
 	this->PrimaryActorTick.bCanEverTick = true;
 	
 	this->CurrentForcedDilation = 1.0f;
 
+	this->CameraArmComponent = this->CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
+	this->CameraArmComponent->bInheritPitch = false;
+	this->CameraArmComponent->bInheritRoll = false;
+	this->CameraArmComponent->bInheritYaw = false;
+	this->CameraArmComponent->TargetArmLength = 500.0f;
+	this->CameraArmComponent->TargetOffset = FVector(0.0f, 0.0f, 300.0f);
+	this->CameraArmComponent->SetupAttachment(this->RootComponent);
+
 	this->CameraComponent = this->CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	this->CameraComponent->SetupAttachment(this->RootComponent);
-	this->CameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 500.0f));
-	this->CameraComponent->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
+	this->CameraComponent->SetupAttachment(this->CameraArmComponent);
+	this->CameraComponent->SetRelativeRotation(FRotator(-30.0f, 0.0f, 0.0f));
 
 	this->AutoPossessPlayer = EAutoReceiveInput::Player0;
 }
@@ -39,7 +47,7 @@ void APlayerUnit::Tick(float DeltaTime) {
 	FHitResult MouseHit = FHitResult();
 	this->GetWorld()->GetFirstPlayerController()->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery1, false, MouseHit);
 
-	this->UnitFaceTowards(MouseHit.ImpactPoint, DeltaTime);
+	this->UnitFaceTowards(MouseHit.ImpactPoint);
 
 	if (!this->MovementInput.IsZero())
 	{
@@ -47,15 +55,19 @@ void APlayerUnit::Tick(float DeltaTime) {
 
 		FVector NewLocation = this->GetActorLocation();
 
-		NewLocation += this->CameraComponent->GetRightVector() * AdjustedInput.X;
-		NewLocation += this->CameraComponent->GetUpVector() * AdjustedInput.Y;
+		FVector CameraRight = this->CameraComponent->GetRightVector();
+		CameraRight.Z = 0;
 
-		this->UnitMoveTowards(NewLocation, DeltaTime);
+		FVector CameraForward = this->CameraComponent->GetForwardVector();
+		CameraForward.Z = 0;
+
+		NewLocation += CameraRight * AdjustedInput.X;
+		NewLocation += CameraForward * AdjustedInput.Y;
+
+		this->UnitMoveTowards(NewLocation);
 	}
-}
-
-void APlayerUnit::OnUnitFace(FRotator Rotation) {
-	this->CameraComponent->SetRelativeRotation(FRotator(-90.0f, -Rotation.Yaw, 0.0f));
+	
+    this->UnitPostTick(DeltaTime);
 }
 
 void APlayerUnit::InputInteract() {

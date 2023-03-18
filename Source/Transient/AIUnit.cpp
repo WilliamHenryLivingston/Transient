@@ -13,11 +13,13 @@ void AAIUnit::Tick(float DeltaTime) {
         FVector MoveTowards = this->AgroTarget->GetActorLocation();
 
         this->UnitSetTriggerPulled((MoveTowards - this->GetActorLocation()).Length() < 600.0f);
-        this->UnitFaceTowards(MoveTowards, DeltaTime);
-        this->UnitMoveTowards(MoveTowards, DeltaTime);
+        this->UnitFaceTowards(MoveTowards);
+        this->UnitMoveTowards(MoveTowards);
     }
 
     this->AgroTarget = this->AICheckDetection();
+
+    this->UnitPostTick(DeltaTime);
 }
 
 AUnitPawn* AAIUnit::AICheckDetection() {

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 
 #include "UnitPawn.h"
 
@@ -15,6 +16,9 @@ class TRANSIENT_API APlayerUnit : public AUnitPawn {
 private:
 	UPROPERTY(EditAnywhere)
 	UCameraComponent* CameraComponent;
+
+	UPROPERTY(EditAnywhere)
+	USpringArmComponent* CameraArmComponent;
 
 	FVector2D MovementInput;
 
@@ -29,8 +33,6 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-
-	virtual void OnUnitFace(FRotator Rotation) override;
 
 private:
 	UFUNCTION()
