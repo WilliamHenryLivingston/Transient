@@ -10,14 +10,31 @@ void AAIUnit::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
     if (this->AgroTarget != nullptr) {
-        FVector MoveTowards = this->AgroTarget->GetActorLocation();
+        if (this->WeaponItem != nullptr && this->WeaponItem->WeaponEmpty()) {
+            this->UnitReload();
+        }
+        else {
+            FVector MoveTowards = this->AgroTarget->GetActorLocation();
 
-        this->UnitSetTriggerPulled((MoveTowards - this->GetActorLocation()).Length() < 600.0f);
-        this->UnitFaceTowards(MoveTowards);
-        this->UnitMoveTowards(MoveTowards);
+            float Distance = (MoveTowards - this->GetActorLocation()).Length();
+
+            this->UnitSetTriggerPulled(Distance < 600.0f);
+
+            FVector Forward = this->GetActorForwardVector();
+            FVector Move = MoveTowards - this->GetActorLocation();
+            float Angle = acos(Move.Dot(Forward) / (Move.Length() * Forward.Length()));
+            if (Angle > 0.25f) {
+                this->UnitFaceTowards(MoveTowards);
+            }
+
+            if (Distance > 300.0f) {
+                this->UnitMoveTowards(MoveTowards);
+            }
+        }
     }
-
-    this->AgroTarget = this->AICheckDetection();
+    else {
+        this->AgroTarget = this->AICheckDetection();
+    }
 
     this->UnitPostTick(DeltaTime);
 }

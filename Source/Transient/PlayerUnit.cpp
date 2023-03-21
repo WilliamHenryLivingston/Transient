@@ -27,6 +27,18 @@ APlayerUnit::APlayerUnit() {
 
 void APlayerUnit::BeginPlay() {
 	Super::BeginPlay();
+	
+	// Discover child mesh hosts. TODO copy pasted
+	TArray<UStaticMeshComponent*> StaticMeshComponents;
+	this->GetComponents(StaticMeshComponents, true);
+	for (int i = 0; i < StaticMeshComponents.Num(); i++) {
+		UStaticMeshComponent* Check = StaticMeshComponents[i];
+
+		FString Name = Check->GetName();
+		if (Name.Equals("AimIndicator")) {
+			this->AimIndicatorComponent = Check;
+		}
+	}
 }
 
 void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {
@@ -37,6 +49,7 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &APlayerUnit::InputInteract);
 	PlayerInputComponent->BindAction("Dilate", IE_Pressed, this, &APlayerUnit::InputStartDilate);
 	PlayerInputComponent->BindAction("Dilate", IE_Released, this, &APlayerUnit::InputStopDilate);
+	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &APlayerUnit::InputReload);
 }
 
 void APlayerUnit::Tick(float DeltaTime) {
@@ -48,6 +61,8 @@ void APlayerUnit::Tick(float DeltaTime) {
 	this->GetWorld()->GetFirstPlayerController()->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery1, false, MouseHit);
 
 	this->UnitFaceTowards(MouseHit.ImpactPoint);
+
+	this->AimIndicatorComponent->SetWorldLocation(MouseHit.ImpactPoint);
 
 	if (!this->MovementInput.IsZero())
 	{
@@ -71,14 +86,35 @@ void APlayerUnit::Tick(float DeltaTime) {
 }
 
 void APlayerUnit::InputInteract() {
-	TArray<AWeaponActor*> CurrentNearbyWeapons = this->UnitGetNearbyWeapons();
+	TArray<AItemActor*> NearbyItems = AItemActor::ItemsGetNearby(this->GetActorLocation(), 100);
 
-	if (CurrentNearbyWeapons.Num() > 0) {
-		this->UnitEquipWeapon(CurrentNearbyWeapons[0]);
+	bool TookAction = false;
+	for (int i = 0; i < NearbyItems.Num(); i++) {
+		AItemActor* Check = NearbyItems[i];
+
+		AWeaponItem* AsWeapon = Cast<AWeaponItem>(Check);
+		if (AsWeapon != nullptr) {
+			this->UnitEquipWeapon(AsWeapon);
+			return;
+		}
+
+		AArmorItem* AsArmor = Cast<AArmorItem>(Check);
+		if (AsArmor != nullptr) {
+			this->UnitEquipArmor(AsArmor);
+			return;
+		}
 	}
-	else {
+	
+	if (this->WeaponItem != nullptr) {
 		this->UnitEquipWeapon(nullptr);
 	}
+	else {
+		this->UnitEquipArmor(nullptr);
+	}
+}
+
+void APlayerUnit::InputReload() {
+	this->UnitReload();
 }
 
 void APlayerUnit::InputStartFire() {

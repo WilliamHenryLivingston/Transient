@@ -18,14 +18,36 @@ AUnitPawn::AUnitPawn() {
 void AUnitPawn::BeginPlay() {
 	Super::BeginPlay();
 
-	if (this->Weapon != nullptr) {
-		this->UnitEquipWeapon(this->Weapon);
+	this->RigComponent = Cast<USkeletalMeshComponent>(this->FindComponentByClass(USkeletalMeshComponent::StaticClass()));
+	this->Animation = Cast<UnitAnimInstance>(this->RigComponent->GetAnimInstance());
+
+	// Discover child mesh hosts.
+	TArray<UStaticMeshComponent*> StaticMeshComponents;
+	this->GetComponents(StaticMeshComponents, true);
+	for (int i = 0; i < StaticMeshComponents.Num(); i++) {
+		UStaticMeshComponent* Check = StaticMeshComponents[i];
+
+		FString Name = Check->GetName();
+		if (Name.Equals("WeaponHost")) {
+			this->WeaponHostComponent = Check;
+		}
+		else if (Name.Equals("ArmorHost")) {
+			this->ArmorHostComponent = Check;
+		}
+		else if (Name.Equals("BackWeaponHost")) {
+			this->BackWeaponHostComponent = Check;
+		}
 	}
 
-	this->RigComponent = Cast<USkeletalMeshComponent>(this->FindComponentByClass(USkeletalMeshComponent::StaticClass()));
-	if (this->RigComponent != nullptr) {
-		this->Animation = Cast<UnitAnimInstance>(this->RigComponent->GetAnimInstance());
+	// Equip editor-set items.
+	this->OverrideArmState = true;
+	if (this->WeaponItem != nullptr) {
+		this->UnitEquipWeapon(this->WeaponItem);
 	}
+	if (this->ArmorItem != nullptr) {
+		this->UnitEquipArmor(this->ArmorItem);
+	}
+	this->OverrideArmState = false;
 }
 
 void AUnitPawn::Tick(float DeltaTime) {
@@ -36,9 +58,17 @@ void AUnitPawn::Tick(float DeltaTime) {
 }
 
 void AUnitPawn::UnitPostTick(float DeltaTime) {
-	if (this->Animation != nullptr) {
-		this->Animation->ScriptAuto_IsMoving = this->HasMoveTarget;
+	EUnitAnimMovementState MovementState = EUnitAnimMovementState::None;
+
+	if (this->ReloadTimer > 0.0f) {
+		this->ReloadTimer -= DeltaTime;
 	}
+	this->Animation->Script_Reloading = this->ReloadTimer > 0.0f;
+
+	if (this->InteractTimer > 0.0f) {
+		this->InteractTimer -= DeltaTime;
+	}
+	this->Animation->Script_Interacting = this->InteractTimer > 0.0f;
 
 	if (this->HasMoveTarget) {
 		FVector CurrentLocation = this->GetActorLocation();
@@ -50,8 +80,28 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 			Move *= StrafeModifier;
 		}
 
+		// Cleanup + left / right anims flipped?
+		float AngleDeg = FMath::RadiansToDegrees(
+			atan2(
+				(ActorForward.X * Move.X) + (ActorForward.Y * Move.Y),
+				(ActorForward.X * Move.Y) + (ActorForward.Y * Move.X)
+			)
+		) + 180.0f;
+		if (abs(AngleDeg - 45.0f) < 90.0f) {
+			MovementState = EUnitAnimMovementState::WalkBwd;
+		}
+		else if (abs(AngleDeg - (45.0f * 3.0f)) < 90.0f) {
+			MovementState = EUnitAnimMovementState::WalkLeft;
+		}
+		else if (abs(AngleDeg - (45.0f * 5.0f)) < 90.0f) {
+			MovementState = EUnitAnimMovementState::WalkFwd;
+		}
+		else {
+			MovementState = EUnitAnimMovementState::WalkRight;
+		}
 		this->SetActorLocation(CurrentLocation + Move);
 	}
+	this->Animation->Script_MovementState = MovementState;
 
 	if (this->HasFaceTarget) {
 		FRotator CurrentRotation = this->GetActorRotation();
@@ -66,6 +116,22 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	}
 }
 
+FVector AUnitPawn::ItemHolderGetLocation() {
+	return this->GetActorLocation();
+}
+
+FVector AUnitPawn::ItemHolderGetWeaponOffset() {
+	return this->WeaponOffset;
+}
+
+FRotator AUnitPawn::ItemHolderGetRotation() {
+	return this->GetActorRotation();
+}
+
+void AUnitPawn::UnitTriggerGenericInteraction() {
+	this->InteractTimer = this->InteractAnimTime;
+}
+
 void AUnitPawn::UnitMoveTowards(FVector Target) {
 	this->MoveTarget = Target;
 	this->HasMoveTarget = true;
@@ -76,16 +142,40 @@ void AUnitPawn::UnitFaceTowards(FVector Target) {
 	this->HasFaceTarget = true;
 }
 
-void AUnitPawn::UnitSetTriggerPulled(bool NewTriggerPulled) {
-	if (this->Weapon != nullptr) {
-		this->Weapon->WeaponSetTriggerPulled(NewTriggerPulled);
-	}
+bool AUnitPawn::UnitArmsOccupied() {
+	return this->InteractTimer > 0.0f || this->ReloadTimer > 0.0f;
 }
 
-void AUnitPawn::UnitTakeDamage(FDamageProfile* Profile) {
-	this->Health -= Profile->KineticDamage;
+void AUnitPawn::UnitReload() {
+	if (this->WeaponItem == nullptr || this->UnitArmsOccupied()) return;
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::SanitizeFloat(Health));
+	this->UnitSetTriggerPulled(false);
+	this->WeaponItem->WeaponSwapMagazines(30);
+	this->ReloadTimer = this->WeaponItem->ReloadTime;
+}
+
+void AUnitPawn::UnitSetTriggerPulled(bool NewTriggerPulled) {
+	if (this->WeaponItem == nullptr || this->UnitArmsOccupied()) return;
+
+	this->WeaponItem->WeaponSetTriggerPulled(NewTriggerPulled);
+}
+
+void AUnitPawn::UnitTakeDamage(FDamageProfile Profile) {
+	float Kinetic = Profile.KineticDamage;
+	if (this->ArmorItem != nullptr) {
+		if (Kinetic >= this->ArmorItem->Health) {
+			Kinetic -= this->ArmorItem->Health;
+
+			AArmorItem* Armor = this->ArmorItem;
+			this->UnitEquipArmor(nullptr);
+			Armor->Destroy();
+		}
+		else {
+			this->ArmorItem->Health -= Kinetic;
+			Kinetic = 0;
+		}
+	}
+	this->Health -= Kinetic;
 
 	if (this->Health <= 0.0f) {
 		this->UnitDie();
@@ -93,43 +183,56 @@ void AUnitPawn::UnitTakeDamage(FDamageProfile* Profile) {
 }
 
 void AUnitPawn::UnitDie() {
-	if (this->Weapon != nullptr) {
+	this->OverrideArmState = true;
+	if (this->WeaponItem != nullptr) {
 		this->UnitEquipWeapon(nullptr);
+	}
+	if (this->ArmorItem != nullptr) {
+		this->UnitEquipArmor(nullptr);
 	}
 
 	this->Destroy();
 }
 
-void AUnitPawn::UnitEquipWeapon(AWeaponActor* NewWeapon) {
-	if (this->Weapon != nullptr && this->Weapon != NewWeapon) {
-		this->Weapon->WeaponOnDequip();
-		this->Weapon = nullptr;
+void AUnitPawn::UnitEquipWeapon(AWeaponItem* NewWeapon) {
+	if (this->UnitArmsOccupied() && !this->OverrideArmState) return;
+
+	this->UnitTriggerGenericInteraction();
+
+	if (this->WeaponItem != nullptr && this->WeaponItem != NewWeapon) {
+		this->UnitSetTriggerPulled(false);
+		this->WeaponItem->ItemDequip(this);
+		this->WeaponItem = nullptr;
+
+		this->WeaponHostComponent->SetStaticMesh(nullptr);
+		this->Animation->Script_ArmsMode = EUnitAnimArmsMode::Empty;
 	}
 
 	if (NewWeapon != nullptr) {
-		this->Weapon = NewWeapon;
-		this->Weapon->WeaponOnEquip(this);
+		this->WeaponItem = NewWeapon;
+
+		this->Animation->Script_ArmsMode = this->WeaponItem->EquippedAnimArmsMode;
+		this->WeaponHostComponent->SetStaticMesh(this->WeaponItem->EquippedMesh);
+		this->WeaponItem->ItemEquip(this);
 	}
 }
 
-AWeaponActor* AUnitPawn::UnitGetWeapon() {
-	return this->Weapon;
-}
+void AUnitPawn::UnitEquipArmor(AArmorItem* NewArmor) {
+	if (this->UnitArmsOccupied() && !this->OverrideArmState) return;
 
-TArray<AWeaponActor*> AUnitPawn::UnitGetNearbyWeapons() {
-	FVector CurrentLocation = this->GetActorLocation();
+	this->UnitTriggerGenericInteraction();
 
-	TArray<AWeaponActor*> NearbyWeapons;
+	if (this->ArmorItem != nullptr && this->ArmorItem != NewArmor) {
+		this->ArmorItem->ItemDequip(this);
+		this->ArmorItem = nullptr;
 
-	for (int i = 0; i < AWeaponActor::WorldItems.Num(); i++) {
-		AWeaponActor* CheckWeapon = AWeaponActor::WorldItems[i];
-
-		float Distance = (CheckWeapon->GetActorLocation() - CurrentLocation).Size();
-
-		if (Distance < 100.0f) {
-			NearbyWeapons.Push(CheckWeapon);
-		}
+		this->ArmorHostComponent->SetStaticMesh(nullptr);
 	}
 
-	return NearbyWeapons;
+	if (NewArmor != nullptr) {
+		this->ArmorItem = NewArmor;
+
+		this->ArmorHostComponent->SetStaticMesh(this->ArmorItem->EquippedMesh);
+		this->ArmorItem->ItemEquip(this);
+	}
 }

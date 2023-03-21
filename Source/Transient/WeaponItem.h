@@ -5,18 +5,24 @@
 
 #include "ProjectileActor.h"
 
-#include "WeaponActor.generated.h"
+#include "ItemActor.h"
+#include "UnitAnimInstance.h"
+
+#include "WeaponItem.generated.h"
 
 UCLASS()
-class TRANSIENT_API AWeaponActor : public AActor {
+class TRANSIENT_API AWeaponItem : public AItemActor {
 	GENERATED_BODY()
 
-private:
+public:
 	UPROPERTY(EditAnywhere)
-	UStaticMeshComponent* VisibleComponent;
+	UStaticMesh* EquippedMesh;
 
 	UPROPERTY(EditAnywhere)
-	UBoxComponent* ColliderComponent;
+	EUnitAnimArmsMode EquippedAnimArmsMode;
+
+	UPROPERTY(EditAnywhere)
+	float ReloadTime;
 
 protected:
 	UPROPERTY(EditAnywhere)
@@ -25,10 +31,7 @@ protected:
 	bool TriggerPulled;
 
 public:
-	static TArray<AWeaponActor*> WorldItems;
-
-public:
-	AWeaponActor();
+	AWeaponItem();
 
 	virtual void Tick(float DeltaTime) override;
 
@@ -38,7 +41,7 @@ protected:
 public:
 	void WeaponSetTriggerPulled(bool NewTriggerPulled);
 
-	void WeaponOnEquip(AActor* Unit);
+	virtual void WeaponSwapMagazines(int NewAmmoCount);
 
-	void WeaponOnDequip();
+	virtual bool WeaponEmpty();
 };

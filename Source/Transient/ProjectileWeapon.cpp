@@ -8,13 +8,34 @@ void AProjectileWeapon::Tick(float DeltaTime) {
         return;
     }
 
-    if (this->TriggerPulled) {
+    // Sanity check.
+    if (this->CurrentHolder == nullptr) {
+        this->TriggerPulled = false;
+    }
+
+    if (this->TriggerPulled && this->CurrentMagazine > 0) {
         FActorSpawnParameters SpawnInfo;
 
-        AProjectileActor* Projectile = this->GetWorld()->SpawnActor<AProjectileActor>(this->ProjectileType, SpawnInfo);
-        Projectile->SetActorLocation(this->GetActorLocation() + (this->GetActorRotation().RotateVector(this->MuzzleLocation)));
-        Projectile->SetActorRotation(this->GetActorRotation());
+        FRotator HolderRotation = this->CurrentHolder->ItemHolderGetRotation();
+
+        FVector FullWeaponOffset = this->CurrentHolder->ItemHolderGetWeaponOffset() + this->MuzzleLocation;
+
+        AProjectileActor* Projectile = this->GetWorld()->SpawnActor<AProjectileActor>(
+            this->ProjectileType,
+            this->CurrentHolder->ItemHolderGetLocation() + (HolderRotation.RotateVector(FullWeaponOffset)),
+            HolderRotation,
+            SpawnInfo
+        );
 
         this->CurrentFireCooldown = this->FireCooldownTime;
+        this->CurrentMagazine--;
     }
+}
+
+void AProjectileWeapon::WeaponSwapMagazines(int NewAmmoCount) {
+    this->CurrentMagazine = NewAmmoCount;
+}
+
+bool AProjectileWeapon::WeaponEmpty() {
+	return this->CurrentMagazine == 0;
 }

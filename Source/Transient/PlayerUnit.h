@@ -24,6 +24,8 @@ private:
 
 	float CurrentForcedDilation;
 
+	UStaticMeshComponent* AimIndicatorComponent;
+
 public:
 	APlayerUnit();
 
@@ -55,4 +57,7 @@ private:
 
 	UFUNCTION()
 	void InputStopDilate();
+
+	UFUNCTION()
+	void InputReload();
 };
