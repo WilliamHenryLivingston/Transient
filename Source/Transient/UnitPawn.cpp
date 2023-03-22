@@ -24,6 +24,7 @@ void AUnitPawn::BeginPlay() {
 	// Discover child mesh hosts.
 	TArray<UStaticMeshComponent*> StaticMeshComponents;
 	this->GetComponents(StaticMeshComponents, true);
+
 	for (int i = 0; i < StaticMeshComponents.Num(); i++) {
 		UStaticMeshComponent* Check = StaticMeshComponents[i];
 
@@ -37,6 +38,16 @@ void AUnitPawn::BeginPlay() {
 		else if (Name.Equals("BackWeaponHost")) {
 			this->BackWeaponHostComponent = Check;
 		}
+		else if (Name.Equals("MagazineReloadHostComponent")) {
+			this->MagazineReloadHostComponent = Check;
+		}
+		else if (Name.Contains("EquipmentMagazine")) {
+			this->MagazineHostComponents.Push(Check);
+		}
+	}
+
+	if (this->MagazineHostComponents.Num() > 0) {
+		this->MagazineCapacity = this->MagazineHostComponents.Num();
 	}
 
 	// Equip editor-set items.
@@ -53,12 +64,22 @@ void AUnitPawn::BeginPlay() {
 void AUnitPawn::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
+	this->HasStaminaDrain = false;
 	this->HasMoveTarget = false;
 	this->HasFaceTarget = false;
 }
 
 void AUnitPawn::UnitPostTick(float DeltaTime) {
 	EUnitAnimMovementState MovementState = EUnitAnimMovementState::None;
+
+	this->Animation->Script_TorsoYRotation = -this->RootPitch;
+
+	if (!this->HasStaminaDrain) {
+		this->Stamina += 10.0f * DeltaTime;
+		if (this->Stamina > this->MaxStamina) {
+			this->Stamina = this->MaxStamina;
+		}
+	}
 
 	if (this->ReloadTimer > 0.0f) {
 		this->ReloadTimer -= DeltaTime;
@@ -69,6 +90,11 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		this->InteractTimer -= DeltaTime;
 	}
 	this->Animation->Script_Interacting = this->InteractTimer > 0.0f;
+
+	if (this->Crouching) {
+		this->HasMoveTarget = false;
+		MovementState = EUnitAnimMovementState::Crouch;
+	}
 
 	if (this->HasMoveTarget) {
 		FVector CurrentLocation = this->GetActorLocation();
@@ -121,11 +147,18 @@ FVector AUnitPawn::ItemHolderGetLocation() {
 }
 
 FVector AUnitPawn::ItemHolderGetWeaponOffset() {
-	return this->WeaponOffset;
+	FVector AdjustedOffset = this->WeaponOffset;
+	if (this->Crouching) {
+		AdjustedOffset.Z *= 0.66f;
+	}
+	
+	return AdjustedOffset;
 }
 
 FRotator AUnitPawn::ItemHolderGetRotation() {
-	return this->GetActorRotation();
+	FRotator Rotation = this->GetActorRotation();
+	Rotation.Pitch = this->RootPitch;
+	return Rotation;
 }
 
 void AUnitPawn::UnitTriggerGenericInteraction() {
@@ -149,8 +182,25 @@ bool AUnitPawn::UnitArmsOccupied() {
 void AUnitPawn::UnitReload() {
 	if (this->WeaponItem == nullptr || this->UnitArmsOccupied()) return;
 
+	int MagazineIndex = -1;
+	for (int i = 0; i < this->Magazines.Num(); i++) {
+		// TODO: Smarter.
+		if (this->Magazines[i]->AmmoTypeID == this->WeaponItem->AmmoTypeID) {
+			MagazineIndex = i;
+			break;
+		}
+	}
+
+	if (MagazineIndex == -1) return;
+	AMagazineItem* Magazine = this->Magazines[MagazineIndex];
+	this->Magazines.RemoveAt(MagazineIndex);
+
 	this->UnitSetTriggerPulled(false);
-	this->WeaponItem->WeaponSwapMagazines(30);
+	this->WeaponItem->WeaponSwapMagazines(Magazine->Ammo);
+	Magazine->ItemDestroy();
+	
+	this->UnitUpdateMagazineMeshes();
+
 	this->ReloadTimer = this->WeaponItem->ReloadTime;
 }
 
@@ -158,6 +208,33 @@ void AUnitPawn::UnitSetTriggerPulled(bool NewTriggerPulled) {
 	if (this->WeaponItem == nullptr || this->UnitArmsOccupied()) return;
 
 	this->WeaponItem->WeaponSetTriggerPulled(NewTriggerPulled);
+}
+
+void AUnitPawn::UnitUpdateHostMesh(UStaticMeshComponent* Host, UStaticMesh* Target) {
+	if (Host == nullptr) return;
+	
+	Host->SetStaticMesh(Target);
+}
+
+void AUnitPawn::UnitUpdateMagazineMeshes() {
+	for (int i = 0; i < this->MagazineHostComponents.Num(); i++) {
+		if (i < this->Magazines.Num()) {
+			this->MagazineHostComponents[i]->SetStaticMesh(this->Magazines[i]->EquippedMesh);
+		}
+		else {
+			this->MagazineHostComponents[i]->SetStaticMesh(nullptr);
+		}
+	}
+}
+
+bool AUnitPawn::UnitDrainStamina(float Amount) {
+	if (this->Stamina > Amount) {
+		this->Stamina -= Amount;
+		this->HasStaminaDrain = true;
+		return true;
+	}
+
+	return false;
 }
 
 void AUnitPawn::UnitTakeDamage(FDamageProfile Profile) {
@@ -168,7 +245,7 @@ void AUnitPawn::UnitTakeDamage(FDamageProfile Profile) {
 
 			AArmorItem* Armor = this->ArmorItem;
 			this->UnitEquipArmor(nullptr);
-			Armor->Destroy();
+			Armor->ItemDestroy();
 		}
 		else {
 			this->ArmorItem->Health -= Kinetic;
@@ -187,52 +264,141 @@ void AUnitPawn::UnitDie() {
 	if (this->WeaponItem != nullptr) {
 		this->UnitEquipWeapon(nullptr);
 	}
+	if (this->BackWeaponItem != nullptr) {
+		this->BackWeaponItem->ItemDequip(this);
+	}
 	if (this->ArmorItem != nullptr) {
 		this->UnitEquipArmor(nullptr);
+	}
+	for (int i = 0; i < this->Magazines.Num(); i++) {
+		this->Magazines[i]->ItemDequip(this);
 	}
 
 	this->Destroy();
 }
 
-void AUnitPawn::UnitEquipWeapon(AWeaponItem* NewWeapon) {
+void AUnitPawn::UnitSwapWeapons() {
+	if (this->UnitArmsOccupied()) return;
+
+	this->UnitTriggerGenericInteraction();
+
+	this->UnitSetTriggerPulled(false);
+
+	if (this->ActiveWeaponSlot == 0) {
+		this->ActiveWeaponSlot = 1;
+	}
+	else {
+		this->ActiveWeaponSlot = 0;
+	}
+
+	AWeaponItem* PreviousActive = this->WeaponItem;
+	if (this->BackWeaponItem != nullptr) {
+		this->UnitUpdateHostMesh(this->WeaponHostComponent, this->BackWeaponItem->EquippedMesh);
+		this->Animation->Script_ArmsMode = this->BackWeaponItem->EquippedAnimArmsMode;
+	}
+	else {
+		this->UnitUpdateHostMesh(this->WeaponHostComponent, nullptr);
+		this->Animation->Script_ArmsMode = EUnitAnimArmsMode::Empty;
+	}
+	this->WeaponItem = this->BackWeaponItem;
+
+	if (PreviousActive != nullptr && !PreviousActive->CanHolster) {
+		PreviousActive->ItemDequip(this);
+		PreviousActive = nullptr;
+	}
+
+	if (PreviousActive != nullptr) {
+		this->UnitUpdateHostMesh(this->BackWeaponHostComponent, PreviousActive->EquippedMesh);
+	}
+	else {
+		this->UnitUpdateHostMesh(this->BackWeaponHostComponent, nullptr);
+	}
+	this->BackWeaponItem = PreviousActive;
+}
+
+void AUnitPawn::UnitEquipItem(AItemActor* TargetItem) {
+	if (TargetItem == nullptr) return;
+
+	AWeaponItem* AsWeapon = Cast<AWeaponItem>(TargetItem);
+	if (AsWeapon != nullptr) {
+		this->UnitEquipWeapon(AsWeapon);
+		return;
+	}
+
+	AArmorItem* AsArmor = Cast<AArmorItem>(TargetItem);
+	if (AsArmor != nullptr) {
+		this->UnitEquipArmor(AsArmor);
+		return;
+	}
+
+	AMagazineItem* AsMagazine = Cast<AMagazineItem>(TargetItem);
+	if (AsMagazine != nullptr) {
+		this->UnitEquipMagazine(AsMagazine);
+		return;
+	}
+}
+
+void AUnitPawn::UnitEquipMagazine(AMagazineItem* TargetItem) {
 	if (this->UnitArmsOccupied() && !this->OverrideArmState) return;
 
 	this->UnitTriggerGenericInteraction();
 
-	if (this->WeaponItem != nullptr && this->WeaponItem != NewWeapon) {
+	if (this->Magazines.Num() >= this->MagazineHostComponents.Num()) {
+		int RemoveIndex = 0; // TODO: Smart decide.
+
+		this->Magazines[RemoveIndex]->ItemDequip(this);
+		this->Magazines.RemoveAt(RemoveIndex);
+	}
+
+	TargetItem->ItemEquip(this);
+	this->Magazines.Push(TargetItem);
+
+	this->UnitUpdateMagazineMeshes();
+}
+
+void AUnitPawn::UnitEquipWeapon(AWeaponItem* TargetWeapon) {
+	if (this->UnitArmsOccupied() && !this->OverrideArmState) return;
+
+	if (this->WeaponItem == nullptr && TargetWeapon == nullptr) return;
+
+	this->UnitTriggerGenericInteraction();
+
+	if (this->WeaponItem != nullptr && this->WeaponItem != TargetWeapon) {
 		this->UnitSetTriggerPulled(false);
 		this->WeaponItem->ItemDequip(this);
 		this->WeaponItem = nullptr;
 
-		this->WeaponHostComponent->SetStaticMesh(nullptr);
+		this->UnitUpdateHostMesh(this->WeaponHostComponent, nullptr);
 		this->Animation->Script_ArmsMode = EUnitAnimArmsMode::Empty;
 	}
 
-	if (NewWeapon != nullptr) {
-		this->WeaponItem = NewWeapon;
+	if (TargetWeapon != nullptr) {
+		this->WeaponItem = TargetWeapon;
 
 		this->Animation->Script_ArmsMode = this->WeaponItem->EquippedAnimArmsMode;
-		this->WeaponHostComponent->SetStaticMesh(this->WeaponItem->EquippedMesh);
+		this->UnitUpdateHostMesh(this->WeaponHostComponent, this->WeaponItem->EquippedMesh);
 		this->WeaponItem->ItemEquip(this);
 	}
 }
 
-void AUnitPawn::UnitEquipArmor(AArmorItem* NewArmor) {
+void AUnitPawn::UnitEquipArmor(AArmorItem* TargetArmor) {
 	if (this->UnitArmsOccupied() && !this->OverrideArmState) return;
+
+	if (this->ArmorItem == nullptr && TargetArmor == nullptr) return;
 
 	this->UnitTriggerGenericInteraction();
 
-	if (this->ArmorItem != nullptr && this->ArmorItem != NewArmor) {
+	if (this->ArmorItem != nullptr && this->ArmorItem != TargetArmor) {
 		this->ArmorItem->ItemDequip(this);
 		this->ArmorItem = nullptr;
 
-		this->ArmorHostComponent->SetStaticMesh(nullptr);
+		this->UnitUpdateHostMesh(this->ArmorHostComponent, nullptr);
 	}
 
-	if (NewArmor != nullptr) {
-		this->ArmorItem = NewArmor;
+	if (TargetArmor != nullptr) {
+		this->ArmorItem = TargetArmor;
 
-		this->ArmorHostComponent->SetStaticMesh(this->ArmorItem->EquippedMesh);
+		this->UnitUpdateHostMesh(this->ArmorHostComponent, this->ArmorItem->EquippedMesh);
 		this->ArmorItem->ItemEquip(this);
 	}
 }

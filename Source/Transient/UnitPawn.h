@@ -5,6 +5,7 @@
 #include "Components/BoxComponent.h"
 
 #include "ItemActor.h"
+#include "MagazineItem.h"
 #include "WeaponItem.h"
 #include "ArmorItem.h"
 #include "UnitAnimInstance.h"
@@ -32,10 +33,19 @@ private:
 	float Health = 300.0f;
 
 	UPROPERTY(EditAnywhere)
+	float MaxHealth = 300.0f;
+
+	UPROPERTY(EditAnywhere)
+	float Stamina = 300.0f;
+
+	UPROPERTY(EditAnywhere);
+	float MaxStamina = 300.0f;
+
+	UPROPERTY(EditAnywhere)
 	float InteractAnimTime = 1.0f;
 
 	UPROPERTY(EditAnywhere)
-	FVector WeaponOffset;
+	int MagazineCapacity;
 
 	UPROPERTY(EditAnywhere)
 	UBoxComponent* ColliderComponent;
@@ -44,8 +54,9 @@ private:
 	UStaticMeshComponent* WeaponHostComponent;
 	UStaticMeshComponent* ArmorHostComponent;
 	UStaticMeshComponent* BackWeaponHostComponent;
+	UStaticMeshComponent* MagazineReloadHostComponent;
 	USkeletalMeshComponent* RigComponent;
-	UnitAnimInstance* Animation;
+	TArray<UStaticMeshComponent*> MagazineHostComponents;
 
 	// Child class targeting.
 	FVector MoveTarget;
@@ -53,39 +64,62 @@ private:
 	FVector FaceTarget;
 	bool HasFaceTarget;
 
-	// Timers.
+	// Internal state.
 	float ReloadTimer;
 	float InteractTimer;
 
+	bool HasStaminaDrain;
+
 protected:
-	UPROPERTY(EditInstanceOnly)
+	UPROPERTY(EditAnywhere)
+	FVector WeaponOffset;
+
+	UPROPERTY(EditAnywhere)
 	AWeaponItem* WeaponItem;
 	
-	UPROPERTY(EditInstanceOnly)
+	UPROPERTY(EditAnywhere)
 	AWeaponItem* BackWeaponItem;
 	
-	UPROPERTY(EditInstanceOnly)
+	UPROPERTY(EditAnywhere)
 	AArmorItem* ArmorItem;
 
-private:
-	bool OverrideArmState;
+	UPROPERTY(EditAnywhere)
+	TArray<AMagazineItem*> Magazines;
 
+	UnitAnimInstance* Animation;
+
+	bool OverrideArmState;
+	
+	int ActiveWeaponSlot;
+
+	float RootPitch;
+
+	bool Crouching;
+
+// AActor.
 public:
 	AUnitPawn();
 
 	virtual void Tick(float DeltaTime) override;
 
+protected:
+	virtual void BeginPlay() override;
+
+// IItemHolder.
+public:
 	virtual FVector ItemHolderGetLocation() override;
 
 	virtual FRotator ItemHolderGetRotation() override;
 
 	virtual FVector ItemHolderGetWeaponOffset() override;
 
-protected:
-	virtual void BeginPlay() override;
-
+// Exposures.
 private:
 	void UnitTriggerGenericInteraction();
+
+	void UnitUpdateMagazineMeshes();
+
+	void UnitUpdateHostMesh(UStaticMeshComponent* Host, UStaticMesh* Target);
 
 protected:
 	void UnitPostTick(float DeltaTime);
@@ -96,16 +130,24 @@ protected:
 
 	void UnitSetTriggerPulled(bool NewTriggerPulled);
 
+	bool UnitDrainStamina(float Amount);
+
 	bool UnitArmsOccupied();
 
 	void UnitReload();
-	
+
+	void UnitSwapWeapons();
+
 public:
 	void UnitTakeDamage(FDamageProfile Profile);
+
+	void UnitEquipItem(AItemActor* TargetItem);
 
 	void UnitEquipWeapon(AWeaponItem* TargetWeapon);
 	
 	void UnitEquipArmor(AArmorItem* TargetArmor);
+
+	void UnitEquipMagazine(AMagazineItem* TargetMagazine);
 
 	void UnitDie();
 };

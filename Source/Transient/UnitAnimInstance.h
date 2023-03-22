@@ -8,6 +8,7 @@
 UENUM(BlueprintType)
 enum class EUnitAnimMovementState : uint8 {
     None,
+    Crouch,
     WalkFwd,
     WalkLeft,
     WalkRight,
@@ -41,6 +42,11 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
     bool Script_Interacting;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
+    float Script_TimeDilation;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
+    float Script_TorsoYRotation;
 public:
 	UnitAnimInstance();
 };

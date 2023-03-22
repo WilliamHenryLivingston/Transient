@@ -44,6 +44,7 @@ TArray<AItemActor*> AItemActor::ItemsGetNearby(FVector Location, float Reach) {
 
 	for (int i = 0; i < AItemActor::WorldItems.Num(); i++) {
 		AItemActor* Check = AItemActor::WorldItems[i];
+		if (Check == nullptr) continue;
 
 		float Distance = (Check->GetActorLocation() - Location).Size();
 
@@ -55,3 +56,8 @@ TArray<AItemActor*> AItemActor::ItemsGetNearby(FVector Location, float Reach) {
 	return NearbyItems;
 }
 
+void AItemActor::ItemDestroy() {
+	AItemActor::WorldItems.Remove(this);
+
+	this->Destroy();
+}

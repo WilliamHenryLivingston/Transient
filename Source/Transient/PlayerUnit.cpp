@@ -4,6 +4,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 APlayerUnit::APlayerUnit() {
 	this->PrimaryActorTick.bCanEverTick = true;
@@ -50,22 +51,56 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Dilate", IE_Pressed, this, &APlayerUnit::InputStartDilate);
 	PlayerInputComponent->BindAction("Dilate", IE_Released, this, &APlayerUnit::InputStopDilate);
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &APlayerUnit::InputReload);
+	PlayerInputComponent->BindAction("SlotA", IE_Pressed, this, &APlayerUnit::InputSwapWeaponA);
+	PlayerInputComponent->BindAction("SlotB", IE_Pressed, this, &APlayerUnit::InputSwapWeaponB);
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &APlayerUnit::InputStartCrouch);
+	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &APlayerUnit::InputEndCrouch);
 }
 
 void APlayerUnit::Tick(float DeltaTime) {
+	this->GetWorld()->GetWorldSettings()->SetTimeDilation(this->CurrentForcedDilation);
+	
+	float RawDeltaTime = DeltaTime;
 	DeltaTime = DeltaTime * (1.0f / this->CurrentForcedDilation);
+	this->Animation->Script_TimeDilation = this->CurrentForcedDilation;
 
 	Super::Tick(DeltaTime);
+	
+	if (this->WantsDilate && this->UnitDrainStamina(50.0f * RawDeltaTime)) {
+		this->CurrentForcedDilation = FMath::Max(0.25f, this->CurrentForcedDilation - (RawDeltaTime * 3.0f));
+		this->CameraComponent->PostProcessBlendWeight = FMath::Min(1.0f, this->CameraComponent->PostProcessBlendWeight + (RawDeltaTime * 3.0f));
+	}
+	else {
+		this->CurrentForcedDilation = FMath::Min(1.0f, this->CurrentForcedDilation + (RawDeltaTime * 3.0f));
+		this->CameraComponent->PostProcessBlendWeight = FMath::Max(0.0f, this->CameraComponent->PostProcessBlendWeight - (RawDeltaTime * 3.0f));
+	}
 
 	FHitResult MouseHit = FHitResult();
 	this->GetWorld()->GetFirstPlayerController()->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery1, false, MouseHit);
 
-	this->UnitFaceTowards(MouseHit.ImpactPoint);
-
+	AActor* HitActor = MouseHit.GetActor();
 	this->AimIndicatorComponent->SetWorldLocation(MouseHit.ImpactPoint);
+	if (HitActor != this) {
+		if (HitActor == nullptr || HitActor->Tags.Contains(FName("Ground"))) {
+			this->RootPitch = FMath::Max(0.0f, this->RootPitch - (RawDeltaTime * 90.0f));
+		}
+		else {
+			FRotator LookRotation = UKismetMathLibrary::FindLookAtRotation(this->GetActorLocation() + this->WeaponOffset, MouseHit.ImpactPoint);
+			if (LookRotation.Pitch > this->RootPitch) {
+				this->RootPitch = FMath::Min(LookRotation.Pitch, this->RootPitch + (RawDeltaTime * 90.0f));
+			}
+			else {
+				this->RootPitch = FMath::Max(LookRotation.Pitch, this->RootPitch - (RawDeltaTime * 90.0f));
+			}
+		}
 
-	if (!this->MovementInput.IsZero())
-	{
+		this->UnitFaceTowards(MouseHit.ImpactPoint);
+	}
+	else {
+		this->RootPitch = FMath::Max(0.0f, this->RootPitch - (RawDeltaTime * 5.0f));
+	}
+
+	if (!this->MovementInput.IsZero()) {
 		FVector2D AdjustedInput = this->MovementInput.GetSafeNormal() * 20.0f;
 
 		FVector NewLocation = this->GetActorLocation();
@@ -86,26 +121,12 @@ void APlayerUnit::Tick(float DeltaTime) {
 }
 
 void APlayerUnit::InputInteract() {
-	TArray<AItemActor*> NearbyItems = AItemActor::ItemsGetNearby(this->GetActorLocation(), 100);
+	TArray<AItemActor*> NearbyItems = AItemActor::ItemsGetNearby(this->GetActorLocation(), 100.0f);
 
-	bool TookAction = false;
-	for (int i = 0; i < NearbyItems.Num(); i++) {
-		AItemActor* Check = NearbyItems[i];
-
-		AWeaponItem* AsWeapon = Cast<AWeaponItem>(Check);
-		if (AsWeapon != nullptr) {
-			this->UnitEquipWeapon(AsWeapon);
-			return;
-		}
-
-		AArmorItem* AsArmor = Cast<AArmorItem>(Check);
-		if (AsArmor != nullptr) {
-			this->UnitEquipArmor(AsArmor);
-			return;
-		}
+	if (NearbyItems.Num() > 0) {
+		this->UnitEquipItem(NearbyItems[0]);
 	}
-	
-	if (this->WeaponItem != nullptr) {
+	else if (this->WeaponItem != nullptr) {
 		this->UnitEquipWeapon(nullptr);
 	}
 	else {
@@ -134,11 +155,29 @@ void APlayerUnit::InputRight(float AxisValue) {
 }
 
 void APlayerUnit::InputStartDilate() {
-	this->GetWorld()->GetWorldSettings()->SetTimeDilation(0.25);
-	this->CurrentForcedDilation = 0.25;
+	this->WantsDilate = true;
 }
 
 void APlayerUnit::InputStopDilate() {
-	this->GetWorld()->GetWorldSettings()->SetTimeDilation(1.0);
-	this->CurrentForcedDilation = 1.0;
+	this->WantsDilate = false;
+}
+
+void APlayerUnit::InputSwapWeaponA() {
+	if (this->ActiveWeaponSlot != 0) {
+		this->UnitSwapWeapons();
+	}
+}
+
+void APlayerUnit::InputSwapWeaponB() {
+	if (this->ActiveWeaponSlot != 1) {
+		this->UnitSwapWeapons();
+	}
+}
+
+void APlayerUnit::InputStartCrouch() {
+	this->Crouching = true;
+}
+
+void APlayerUnit::InputEndCrouch() {
+	this->Crouching = false;
 }

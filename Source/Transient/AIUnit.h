@@ -13,12 +13,20 @@ class TRANSIENT_API AAIUnit : public AUnitPawn {
 	
 private:
 	UPROPERTY(EditAnywhere)
+	TSubclassOf<AMagazineItem> AutoSpawnMagazine;
+
+	UPROPERTY(EditAnywhere)
 	float DetectionDistance = 60.0f;
 
 	UPROPERTY(EditAnywhere)
 	AUnitPawn* AgroTarget;
 
-	AAINavNode* NavNode;
+	UPROPERTY(EditAnywhere)
+	TArray<AAINavNode*> Patrol;
+
+	float AttackTime;
+
+	int PatrolNext;
 
 public:
 	virtual void Tick(float DeltaTime) override;

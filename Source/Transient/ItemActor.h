@@ -39,4 +39,6 @@ public:
 	virtual void ItemEquip(IItemHolder* Target);
 
 	virtual void ItemDequip(IItemHolder* Target);
+	
+	void ItemDestroy();
 };

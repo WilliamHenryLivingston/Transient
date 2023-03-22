@@ -24,6 +24,12 @@ public:
 	UPROPERTY(EditAnywhere)
 	float ReloadTime;
 
+	UPROPERTY(EditAnywhere)
+	bool CanHolster = true;
+
+	UPROPERTY(EditAnywhere)
+	int AmmoTypeID;
+
 protected:
 	UPROPERTY(EditAnywhere)
 	FVector MuzzleLocation;

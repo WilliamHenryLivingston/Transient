@@ -39,8 +39,6 @@ void AAINavNode::BeginPlay() {
 
 void AAINavNode::Tick(float DeltaTime) {
 	if (!AAINavNode::WorldGraphComplete) {
-		UE_LOG(LogTemp, Warning, TEXT("graph completion (%d)"), AAINavNode::WorldGraph.Num());
-
 		for (int i = 0; i < AAINavNode::WorldGraph.Num(); i++) {
 			AAINavNode* Current = AAINavNode::WorldGraph[i];
 
@@ -48,8 +46,6 @@ void AAINavNode::Tick(float DeltaTime) {
 				if (i == j) continue;
 
 				AAINavNode* Check = AAINavNode::WorldGraph[j];
-
-				UE_LOG(LogTemp, Warning, TEXT("%s vs %s"), *Current->GetName(), *Check->GetName());
 
 				if (Check->Neighbors.Contains(Current) && !Current->Neighbors.Contains(Check)) {
 					Current->Neighbors.Push(Check);

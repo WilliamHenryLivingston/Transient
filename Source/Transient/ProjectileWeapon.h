@@ -12,13 +12,13 @@ class TRANSIENT_API AProjectileWeapon : public AWeaponItem {
 
 private:
 	UPROPERTY(EditAnywhere)
+	float Spread = 3.0f; // Would be cool set in ammo.
+
+	UPROPERTY(EditAnywhere)
 	TSubclassOf<AProjectileActor> ProjectileType;
 
 	UPROPERTY(EditAnywhere)
 	float FireCooldownTime = 0.25f;
-
-	UPROPERTY(EditAnywhere)
-	int MagazineCapacity = 10;
 
 	float CurrentFireCooldown = 0.0f;
 

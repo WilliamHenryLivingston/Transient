@@ -22,6 +22,8 @@ private:
 
 	FVector2D MovementInput;
 
+	bool WantsDilate;
+
 	float CurrentForcedDilation;
 
 	UStaticMeshComponent* AimIndicatorComponent;
@@ -37,27 +39,27 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
-	UFUNCTION()
 	void InputStartFire();
 
-	UFUNCTION()
 	void InputStopFire();
 
-	UFUNCTION()
 	void InputInteract();
 
-	UFUNCTION()
 	void InputForward(float AxisValue);
 
-	UFUNCTION()
 	void InputRight(float AxisValue);
 
-	UFUNCTION()
 	void InputStartDilate();
 
-	UFUNCTION()
 	void InputStopDilate();
 
-	UFUNCTION()
 	void InputReload();
+	
+	void InputSwapWeaponA();
+	
+	void InputSwapWeaponB();
+
+	void InputStartCrouch();
+
+	void InputEndCrouch();
 };
