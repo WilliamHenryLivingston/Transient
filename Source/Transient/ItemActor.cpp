@@ -35,7 +35,12 @@ void AItemActor::ItemDequip(IItemHolder* Target) {
 	AItemActor::WorldItems.Push(this);
 
 	this->CurrentHolder = nullptr;
-	this->SetActorLocation(Target->ItemHolderGetLocation());
+
+	FVector DropLocation = Target->ItemHolderGetLocation();
+	DropLocation.X += FMath::RandRange(-50.0f, 50.0f);
+	DropLocation.Y += FMath::RandRange(-50.0f, 50.0f);
+	this->SetActorLocation(DropLocation);
+
 	this->SetActorHiddenInGame(false);
 }
 

@@ -11,3 +11,7 @@ FVector IItemHolder::ItemHolderGetWeaponOffset() {
 FRotator IItemHolder::ItemHolderGetRotation() {
     return FRotator();
 }
+
+void IItemHolder::ItemHolderPlaySound(USoundBase* Target) {
+    return;
+}

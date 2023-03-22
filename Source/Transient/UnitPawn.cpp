@@ -21,6 +21,8 @@ void AUnitPawn::BeginPlay() {
 	this->RigComponent = Cast<USkeletalMeshComponent>(this->FindComponentByClass(USkeletalMeshComponent::StaticClass()));
 	this->Animation = Cast<UnitAnimInstance>(this->RigComponent->GetAnimInstance());
 
+	this->AudioComponent = Cast<UAudioComponent>(this->FindComponentByClass(UAudioComponent::StaticClass()));
+
 	// Discover child mesh hosts.
 	TArray<UStaticMeshComponent*> StaticMeshComponents;
 	this->GetComponents(StaticMeshComponents, true);
@@ -63,6 +65,8 @@ void AUnitPawn::BeginPlay() {
 
 void AUnitPawn::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
+
+	this->AudioComponent->PitchMultiplier = this->GetWorld()->GetWorldSettings()->GetEffectiveTimeDilation();
 
 	this->HasStaminaDrain = false;
 	this->HasMoveTarget = false;
@@ -140,6 +144,12 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 
 		this->SetActorRotation(LockedNewRotation);
 	}
+}
+
+void AUnitPawn::ItemHolderPlaySound(USoundBase* Sound) {
+	if (Sound == nullptr) return;
+	this->AudioComponent->Sound = Sound;
+	this->AudioComponent->Play(0.0f);
 }
 
 FVector AUnitPawn::ItemHolderGetLocation() {

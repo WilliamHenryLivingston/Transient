@@ -18,4 +18,6 @@ public:
 	virtual FVector ItemHolderGetLocation();
 
 	virtual FRotator ItemHolderGetRotation();
+
+	virtual void ItemHolderPlaySound(USoundBase* Target);
 };

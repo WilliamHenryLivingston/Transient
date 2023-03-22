@@ -18,6 +18,15 @@ private:
 	TSubclassOf<AProjectileActor> ProjectileType;
 
 	UPROPERTY(EditAnywhere)
+	USoundBase* ShootSound;
+	
+	UPROPERTY(EditAnywhere)
+	USoundBase* ReloadSound;
+
+	UPROPERTY(EditAnywhere)
+	USoundBase* EmptySound;
+
+	UPROPERTY(EditAnywhere)
 	float FireCooldownTime = 0.25f;
 
 	float CurrentFireCooldown = 0.0f;

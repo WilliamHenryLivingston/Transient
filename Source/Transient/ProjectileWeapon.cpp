@@ -23,6 +23,8 @@ void AProjectileWeapon::Tick(float DeltaTime) {
         SpreadRotation.Roll += FMath::RandRange(-this->Spread, this->Spread);
         SpreadRotation.Pitch += FMath::RandRange(-this->Spread, this->Spread);
 
+        this->CurrentHolder->ItemHolderPlaySound(this->ShootSound);
+
         AProjectileActor* Projectile = this->GetWorld()->SpawnActor<AProjectileActor>(
             this->ProjectileType,
             this->CurrentHolder->ItemHolderGetLocation() + (HolderRotation.RotateVector(FullWeaponOffset)),
@@ -33,9 +35,16 @@ void AProjectileWeapon::Tick(float DeltaTime) {
         this->CurrentFireCooldown = this->FireCooldownTime;
         this->CurrentMagazine--;
     }
+    else if (this->TriggerPulled) {
+        this->TriggerPulled = false;
+
+        this->CurrentHolder->ItemHolderPlaySound(this->EmptySound);
+    }
 }
 
 void AProjectileWeapon::WeaponSwapMagazines(int NewAmmoCount) {
+    this->CurrentHolder->ItemHolderPlaySound(this->ReloadSound);
+
     this->CurrentMagazine = NewAmmoCount;
 }
 

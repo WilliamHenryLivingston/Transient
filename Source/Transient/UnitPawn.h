@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "Components/BoxComponent.h"
+#include "Components/AudioComponent.h"
 
 #include "ItemActor.h"
 #include "MagazineItem.h"
@@ -72,6 +73,9 @@ private:
 
 protected:
 	UPROPERTY(EditAnywhere)
+	UAudioComponent* AudioComponent;
+
+	UPROPERTY(EditAnywhere)
 	FVector WeaponOffset;
 
 	UPROPERTY(EditAnywhere)
@@ -112,6 +116,8 @@ public:
 	virtual FRotator ItemHolderGetRotation() override;
 
 	virtual FVector ItemHolderGetWeaponOffset() override;
+
+	virtual void ItemHolderPlaySound(USoundBase* Sound) override;
 
 // Exposures.
 private:
