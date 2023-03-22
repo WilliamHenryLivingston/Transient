@@ -3,15 +3,17 @@
 #include "Components/BoxComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
+#include "EquippedMeshConfig.h"
+
 AUnitPawn::AUnitPawn() {
 	this->PrimaryActorTick.bCanEverTick = true;
 
 	this->RootComponent = this->CreateDefaultSubobject<UBoxComponent>(TEXT("RootCollider"));
 	this->ColliderComponent = (UBoxComponent*)this->RootComponent;
 	this->ColliderComponent->SetSimulatePhysics(true);
+	this->ColliderComponent->SetEnableGravity(true);
 	this->ColliderComponent->BodyInstance.bLockXRotation = true;
 	this->ColliderComponent->BodyInstance.bLockYRotation = true;
-	this->ColliderComponent->SetEnableGravity(true);
 	this->ColliderComponent->SetCollisionProfileName(FName("Pawn"), true);
 }
 
@@ -48,10 +50,6 @@ void AUnitPawn::BeginPlay() {
 		}
 	}
 
-	if (this->MagazineHostComponents.Num() > 0) {
-		this->MagazineCapacity = this->MagazineHostComponents.Num();
-	}
-
 	// Equip editor-set items.
 	this->OverrideArmState = true;
 	if (this->WeaponItem != nullptr) {
@@ -69,6 +67,12 @@ void AUnitPawn::Tick(float DeltaTime) {
 	this->AudioComponent->PitchMultiplier = this->GetWorld()->GetWorldSettings()->GetEffectiveTimeDilation();
 
 	this->HasStaminaDrain = false;
+	if (this->HasMoveTarget) {
+		this->LastMoveTarget = this->MoveTarget;
+	}
+	else {
+		this->LastMoveTarget = this->GetActorLocation();
+	}
 	this->HasMoveTarget = false;
 	this->HasFaceTarget = false;
 }
@@ -95,6 +99,15 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	}
 	this->Animation->Script_Interacting = this->InteractTimer > 0.0f;
 
+	if (this->JumpTimer > 0.0f) {
+		this->JumpTimer -= DeltaTime;
+
+		// TODO: private this->Crouching instead.
+		this->Crouching = false;
+		this->HasMoveTarget = true;
+		this->MoveTarget = JumpMoveTarget;
+	}
+	
 	if (this->Crouching) {
 		this->HasMoveTarget = false;
 		MovementState = EUnitAnimMovementState::Crouch;
@@ -103,6 +116,10 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	if (this->HasMoveTarget) {
 		FVector CurrentLocation = this->GetActorLocation();
 		FVector Move = (this->MoveTarget - CurrentLocation).GetSafeNormal() * this->Speed * DeltaTime;
+		Move.Z = 0;
+		if (this->JumpTimer > 0.0f) {
+			Move *= 1.5f;
+		}
 		FVector ActorForward = this->GetActorForwardVector();
 
 		float Angle = acos(Move.Dot(ActorForward) / (Move.Length() * ActorForward.Length()));
@@ -131,6 +148,11 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		}
 		this->SetActorLocation(CurrentLocation + Move);
 	}
+
+	if (this->JumpTimer > 0.0f) {
+		MovementState = EUnitAnimMovementState::Jump;
+	}
+
 	this->Animation->Script_MovementState = MovementState;
 
 	if (this->HasFaceTarget) {
@@ -169,6 +191,37 @@ FRotator AUnitPawn::ItemHolderGetRotation() {
 	FRotator Rotation = this->GetActorRotation();
 	Rotation.Pitch = this->RootPitch;
 	return Rotation;
+}
+
+float AUnitPawn::ItemHolderGetSpreadModifier() {
+	if (this->Crouching) {
+		return 0.5f;
+	}
+	return 1.0f;
+}
+
+void AUnitPawn::UnitSetCrouched(bool NewCrouch) {
+	if (this->JumpTimer > 0.0f) {
+		NewCrouch = false;
+	} 
+
+	this->Crouching = NewCrouch;
+}
+
+bool AUnitPawn::UnitIsCrouched() {
+	return this->Crouching;
+}
+
+void AUnitPawn::UnitJump() {
+	if (this->JumpTimer > 0.0f || this->Crouching) return;
+
+	this->ColliderComponent->AddImpulse(FVector(0.0f, 0.0f, this->JumpStrength), FName("None"), true);
+	this->JumpTimer = this->JumpTime;
+	this->JumpMoveTarget = this->LastMoveTarget;
+}
+
+bool AUnitPawn::UnitIsJumping() {
+	return this->JumpTimer > 0.0f;
 }
 
 void AUnitPawn::UnitTriggerGenericInteraction() {
@@ -220,19 +273,31 @@ void AUnitPawn::UnitSetTriggerPulled(bool NewTriggerPulled) {
 	this->WeaponItem->WeaponSetTriggerPulled(NewTriggerPulled);
 }
 
-void AUnitPawn::UnitUpdateHostMesh(UStaticMeshComponent* Host, UStaticMesh* Target) {
+void AUnitPawn::UnitUpdateHostMesh(UStaticMeshComponent* Host, FEquippedMeshConfig* Config, bool AltRotation) {
 	if (Host == nullptr) return;
 	
-	Host->SetStaticMesh(Target);
+	if (Config != nullptr) {
+		Host->SetStaticMesh(Config->Mesh);
+		Host->SetRelativeScale3D(Config->Scale);
+		if (AltRotation) {
+			Host->SetRelativeRotation(Config->AltRotation);
+		}
+		else {
+			Host->SetRelativeRotation(Config->Rotation);
+		}
+	}
+	else {
+		Host->SetStaticMesh(nullptr);
+	}
 }
 
 void AUnitPawn::UnitUpdateMagazineMeshes() {
 	for (int i = 0; i < this->MagazineHostComponents.Num(); i++) {
 		if (i < this->Magazines.Num()) {
-			this->MagazineHostComponents[i]->SetStaticMesh(this->Magazines[i]->EquippedMesh);
+			this->UnitUpdateHostMesh(this->MagazineHostComponents[i], &this->Magazines[i]->EquippedMesh, true);
 		}
 		else {
-			this->MagazineHostComponents[i]->SetStaticMesh(nullptr);
+			this->UnitUpdateHostMesh(this->MagazineHostComponents[i], nullptr, true);
 		}
 	}
 }
@@ -303,11 +368,11 @@ void AUnitPawn::UnitSwapWeapons() {
 
 	AWeaponItem* PreviousActive = this->WeaponItem;
 	if (this->BackWeaponItem != nullptr) {
-		this->UnitUpdateHostMesh(this->WeaponHostComponent, this->BackWeaponItem->EquippedMesh);
+		this->UnitUpdateHostMesh(this->WeaponHostComponent, &this->BackWeaponItem->EquippedMesh, false);
 		this->Animation->Script_ArmsMode = this->BackWeaponItem->EquippedAnimArmsMode;
 	}
 	else {
-		this->UnitUpdateHostMesh(this->WeaponHostComponent, nullptr);
+		this->UnitUpdateHostMesh(this->WeaponHostComponent, nullptr, false);
 		this->Animation->Script_ArmsMode = EUnitAnimArmsMode::Empty;
 	}
 	this->WeaponItem = this->BackWeaponItem;
@@ -318,10 +383,10 @@ void AUnitPawn::UnitSwapWeapons() {
 	}
 
 	if (PreviousActive != nullptr) {
-		this->UnitUpdateHostMesh(this->BackWeaponHostComponent, PreviousActive->EquippedMesh);
+		this->UnitUpdateHostMesh(this->BackWeaponHostComponent, &PreviousActive->EquippedMesh, true);
 	}
 	else {
-		this->UnitUpdateHostMesh(this->BackWeaponHostComponent, nullptr);
+		this->UnitUpdateHostMesh(this->BackWeaponHostComponent, nullptr, true);
 	}
 	this->BackWeaponItem = PreviousActive;
 }
@@ -378,7 +443,7 @@ void AUnitPawn::UnitEquipWeapon(AWeaponItem* TargetWeapon) {
 		this->WeaponItem->ItemDequip(this);
 		this->WeaponItem = nullptr;
 
-		this->UnitUpdateHostMesh(this->WeaponHostComponent, nullptr);
+		this->UnitUpdateHostMesh(this->WeaponHostComponent, nullptr, false);
 		this->Animation->Script_ArmsMode = EUnitAnimArmsMode::Empty;
 	}
 
@@ -386,7 +451,7 @@ void AUnitPawn::UnitEquipWeapon(AWeaponItem* TargetWeapon) {
 		this->WeaponItem = TargetWeapon;
 
 		this->Animation->Script_ArmsMode = this->WeaponItem->EquippedAnimArmsMode;
-		this->UnitUpdateHostMesh(this->WeaponHostComponent, this->WeaponItem->EquippedMesh);
+		this->UnitUpdateHostMesh(this->WeaponHostComponent, &this->WeaponItem->EquippedMesh, false);
 		this->WeaponItem->ItemEquip(this);
 	}
 }
@@ -402,13 +467,13 @@ void AUnitPawn::UnitEquipArmor(AArmorItem* TargetArmor) {
 		this->ArmorItem->ItemDequip(this);
 		this->ArmorItem = nullptr;
 
-		this->UnitUpdateHostMesh(this->ArmorHostComponent, nullptr);
+		this->UnitUpdateHostMesh(this->ArmorHostComponent, nullptr, false);
 	}
 
 	if (TargetArmor != nullptr) {
 		this->ArmorItem = TargetArmor;
 
-		this->UnitUpdateHostMesh(this->ArmorHostComponent, this->ArmorItem->EquippedMesh);
+		this->UnitUpdateHostMesh(this->ArmorHostComponent, &this->ArmorItem->EquippedMesh, false);
 		this->ArmorItem->ItemEquip(this);
 	}
 }

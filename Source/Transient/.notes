@@ -9,5 +9,5 @@ GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("..."));
         false, 1.0f, 0, 0.1f
     );
 
-weapon rarity
-weapon slot
+TODO refactor:
+Look vectoring all in unitpawn (incl rootpitch)

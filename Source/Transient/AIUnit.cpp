@@ -43,9 +43,10 @@ void AAIUnit::Tick(float DeltaTime) {
                 this->AttackTime = 2.0f;
             }
 
-            this->Crouching = this->AttackTime > 0.0f;
-            this->UnitSetTriggerPulled(this->Crouching);
-            if (this->Crouching) {
+            this->UnitSetCrouched(this->AttackTime > 0.0f);
+            bool IsCrouched = this->UnitIsCrouched();
+            this->UnitSetTriggerPulled(IsCrouched);
+            if (IsCrouched) {
                 this->AttackTime -= DeltaTime;
             }
         }

@@ -12,9 +12,6 @@ class TRANSIENT_API AMagazineItem : public AItemActor {
 
 public:
 	UPROPERTY(EditAnywhere)
-	UStaticMesh* EquippedMesh;
-
-	UPROPERTY(EditAnywhere)
 	int Ammo;
 
 	UPROPERTY(EditAnywhere)

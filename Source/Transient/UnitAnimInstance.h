@@ -9,6 +9,7 @@ UENUM(BlueprintType)
 enum class EUnitAnimMovementState : uint8 {
     None,
     Crouch,
+    Jump,
     WalkFwd,
     WalkLeft,
     WalkRight,
@@ -22,7 +23,8 @@ enum class EUnitAnimMovementState : uint8 {
 UENUM(BlueprintType)
 enum class EUnitAnimArmsMode : uint8 {
     Empty,
-    Mpz
+    Mpz,
+    Xbow
 };
 
 UCLASS(Transient, Blueprintable, HideCategories=AnimInstance, BlueprintType)

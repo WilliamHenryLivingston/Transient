@@ -16,9 +16,6 @@ class TRANSIENT_API AWeaponItem : public AItemActor {
 
 public:
 	UPROPERTY(EditAnywhere)
-	UStaticMesh* EquippedMesh;
-
-	UPROPERTY(EditAnywhere)
 	EUnitAnimArmsMode EquippedAnimArmsMode;
 
 	UPROPERTY(EditAnywhere)

@@ -8,6 +8,8 @@
 
 APlayerUnit::APlayerUnit() {
 	this->PrimaryActorTick.bCanEverTick = true;
+
+	this->ColliderComponent->SetCollisionProfileName(FName("Player"), true);
 	
 	this->CurrentForcedDilation = 1.0f;
 
@@ -55,6 +57,7 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("SlotB", IE_Pressed, this, &APlayerUnit::InputSwapWeaponB);
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &APlayerUnit::InputStartCrouch);
 	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &APlayerUnit::InputEndCrouch);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &APlayerUnit::InputJump);
 }
 
 void APlayerUnit::Tick(float DeltaTime) {
@@ -75,33 +78,40 @@ void APlayerUnit::Tick(float DeltaTime) {
 		this->CameraComponent->PostProcessBlendWeight = FMath::Max(0.0f, this->CameraComponent->PostProcessBlendWeight - (RawDeltaTime * 3.0f));
 	}
 
-	FHitResult MouseHit = FHitResult();
-	this->GetWorld()->GetFirstPlayerController()->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery1, false, MouseHit);
+	FHitResult MouseHit;
+	this->GetWorld()->GetFirstPlayerController()->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery3, false, MouseHit);
+
+	float RootPitchRate = 90.0f; // todo
+	float RootPitchLimit = 30.0f;
 
 	AActor* HitActor = MouseHit.GetActor();
 	this->AimIndicatorComponent->SetWorldLocation(MouseHit.ImpactPoint);
 	if (HitActor != this) {
+		this->CurrentAimHit = HitActor;
+
 		if (HitActor == nullptr || HitActor->Tags.Contains(FName("Ground"))) {
-			this->RootPitch = FMath::Max(0.0f, this->RootPitch - (RawDeltaTime * 90.0f));
+			this->RootPitch = FMath::Max(0.0f, this->RootPitch - (RawDeltaTime * RootPitchRate));
 		}
 		else {
 			FRotator LookRotation = UKismetMathLibrary::FindLookAtRotation(this->GetActorLocation() + this->WeaponOffset, MouseHit.ImpactPoint);
 			if (LookRotation.Pitch > this->RootPitch) {
-				this->RootPitch = FMath::Min(LookRotation.Pitch, this->RootPitch + (RawDeltaTime * 90.0f));
+				this->RootPitch = FMath::Min(FMath::Min(LookRotation.Pitch, RootPitchLimit), this->RootPitch + (RawDeltaTime * RootPitchRate));
 			}
 			else {
-				this->RootPitch = FMath::Max(LookRotation.Pitch, this->RootPitch - (RawDeltaTime * 90.0f));
+				this->RootPitch = FMath::Max(FMath::Max(LookRotation.Pitch, -RootPitchLimit), this->RootPitch - (RawDeltaTime * RootPitchRate));
 			}
 		}
 
 		this->UnitFaceTowards(MouseHit.ImpactPoint);
 	}
 	else {
-		this->RootPitch = FMath::Max(0.0f, this->RootPitch - (RawDeltaTime * 5.0f));
+		this->CurrentAimHit = nullptr;
+
+		this->RootPitch = FMath::Max(0.0f, this->RootPitch - (RawDeltaTime * RootPitchRate));
 	}
 
 	if (!this->MovementInput.IsZero()) {
-		FVector2D AdjustedInput = this->MovementInput.GetSafeNormal() * 20.0f;
+		FVector2D AdjustedInput = this->MovementInput.GetSafeNormal() * 500.0f;
 
 		FVector NewLocation = this->GetActorLocation();
 
@@ -121,10 +131,18 @@ void APlayerUnit::Tick(float DeltaTime) {
 }
 
 void APlayerUnit::InputInteract() {
-	TArray<AItemActor*> NearbyItems = AItemActor::ItemsGetNearby(this->GetActorLocation(), 100.0f);
+	AItemActor* AimedItem = nullptr;
+	if (this->CurrentAimHit != nullptr) {
+		AimedItem = Cast<AItemActor>(this->CurrentAimHit);
 
-	if (NearbyItems.Num() > 0) {
-		this->UnitEquipItem(NearbyItems[0]);
+		// out of reach check shouldnt be here todo
+		if (AimedItem != nullptr && (AimedItem->GetActorLocation() - this->GetActorLocation()).Size() > 150.0f) {
+			AimedItem = nullptr;
+		}
+	}
+
+	if (AimedItem != nullptr) {
+		this->UnitEquipItem(AimedItem);
 	}
 	else if (this->WeaponItem != nullptr) {
 		this->UnitEquipWeapon(nullptr);
@@ -132,6 +150,10 @@ void APlayerUnit::InputInteract() {
 	else {
 		this->UnitEquipArmor(nullptr);
 	}
+}
+
+void APlayerUnit::InputJump() {
+	this->UnitJump();
 }
 
 void APlayerUnit::InputReload() {

@@ -12,8 +12,5 @@ class TRANSIENT_API AArmorItem : public AItemActor {
 
 public:
 	UPROPERTY(EditAnywhere)
-	UStaticMesh* EquippedMesh;
-
-	UPROPERTY(EditAnywhere)
 	float Health;
 };

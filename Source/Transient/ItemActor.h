@@ -5,6 +5,7 @@
 #include "Components/BoxComponent.h"
 
 #include "ItemHolder.h"
+#include "EquippedMeshConfig.h"
 
 #include "ItemActor.generated.h"
 
@@ -12,8 +13,9 @@ UCLASS()
 class TRANSIENT_API AItemActor : public AActor {
 	GENERATED_BODY()
 	
-public:
-	static TArray<AItemActor*> WorldItems;
+public:	
+	UPROPERTY(EditAnywhere)
+	FEquippedMeshConfig EquippedMesh;
 
 protected:
 	IItemHolder* CurrentHolder;
@@ -34,8 +36,6 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	static TArray<AItemActor*> ItemsGetNearby(FVector Location, float Reach);
-
 	virtual void ItemEquip(IItemHolder* Target);
 
 	virtual void ItemDequip(IItemHolder* Target);

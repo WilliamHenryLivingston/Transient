@@ -19,5 +19,7 @@ public:
 
 	virtual FRotator ItemHolderGetRotation();
 
+	virtual float ItemHolderGetSpreadModifier();
+
 	virtual void ItemHolderPlaySound(USoundBase* Target);
 };

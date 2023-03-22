@@ -18,10 +18,12 @@ void AProjectileWeapon::Tick(float DeltaTime) {
 
         FVector FullWeaponOffset = this->CurrentHolder->ItemHolderGetWeaponOffset() + this->MuzzleLocation;
 
+        float AppliedSpread = this->Spread * this->CurrentHolder->ItemHolderGetSpreadModifier();
+
         FRotator SpreadRotation = HolderRotation;
-        SpreadRotation.Yaw += FMath::RandRange(-this->Spread, this->Spread);
-        SpreadRotation.Roll += FMath::RandRange(-this->Spread, this->Spread);
-        SpreadRotation.Pitch += FMath::RandRange(-this->Spread, this->Spread);
+        SpreadRotation.Yaw += FMath::RandRange(-AppliedSpread, AppliedSpread);
+        SpreadRotation.Roll += FMath::RandRange(-AppliedSpread, AppliedSpread);
+        SpreadRotation.Pitch += FMath::RandRange(-AppliedSpread, AppliedSpread);
 
         this->CurrentHolder->ItemHolderPlaySound(this->ShootSound);
 

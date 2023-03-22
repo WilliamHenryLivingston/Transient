@@ -28,6 +28,8 @@ private:
 
 	UStaticMeshComponent* AimIndicatorComponent;
 
+	AActor* CurrentAimHit;
+
 public:
 	APlayerUnit();
 
@@ -62,4 +64,6 @@ private:
 	void InputStartCrouch();
 
 	void InputEndCrouch();
+
+	void InputJump();
 };

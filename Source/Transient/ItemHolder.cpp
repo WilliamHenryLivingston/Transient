@@ -15,3 +15,7 @@ FRotator IItemHolder::ItemHolderGetRotation() {
 void IItemHolder::ItemHolderPlaySound(USoundBase* Target) {
     return;
 }
+
+float IItemHolder::ItemHolderGetSpreadModifier() {
+    return 1.0f;
+}
