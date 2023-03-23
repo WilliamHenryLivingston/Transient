@@ -1,13 +1,22 @@
 #include "UnitSlotComponent.h"
 
 #include "EquippedMeshConfig.h"
+#include "ItemHolder.h"
 
 UUnitSlotComponent::UUnitSlotComponent() {
 	PrimaryComponentTick.bCanEverTick = true;
+
+	this->SetSimulatePhysics(false);
+	this->SetCollisionProfileName(FName("NoCollision"), true);
 }
 
 void UUnitSlotComponent::BeginPlay() {
 	Super::BeginPlay();
+
+	if (this->Content != nullptr) {
+		this->Content->ItemTake(Cast<IItemHolder>(this->GetOwner()));
+		this->SlotSetContent(this->Content);
+	}
 }
 
 void UUnitSlotComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) {

@@ -30,7 +30,8 @@ enum class EUnitAnimArmsMode : uint8 {
 UENUM(BlueprintType)
 enum class EUnitAnimArmsModifier : uint8 {
     None,
-    Reload
+    Reload,
+    Use
 };
 
 UCLASS(Transient, Blueprintable, HideCategories=AnimInstance, BlueprintType)

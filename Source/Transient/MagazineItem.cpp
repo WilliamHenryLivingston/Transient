@@ -3,5 +3,5 @@
 AMagazineItem::AMagazineItem() {
 	this->PrimaryActorTick.bCanEverTick = true;
 
-	this->EquipType = EItemEquipType::Magazine;
+	this->InventoryType = EItemInventoryType::Magazine;
 }

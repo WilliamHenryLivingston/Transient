@@ -44,28 +44,20 @@ private:
 
 // Input binds.
 	void InputStartFire();
-
 	void InputStopFire();
-
 	void InputInteract();
-
 	void InputForward(float AxisValue);
-
 	void InputRight(float AxisValue);
-
 	void InputStartDilate();
-
 	void InputStopDilate();
-
 	void InputReload();
-	
 	void InputEquipSlotA();
-	
 	void InputEquipSlotB();
-
+	void InputEquipSlotC();
+	void InputEquipSlotD();
+	void InputEquipSlotE();
 	void InputStartCrouch();
-
 	void InputEndCrouch();
-
 	void InputJump();
+	void InputDropActive();
 };

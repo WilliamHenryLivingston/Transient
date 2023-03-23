@@ -14,13 +14,8 @@ class TRANSIENT_API AWeaponItem : public AItemActor {
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, Category="Item Equip Config")
-	EUnitAnimArmsMode EquippedAnimArmsMode;
-
 	UPROPERTY(EditAnywhere, Category="Base Weapon")
 	float ReloadTime;
-	UPROPERTY(EditAnywhere, Category="Base Weapon")
-	bool CanHolster = true;
 	UPROPERTY(EditAnywhere, Category="Base Weapon")
 	int AmmoTypeID;
 

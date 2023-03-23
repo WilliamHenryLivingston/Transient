@@ -5,12 +5,14 @@
 #include "Components/BoxComponent.h"
 
 #include "ItemHolder.h"
+#include "UnitAnimInstance.h"
 #include "EquippedMeshConfig.h"
+#include "ItemContainerComponent.h"
 
 #include "ItemActor.generated.h"
 
 UENUM(BlueprintType)
-enum class EItemEquipType : uint8 {
+enum class EItemInventoryType : uint8 {
     NA,
 	Weapon,
 	WeaponLarge,
@@ -23,11 +25,15 @@ UCLASS()
 class TRANSIENT_API AItemActor : public AActor {
 	GENERATED_BODY()
 	
-public:	
-	UPROPERTY(EditAnywhere, Category="Item Equip Config")
-	FEquippedMeshConfig EquippedMesh;
-	UPROPERTY(EditDefaultsOnly, Category="Item Equip Config")
-	EItemEquipType EquipType;
+public:
+	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
+	FEquippedMeshConfig EquippedMesh; // TODO: Rename to InventoryMesh.
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
+	EItemInventoryType InventoryType;
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
+	bool Equippable;
+	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
+	EUnitAnimArmsMode EquippedAnimArmsMode;
 
 protected:
 	IItemHolder* CurrentHolder;
@@ -46,6 +52,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	virtual void ItemEquip(IItemHolder* Target);
-	virtual void ItemDequip(IItemHolder* Target);
+	UItemContainerComponent* ItemAsContainer();
+	virtual void ItemTake(IItemHolder* Target);
+	virtual void ItemDrop(IItemHolder* Target);
 };

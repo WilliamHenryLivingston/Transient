@@ -22,7 +22,7 @@ void AItemActor::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 }
 
-void AItemActor::ItemEquip(IItemHolder* Target) {
+void AItemActor::ItemTake(IItemHolder* Target) {
 	this->CurrentHolder = Target;
 
 	this->SetActorHiddenInGame(true);
@@ -30,7 +30,7 @@ void AItemActor::ItemEquip(IItemHolder* Target) {
 	this->ColliderComponent->SetCollisionProfileName(FName("NoCollision"), true);
 }
 
-void AItemActor::ItemDequip(IItemHolder* Target) {
+void AItemActor::ItemDrop(IItemHolder* Target) {
 	this->CurrentHolder = nullptr;
 
 	FVector DropLocation = Target->ItemHolderGetLocation();
@@ -41,4 +41,12 @@ void AItemActor::ItemDequip(IItemHolder* Target) {
 	this->SetActorHiddenInGame(false);
 	this->ColliderComponent->SetCollisionProfileName(FName("Item"), true);
 	this->ColliderComponent->SetSimulatePhysics(true);
+}
+
+UItemContainerComponent* AItemActor::ItemAsContainer() {
+	TArray<UItemContainerComponent*> ContainerComponents;
+	this->GetComponents(ContainerComponents, false);
+
+	if (ContainerComponents.Num() == 0) return nullptr;
+	return ContainerComponents[0];
 }

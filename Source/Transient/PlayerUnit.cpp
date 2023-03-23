@@ -39,9 +39,13 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &APlayerUnit::InputReload);
 	PlayerInputComponent->BindAction("SlotA", IE_Pressed, this, &APlayerUnit::InputEquipSlotA);
 	PlayerInputComponent->BindAction("SlotB", IE_Pressed, this, &APlayerUnit::InputEquipSlotB);
+	PlayerInputComponent->BindAction("SlotC", IE_Pressed, this, &APlayerUnit::InputEquipSlotC);
+	PlayerInputComponent->BindAction("SlotD", IE_Pressed, this, &APlayerUnit::InputEquipSlotD);
+	PlayerInputComponent->BindAction("SlotE", IE_Pressed, this, &APlayerUnit::InputEquipSlotE);
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &APlayerUnit::InputStartCrouch);
 	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &APlayerUnit::InputEndCrouch);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &APlayerUnit::InputJump);
+	PlayerInputComponent->BindAction("Drop", IE_Pressed, this, &APlayerUnit::InputDropActive);
 }
 
 void APlayerUnit::UnitDiscoverChildComponents() {	
@@ -135,18 +139,30 @@ void APlayerUnit::InputInteract() {
 		}
 	}
 
-	if (AimedItem != nullptr) this->UnitEquipItem(AimedItem);
+	if (AimedItem != nullptr) this->UnitTakeItem(AimedItem);
 }
 
 // Input binds.
 void APlayerUnit::InputJump() { this->UnitJump(); }
 void APlayerUnit::InputReload() { this->UnitReload(); }
-void APlayerUnit::InputStartFire() { this->UnitSetTriggerPulled(true); }
 void APlayerUnit::InputStopFire() { this->UnitSetTriggerPulled(false); }
 void APlayerUnit::InputStartCrouch() { this->UnitSetCrouched(true); }
 void APlayerUnit::InputEndCrouch() { this->UnitSetCrouched(false); }
 void APlayerUnit::InputEquipSlotA() { this->UnitEquipFromSlot(0); }
 void APlayerUnit::InputEquipSlotB() { this->UnitEquipFromSlot(1); }
+void APlayerUnit::InputEquipSlotC() { this->UnitEquipFromSlot(2); }
+void APlayerUnit::InputEquipSlotD() { this->UnitEquipFromSlot(3); }
+void APlayerUnit::InputEquipSlotE() { this->UnitEquipFromSlot(4); }
+void APlayerUnit::InputDropActive() { this->UnitDropActiveItem(); }
+
+void APlayerUnit::InputStartFire() {
+	if (this->UnitGetActiveWeapon() != nullptr) {
+		this->UnitSetTriggerPulled(true);
+	}
+	else {
+		this->UnitUseActiveItem(this->CurrentAimHit);
+	}
+}
 
 void APlayerUnit::InputForward(float AxisValue) {
 	this->MovementInput.Y = FMath::Clamp<float>(AxisValue, -1.0f, 1.0f);

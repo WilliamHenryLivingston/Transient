@@ -13,15 +13,16 @@ void AAIUnit::Tick(float DeltaTime) {
         if (CurrentWeapon != nullptr && CurrentWeapon->WeaponEmpty()) {
             this->OverrideArmState = true;
 
-            while (this->UnitGetMagazineCountForAmmoType(CurrentWeapon->AmmoTypeID) < 2) {
+            while (this->UnitGetSlotsContainingMagazines(CurrentWeapon->AmmoTypeID).Num() < 2) {
                 AMagazineItem* Spawned = this->GetWorld()->SpawnActor<AMagazineItem>(
                     this->AutoSpawnMagazine,
                     this->GetActorLocation(),
                     this->GetActorRotation(),
                     FActorSpawnParameters()
                 );
+                if (Spawned == nullptr) break;
 
-                this->UnitEquipMagazine(Spawned);
+                this->UnitTakeItem(Spawned);
             }
             this->OverrideArmState = false;
 

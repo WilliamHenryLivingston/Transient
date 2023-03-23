@@ -7,7 +7,8 @@
 AWeaponItem::AWeaponItem() {
 	this->PrimaryActorTick.bCanEverTick = true;
 
-	this->EquipType = EItemEquipType::Weapon;
+	this->InventoryType = EItemInventoryType::Weapon;
+	this->Equippable = true;
 }
 
 void AWeaponItem::BeginPlay() {

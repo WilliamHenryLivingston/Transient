@@ -17,7 +17,7 @@ private:
 
 public:
 	UPROPERTY(EditAnywhere, Category="Inventory Slot")
-	TArray<EItemEquipType> AllowedItems;
+	TArray<EItemInventoryType> AllowedItems;
 
 public:	
 	UUnitSlotComponent();

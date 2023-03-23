@@ -37,6 +37,8 @@ private:
 	float JumpStrength = 300.0f;
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
 	float JumpTime = 1.0f; // TODO: Replace with proper grounded check.
+	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	float UseReach = 100.0f;
 
 	// Stats.
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
@@ -50,31 +52,23 @@ private:
 	UPROPERTY(EditAnywhere, Category="Unit Stats");
 	float StaminaRegen = 50.0f;
 
-	// Inventory state; exposed to allow initial state setup.
-	UPROPERTY(EditAnywhere, Category="Unit Inventory")
-	AWeaponItem* WeaponItem;
-	UPROPERTY(EditAnywhere, Category="Unit Inventory")
-	AWeaponItem* BackWeaponItem;
-	UPROPERTY(EditAnywhere, Category="Unit Inventory")
-	AArmorItem* ArmorItem;
-	UPROPERTY(EditAnywhere, Category="Unit Inventory")
-	TArray<AMagazineItem*> Magazines;
-
 	// Rig-related parameters.
 	UPROPERTY(EditAnywhere, Category="Unit Rig")
 	float InteractAnimationTime = 1.0f;
 	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
 	FVector WeaponOffset;
 
+	// Inventory.
+	UPROPERTY(EditAnywhere, Category="Unit Inventory")
+	AItemActor* ActiveItem;
+	UPROPERTY(EditAnywhere, Category="Unit Inventory")
+	AArmorItem* ArmorItem;
+	TArray<UUnitSlotComponent*> Slots;
+
 	// Internal child components.
 	USkeletalMeshComponent* RigComponent;
-	UStaticMeshComponent* WeaponHostComponent;
+	UStaticMeshComponent* ActiveItemHostComponent;
 	UStaticMeshComponent* ArmorHostComponent;
-	UStaticMeshComponent* BackWeaponHostComponent;
-	UStaticMeshComponent* MagazineReloadHostComponent;
-	TArray<UStaticMeshComponent*> MagazineHostComponents;
-
-	TArray<UUnitSlotComponent*> Slots;
 
 	// Per-tick pending updates from child classes.
 	// Movement.
@@ -88,8 +82,10 @@ private:
 	bool HasFaceTarget;
 
 	// Rig state.
+	// TODO: Better anim timing system.
 	float ReloadTimer;
 	float InteractTimer;
+	float UseTimer;
 	float JumpTimer; // TODO: Remove once grounded check exists.
 	
 	bool Crouching;
@@ -127,9 +123,9 @@ public:
 
 // Internals.
 private:
+	void UnitDequipActiveItem();
 	void UnitPlayGenericInteractionAnimation();
-	void UnitUpdateMagazineHosts();
-	void UnitUpdateHostMesh(UStaticMeshComponent* Host, FEquippedMeshConfig* Config, bool AltRotation);
+	void UnitUpdateHostMesh(UStaticMeshComponent* Host, FEquippedMeshConfig* Config);
 
 // Exposures.
 protected:
@@ -145,7 +141,7 @@ protected:
 	void UnitSetTriggerPulled(bool NewTriggerPulled);
 	void UnitReload();
 	void UnitJump();
-	void UnitSwapWeapons(); // x
+	void UnitUseActiveItem(AActor* Target);
 	void UnitSetCrouched(bool NewCrouch);
 	void UnitUpdateTorsoPitch(float TargetValue);
 
@@ -154,20 +150,20 @@ public:
 	bool UnitAreArmsOccupied();
 	bool UnitIsJumping();
 	bool UnitIsCrouched();
+	AItemActor* UnitGetActiveItem();
 	AWeaponItem* UnitGetActiveWeapon();
 
-	int UnitGetMagazineCountForAmmoType(int TypeID); // x
-
+	// Inventory.
+	void UnitDropActiveItem();
 	void UnitEquipFromSlot(int Index);
-	TArray<UUnitSlotComponent*> UnitGetSlotsAllowing(EItemEquipType Type);
-	TArray<UUnitSlotComponent*> UnitGetSlotsContaining(EItemEquipType Type);
+	TArray<UUnitSlotComponent*> UnitGetEquippableSlots();
+	TArray<UUnitSlotComponent*> UnitGetEmptySlotsAllowing(EItemInventoryType Type);
+	TArray<UUnitSlotComponent*> UnitGetSlotsAllowing(EItemInventoryType Type);
+	TArray<UUnitSlotComponent*> UnitGetSlotsContaining(EItemInventoryType Type);
 	TArray<UUnitSlotComponent*> UnitGetSlotsContainingMagazines(int AmmoTypeID);
 
-	// Public actions.
+	// Other actions.
 	void UnitTakeDamage(FDamageProfile Profile);
-	void UnitEquipItem(AItemActor* TargetItem);
-	void UnitEquipWeapon(AWeaponItem* TargetWeapon); // x
-	void UnitEquipArmor(AArmorItem* TargetArmor); // x
-	void UnitEquipMagazine(AMagazineItem* TargetMagazine); // x
+	void UnitTakeItem(AItemActor* TargetItem);
 	void UnitDie();
 };
