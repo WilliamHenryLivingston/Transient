@@ -16,5 +16,6 @@ public:
     UPROPERTY(EditAnywhere, Category="Equipped Mesh")
     FRotator Rotation;
     UPROPERTY(EditAnywhere, Category="Equipped Mesh")
+    // TODO: Rename to SlotRotation
     FRotator AltRotation; // Some items have two potential hosts.
 };

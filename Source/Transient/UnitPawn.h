@@ -10,6 +10,7 @@
 #include "WeaponItem.h"
 #include "ArmorItem.h"
 #include "UnitAnimInstance.h"
+#include "UnitSlotComponent.h"
 
 #include "UnitPawn.generated.h"
 
@@ -34,7 +35,7 @@ private:
 	float StrafeConeAngle = 0.9f;
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
 	float JumpStrength = 300.0f;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Unit Movement")
 	float JumpTime = 1.0f; // TODO: Replace with proper grounded check.
 
 	// Stats.
@@ -73,6 +74,8 @@ private:
 	UStaticMeshComponent* MagazineReloadHostComponent;
 	TArray<UStaticMeshComponent*> MagazineHostComponents;
 
+	TArray<UUnitSlotComponent*> Slots;
+
 	// Per-tick pending updates from child classes.
 	// Movement.
 	FVector MoveTarget;
@@ -96,8 +99,6 @@ private:
 
 	// Other state.
 	bool HasStaminaDrain;
-
-	int ActiveWeaponSlot;
 
 protected:
 	// Child components available to child classes.
@@ -144,7 +145,7 @@ protected:
 	void UnitSetTriggerPulled(bool NewTriggerPulled);
 	void UnitReload();
 	void UnitJump();
-	void UnitSwapWeapons();
+	void UnitSwapWeapons(); // x
 	void UnitSetCrouched(bool NewCrouch);
 	void UnitUpdateTorsoPitch(float TargetValue);
 
@@ -153,17 +154,20 @@ public:
 	bool UnitAreArmsOccupied();
 	bool UnitIsJumping();
 	bool UnitIsCrouched();
-	int UnitGetWeaponSlotCount();
-	int UnitGetActiveWeaponSlot();
 	AWeaponItem* UnitGetActiveWeapon();
 
-	int UnitGetMagazineCountForAmmoType(int TypeID);
+	int UnitGetMagazineCountForAmmoType(int TypeID); // x
+
+	void UnitEquipFromSlot(int Index);
+	TArray<UUnitSlotComponent*> UnitGetSlotsAllowing(EItemEquipType Type);
+	TArray<UUnitSlotComponent*> UnitGetSlotsContaining(EItemEquipType Type);
+	TArray<UUnitSlotComponent*> UnitGetSlotsContainingMagazines(int AmmoTypeID);
 
 	// Public actions.
 	void UnitTakeDamage(FDamageProfile Profile);
 	void UnitEquipItem(AItemActor* TargetItem);
-	void UnitEquipWeapon(AWeaponItem* TargetWeapon);
-	void UnitEquipArmor(AArmorItem* TargetArmor);
-	void UnitEquipMagazine(AMagazineItem* TargetMagazine);
+	void UnitEquipWeapon(AWeaponItem* TargetWeapon); // x
+	void UnitEquipArmor(AArmorItem* TargetArmor); // x
+	void UnitEquipMagazine(AMagazineItem* TargetMagazine); // x
 	void UnitDie();
 };

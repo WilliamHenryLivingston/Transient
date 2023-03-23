@@ -6,6 +6,8 @@
 
 AWeaponItem::AWeaponItem() {
 	this->PrimaryActorTick.bCanEverTick = true;
+
+	this->EquipType = EItemEquipType::Weapon;
 }
 
 void AWeaponItem::BeginPlay() {

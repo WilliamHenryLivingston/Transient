@@ -15,4 +15,7 @@ public:
 	int Ammo;
 	UPROPERTY(EditAnywhere, Category="Magazine")
 	int AmmoTypeID;
+
+public:
+	AMagazineItem();
 };

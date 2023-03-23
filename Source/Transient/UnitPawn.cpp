@@ -55,6 +55,11 @@ void AUnitPawn::UnitDiscoverChildComponents() {
 		else if (Name.Equals("MagazineReloadHostComponent")) this->MagazineReloadHostComponent = Check;
 		else if (Name.Contains("EquipmentMagazine")) this->MagazineHostComponents.Push(Check);
 	}
+
+	TArray<UUnitSlotComponent*> SlotComponents;
+	this->GetComponents(SlotComponents, true);
+
+	this->Slots = SlotComponents;
 }
 
 void AUnitPawn::Tick(float DeltaTime) {
@@ -226,8 +231,6 @@ void AUnitPawn::UnitUpdateHostMesh(UStaticMeshComponent* Host, FEquippedMeshConf
 }
 
 // Getters.
-int AUnitPawn::UnitGetActiveWeaponSlot() { return this->ActiveWeaponSlot; }
-int AUnitPawn::UnitGetWeaponSlotCount() { return 2; }
 bool AUnitPawn::UnitIsCrouched() { return this->Crouching; }
 AWeaponItem* AUnitPawn::UnitGetActiveWeapon() { return this->WeaponItem; }
 
@@ -247,6 +250,55 @@ int AUnitPawn::UnitGetMagazineCountForAmmoType(int TypeID) {
 	}
 
 	return Count;
+}
+
+// Inventory.
+void AUnitPawn::UnitEquipFromSlot(int Index) {
+
+}
+
+TArray<UUnitSlotComponent*> AUnitPawn::UnitGetSlotsAllowing(EItemEquipType Type) {
+	TArray<UUnitSlotComponent*> Found;
+
+	for (int i = 0; i < this->Slots.Num(); i++) {
+		UUnitSlotComponent* Check = this->Slots[i];
+
+		if (Check->AllowedItems.Contains(Type)) Found.Push(Check);
+	}
+
+	return Found;
+}
+
+// TODO: Make template.
+TArray<UUnitSlotComponent*> AUnitPawn::UnitGetSlotsContaining(EItemEquipType Type) {
+	TArray<UUnitSlotComponent*> Found;
+
+	for (int i = 0; i < this->Slots.Num(); i++) {
+		UUnitSlotComponent* Check = this->Slots[i];
+
+		AItemActor* Content = Check->SlotGetContent();
+		if (Content != nullptr && Content->EquipType == Type) Found.Push(Check);
+	}
+
+	return Found;
+}
+
+TArray<UUnitSlotComponent*> AUnitPawn::UnitGetSlotsContainingMagazines(int AmmoTypeID) {
+	TArray<UUnitSlotComponent*> Found;
+
+	for (int i = 0; i < this->Slots.Num(); i++) {
+		UUnitSlotComponent* Check = this->Slots[i];
+
+		AItemActor* Content = Check->SlotGetContent();
+		if (Content == nullptr) continue;
+
+		AMagazineItem* AsMagazine = Cast<AMagazineItem>(Content);
+		if (AsMagazine == nullptr) continue;
+
+		if (AsMagazine->AmmoTypeID == AmmoTypeID) Found.Push(Check);
+	}
+
+	return Found;
 }
 
 // Actions.
@@ -367,9 +419,6 @@ void AUnitPawn::UnitSwapWeapons() {
 	this->UnitPlayGenericInteractionAnimation();
 
 	this->UnitSetTriggerPulled(false);
-
-	if (this->ActiveWeaponSlot == 0) this->ActiveWeaponSlot = 1;
-	else this->ActiveWeaponSlot = 0;
 
 	AWeaponItem* PreviousActive = this->WeaponItem;
 	if (this->BackWeaponItem != nullptr) {

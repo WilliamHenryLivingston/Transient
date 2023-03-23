@@ -37,8 +37,8 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Dilate", IE_Pressed, this, &APlayerUnit::InputStartDilate);
 	PlayerInputComponent->BindAction("Dilate", IE_Released, this, &APlayerUnit::InputStopDilate);
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &APlayerUnit::InputReload);
-	PlayerInputComponent->BindAction("SlotA", IE_Pressed, this, &APlayerUnit::InputSwapWeaponA);
-	PlayerInputComponent->BindAction("SlotB", IE_Pressed, this, &APlayerUnit::InputSwapWeaponB);
+	PlayerInputComponent->BindAction("SlotA", IE_Pressed, this, &APlayerUnit::InputEquipSlotA);
+	PlayerInputComponent->BindAction("SlotB", IE_Pressed, this, &APlayerUnit::InputEquipSlotB);
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &APlayerUnit::InputStartCrouch);
 	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &APlayerUnit::InputEndCrouch);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &APlayerUnit::InputJump);
@@ -145,6 +145,8 @@ void APlayerUnit::InputStartFire() { this->UnitSetTriggerPulled(true); }
 void APlayerUnit::InputStopFire() { this->UnitSetTriggerPulled(false); }
 void APlayerUnit::InputStartCrouch() { this->UnitSetCrouched(true); }
 void APlayerUnit::InputEndCrouch() { this->UnitSetCrouched(false); }
+void APlayerUnit::InputEquipSlotA() { this->UnitEquipFromSlot(0); }
+void APlayerUnit::InputEquipSlotB() { this->UnitEquipFromSlot(1); }
 
 void APlayerUnit::InputForward(float AxisValue) {
 	this->MovementInput.Y = FMath::Clamp<float>(AxisValue, -1.0f, 1.0f);
@@ -152,19 +154,6 @@ void APlayerUnit::InputForward(float AxisValue) {
 
 void APlayerUnit::InputRight(float AxisValue) {
 	this->MovementInput.X = FMath::Clamp<float>(AxisValue, -1.0f, 1.0f);
-}
-
-// TODO: Need rework.
-void APlayerUnit::InputSwapWeaponA() {
-	if (this->UnitGetActiveWeaponSlot() != 0) {
-		this->UnitSwapWeapons();
-	}
-}
-
-void APlayerUnit::InputSwapWeaponB() {
-	if (this->UnitGetActiveWeaponSlot() != 1) {
-		this->UnitSwapWeapons();
-	}
 }
 
 void APlayerUnit::InputStartDilate() {

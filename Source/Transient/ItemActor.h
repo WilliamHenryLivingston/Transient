@@ -9,6 +9,16 @@
 
 #include "ItemActor.generated.h"
 
+UENUM(BlueprintType)
+enum class EItemEquipType : uint8 {
+    NA,
+	Weapon,
+	WeaponLarge,
+	Container,
+	Magazine,
+	Misc
+};
+
 UCLASS()
 class TRANSIENT_API AItemActor : public AActor {
 	GENERATED_BODY()
@@ -16,6 +26,8 @@ class TRANSIENT_API AItemActor : public AActor {
 public:	
 	UPROPERTY(EditAnywhere, Category="Item Equip Config")
 	FEquippedMeshConfig EquippedMesh;
+	UPROPERTY(EditDefaultsOnly, Category="Item Equip Config")
+	EItemEquipType EquipType;
 
 protected:
 	IItemHolder* CurrentHolder;

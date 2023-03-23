@@ -59,9 +59,9 @@ private:
 
 	void InputReload();
 	
-	void InputSwapWeaponA();
+	void InputEquipSlotA();
 	
-	void InputSwapWeaponB();
+	void InputEquipSlotB();
 
 	void InputStartCrouch();
 
