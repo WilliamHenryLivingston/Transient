@@ -14,12 +14,8 @@ class IItemHolder {
 
 public:
 	virtual FVector ItemHolderGetWeaponOffset();
-
 	virtual FVector ItemHolderGetLocation();
-
 	virtual FRotator ItemHolderGetRotation();
-
 	virtual float ItemHolderGetSpreadModifier();
-
 	virtual void ItemHolderPlaySound(USoundBase* Target);
 };

@@ -12,20 +12,16 @@ class TRANSIENT_API AAIUnit : public AUnitPawn {
 	GENERATED_BODY()
 	
 private:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	TSubclassOf<AMagazineItem> AutoSpawnMagazine;
-
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	float DetectionDistance = 60.0f;
-
-	UPROPERTY(EditAnywhere)
-	AUnitPawn* AgroTarget;
-
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	TArray<AAINavNode*> Patrol;
 
-	float AttackTime;
+	AUnitPawn* AgroTarget;
 
+	float AttackTime;
 	int PatrolNext;
 
 public:

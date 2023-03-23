@@ -20,10 +20,6 @@ void AWeaponItem::WeaponSetTriggerPulled(bool NewTriggerPulled) {
 	this->TriggerPulled = NewTriggerPulled;
 }
 
-void AWeaponItem::WeaponSwapMagazines(int NewAmmoCount) {
-	return;
-}
-
-bool AWeaponItem::WeaponEmpty() {
-	return false;
-}
+// Stubs.
+void AWeaponItem::WeaponSwapMagazines(int NewAmmoCount) { return; }
+bool AWeaponItem::WeaponEmpty() { return false; }

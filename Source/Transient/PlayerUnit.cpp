@@ -10,7 +10,7 @@ APlayerUnit::APlayerUnit() {
 	this->PrimaryActorTick.bCanEverTick = true;
 
 	this->ColliderComponent->SetCollisionProfileName(FName("Player"), true);
-	
+
 	this->CurrentForcedDilation = 1.0f;
 
 	this->CameraArmComponent = this->CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
@@ -26,22 +26,6 @@ APlayerUnit::APlayerUnit() {
 	this->CameraComponent->SetRelativeRotation(FRotator(-30.0f, 0.0f, 0.0f));
 
 	this->AutoPossessPlayer = EAutoReceiveInput::Player0;
-}
-
-void APlayerUnit::BeginPlay() {
-	Super::BeginPlay();
-	
-	// Discover child mesh hosts. TODO copy pasted
-	TArray<UStaticMeshComponent*> StaticMeshComponents;
-	this->GetComponents(StaticMeshComponents, true);
-	for (int i = 0; i < StaticMeshComponents.Num(); i++) {
-		UStaticMeshComponent* Check = StaticMeshComponents[i];
-
-		FString Name = Check->GetName();
-		if (Name.Equals("AimIndicator")) {
-			this->AimIndicatorComponent = Check;
-		}
-	}
 }
 
 void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {
@@ -60,9 +44,23 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &APlayerUnit::InputJump);
 }
 
+void APlayerUnit::UnitDiscoverChildComponents() {	
+	Super::UnitDiscoverChildComponents();
+
+	TArray<UStaticMeshComponent*> StaticMeshComponents;
+	this->GetComponents(StaticMeshComponents, true);
+	for (int i = 0; i < StaticMeshComponents.Num(); i++) {
+		UStaticMeshComponent* Check = StaticMeshComponents[i];
+
+		FString Name = Check->GetName();
+		if (Name.Equals("AimIndicator")) this->AimIndicatorComponent = Check;
+	}
+}
+
+// TODO: Move dilation.
 void APlayerUnit::Tick(float DeltaTime) {
 	this->GetWorld()->GetWorldSettings()->SetTimeDilation(this->CurrentForcedDilation);
-	
+
 	float RawDeltaTime = DeltaTime;
 	DeltaTime = DeltaTime * (1.0f / this->CurrentForcedDilation);
 	this->Animation->Script_TimeDilation = this->CurrentForcedDilation;
@@ -81,33 +79,29 @@ void APlayerUnit::Tick(float DeltaTime) {
 	FHitResult MouseHit;
 	this->GetWorld()->GetFirstPlayerController()->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery3, false, MouseHit);
 
-	float RootPitchRate = 90.0f; // todo
-	float RootPitchLimit = 30.0f;
+	this->AimIndicatorComponent->SetWorldLocation(MouseHit.ImpactPoint);
 
 	AActor* HitActor = MouseHit.GetActor();
-	this->AimIndicatorComponent->SetWorldLocation(MouseHit.ImpactPoint);
-	if (HitActor != this) {
+	if (HitActor == this) {
+		this->CurrentAimHit = nullptr;
+
+		this->UnitUpdateTorsoPitch(0.0f);
+	}
+	else {
 		this->CurrentAimHit = HitActor;
 
 		if (HitActor == nullptr || HitActor->Tags.Contains(FName("Ground"))) {
-			this->RootPitch = FMath::Max(0.0f, this->RootPitch - (RawDeltaTime * RootPitchRate));
+			this->UnitUpdateTorsoPitch(0.0f);
 		}
 		else {
-			FRotator LookRotation = UKismetMathLibrary::FindLookAtRotation(this->GetActorLocation() + this->WeaponOffset, MouseHit.ImpactPoint);
-			if (LookRotation.Pitch > this->RootPitch) {
-				this->RootPitch = FMath::Min(FMath::Min(LookRotation.Pitch, RootPitchLimit), this->RootPitch + (RawDeltaTime * RootPitchRate));
-			}
-			else {
-				this->RootPitch = FMath::Max(FMath::Max(LookRotation.Pitch, -RootPitchLimit), this->RootPitch - (RawDeltaTime * RootPitchRate));
-			}
+			FRotator LookRotation = UKismetMathLibrary::FindLookAtRotation(
+				this->GetActorLocation() + this->ItemHolderGetWeaponOffset(),
+				MouseHit.ImpactPoint
+			);
+			this->UnitUpdateTorsoPitch(LookRotation.Pitch);
 		}
 
 		this->UnitFaceTowards(MouseHit.ImpactPoint);
-	}
-	else {
-		this->CurrentAimHit = nullptr;
-
-		this->RootPitch = FMath::Max(0.0f, this->RootPitch - (RawDeltaTime * RootPitchRate));
 	}
 
 	if (!this->MovementInput.IsZero()) {
@@ -135,38 +129,22 @@ void APlayerUnit::InputInteract() {
 	if (this->CurrentAimHit != nullptr) {
 		AimedItem = Cast<AItemActor>(this->CurrentAimHit);
 
-		// out of reach check shouldnt be here todo
+		// TODO: Out of reach check shouldnt be here.
 		if (AimedItem != nullptr && (AimedItem->GetActorLocation() - this->GetActorLocation()).Size() > 150.0f) {
 			AimedItem = nullptr;
 		}
 	}
 
-	if (AimedItem != nullptr) {
-		this->UnitEquipItem(AimedItem);
-	}
-	else if (this->WeaponItem != nullptr) {
-		this->UnitEquipWeapon(nullptr);
-	}
-	else {
-		this->UnitEquipArmor(nullptr);
-	}
+	if (AimedItem != nullptr) this->UnitEquipItem(AimedItem);
 }
 
-void APlayerUnit::InputJump() {
-	this->UnitJump();
-}
-
-void APlayerUnit::InputReload() {
-	this->UnitReload();
-}
-
-void APlayerUnit::InputStartFire() {
-	this->UnitSetTriggerPulled(true);
-}
-
-void APlayerUnit::InputStopFire() {
-	this->UnitSetTriggerPulled(false);
-}
+// Input binds.
+void APlayerUnit::InputJump() { this->UnitJump(); }
+void APlayerUnit::InputReload() { this->UnitReload(); }
+void APlayerUnit::InputStartFire() { this->UnitSetTriggerPulled(true); }
+void APlayerUnit::InputStopFire() { this->UnitSetTriggerPulled(false); }
+void APlayerUnit::InputStartCrouch() { this->UnitSetCrouched(true); }
+void APlayerUnit::InputEndCrouch() { this->UnitSetCrouched(false); }
 
 void APlayerUnit::InputForward(float AxisValue) {
 	this->MovementInput.Y = FMath::Clamp<float>(AxisValue, -1.0f, 1.0f);
@@ -176,30 +154,23 @@ void APlayerUnit::InputRight(float AxisValue) {
 	this->MovementInput.X = FMath::Clamp<float>(AxisValue, -1.0f, 1.0f);
 }
 
+// TODO: Need rework.
+void APlayerUnit::InputSwapWeaponA() {
+	if (this->UnitGetActiveWeaponSlot() != 0) {
+		this->UnitSwapWeapons();
+	}
+}
+
+void APlayerUnit::InputSwapWeaponB() {
+	if (this->UnitGetActiveWeaponSlot() != 1) {
+		this->UnitSwapWeapons();
+	}
+}
+
 void APlayerUnit::InputStartDilate() {
 	this->WantsDilate = true;
 }
 
 void APlayerUnit::InputStopDilate() {
 	this->WantsDilate = false;
-}
-
-void APlayerUnit::InputSwapWeaponA() {
-	if (this->ActiveWeaponSlot != 0) {
-		this->UnitSwapWeapons();
-	}
-}
-
-void APlayerUnit::InputSwapWeaponB() {
-	if (this->ActiveWeaponSlot != 1) {
-		this->UnitSwapWeapons();
-	}
-}
-
-void APlayerUnit::InputStartCrouch() {
-	this->Crouching = true;
-}
-
-void APlayerUnit::InputEndCrouch() {
-	this->Crouching = false;
 }

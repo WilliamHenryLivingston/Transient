@@ -1,9 +1,9 @@
 #include "UnitAnimInstance.h"
 
-UnitAnimInstance::UnitAnimInstance() {
+UUnitAnimInstance::UUnitAnimInstance() {
     this->Script_ArmsMode = EUnitAnimArmsMode::Empty;
     this->Script_MovementState = EUnitAnimMovementState::None;
-    this->Script_Reloading = false;
+    this->Script_ArmsModifier = EUnitAnimArmsModifier::None;
     this->Script_TimeDilation = 1.0f;
-    this->Script_TorsoYRotation = 0.0f;
+    this->Script_TorsoPitch = 0.0f;
 }

@@ -14,22 +14,20 @@ class TRANSIENT_API AItemActor : public AActor {
 	GENERATED_BODY()
 	
 public:	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Item Equip Config")
 	FEquippedMeshConfig EquippedMesh;
 
 protected:
 	IItemHolder* CurrentHolder;
 
 private:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditDefaultsOnly, Category="Item")
+	UStaticMeshComponent* VisibleComponent;
+	UPROPERTY(EditDefaultsOnly, Category="Item")
 	UBoxComponent* ColliderComponent;
 
-	UPROPERTY(EditAnywhere)
-	UStaticMeshComponent* VisibleComponent;
-
-public:	
+public:
 	AItemActor();
-
 	virtual void Tick(float DeltaTime) override;
 
 protected:
@@ -37,8 +35,5 @@ protected:
 
 public:
 	virtual void ItemEquip(IItemHolder* Target);
-
 	virtual void ItemDequip(IItemHolder* Target);
-	
-	void ItemDestroy();
 };

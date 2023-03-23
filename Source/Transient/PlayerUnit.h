@@ -14,22 +14,23 @@ class TRANSIENT_API APlayerUnit : public AUnitPawn {
 	GENERATED_BODY()
 
 private:
-	UPROPERTY(EditAnywhere)
+	// Child components.
+	UPROPERTY(EditAnywhere, Category="Player Camera")
 	UCameraComponent* CameraComponent;
-
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Player Camera")
 	USpringArmComponent* CameraArmComponent;
-
-	FVector2D MovementInput;
-
-	bool WantsDilate;
-
-	float CurrentForcedDilation;
-
 	UStaticMeshComponent* AimIndicatorComponent;
 
+	// Input.
+	FVector2D MovementInput;
+
+	// Other state.
 	AActor* CurrentAimHit;
 
+	float CurrentForcedDilation;
+	bool WantsDilate;
+
+// AActor.
 public:
 	APlayerUnit();
 
@@ -37,10 +38,11 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-protected:
-	virtual void BeginPlay() override;
-
 private:
+// AUnitPawn overrides.
+	virtual void UnitDiscoverChildComponents() override;
+
+// Input binds.
 	void InputStartFire();
 
 	void InputStopFire();

@@ -11,6 +11,6 @@ class TRANSIENT_API AArmorItem : public AItemActor {
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere)
-	float Health;
+	UPROPERTY(EditAnywhere, Category="Armor")
+	float Health = 300.0f;
 };

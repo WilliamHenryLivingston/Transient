@@ -19,21 +19,18 @@ class TRANSIENT_API AProjectileActor : public AActor {
 	GENERATED_BODY()
 
 private:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Projectile")
 	float Speed = 500.0f;
-
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Projectile")
 	FDamageProfile DamageProfile;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditDefaultsOnly, Category="BP Object Common")
 	UStaticMeshComponent* VisibleComponent;
-
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditDefaultsOnly, Category="BP Object Common")
 	UBoxComponent* ColliderComponent;
-	
+
 public:	
 	AProjectileActor();
-
 	virtual void Tick(float DeltaTime) override;
 
 protected:

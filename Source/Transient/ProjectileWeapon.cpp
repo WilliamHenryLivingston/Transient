@@ -3,8 +3,8 @@
 void AProjectileWeapon::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
-    if (this->CurrentFireCooldown > 0.0f) {
-        this->CurrentFireCooldown -= DeltaTime;
+    if (this->FireCooldownTimer > 0.0f) {
+        this->FireCooldownTimer -= DeltaTime;
         return;
     }
 
@@ -13,7 +13,7 @@ void AProjectileWeapon::Tick(float DeltaTime) {
         this->TriggerPulled = false;
     }
 
-    if (this->TriggerPulled && this->CurrentMagazine > 0) {
+    if (this->TriggerPulled && this->CurrentMagazineAmmo > 0) {
         FRotator HolderRotation = this->CurrentHolder->ItemHolderGetRotation();
 
         FVector FullWeaponOffset = this->CurrentHolder->ItemHolderGetWeaponOffset() + this->MuzzleLocation;
@@ -34,8 +34,8 @@ void AProjectileWeapon::Tick(float DeltaTime) {
             FActorSpawnParameters()
         );
 
-        this->CurrentFireCooldown = this->FireCooldownTime;
-        this->CurrentMagazine--;
+        this->FireCooldownTimer = this->FireCooldownTime;
+        this->CurrentMagazineAmmo--;
     }
     else if (this->TriggerPulled) {
         this->TriggerPulled = false;
@@ -47,9 +47,9 @@ void AProjectileWeapon::Tick(float DeltaTime) {
 void AProjectileWeapon::WeaponSwapMagazines(int NewAmmoCount) {
     this->CurrentHolder->ItemHolderPlaySound(this->ReloadSound);
 
-    this->CurrentMagazine = NewAmmoCount;
+    this->CurrentMagazineAmmo = NewAmmoCount;
 }
 
 bool AProjectileWeapon::WeaponEmpty() {
-	return this->CurrentMagazine == 0;
+	return this->CurrentMagazineAmmo == 0;
 }

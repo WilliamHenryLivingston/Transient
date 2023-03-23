@@ -11,9 +11,8 @@ class TRANSIENT_API AMagazineItem : public AItemActor {
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Magazine")
 	int Ammo;
-
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Magazine")
 	int AmmoTypeID;
 };

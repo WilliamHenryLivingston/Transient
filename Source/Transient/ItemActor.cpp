@@ -42,7 +42,3 @@ void AItemActor::ItemDequip(IItemHolder* Target) {
 	this->ColliderComponent->SetCollisionProfileName(FName("Item"), true);
 	this->ColliderComponent->SetSimulatePhysics(true);
 }
-
-void AItemActor::ItemDestroy() {
-	this->Destroy();
-}

@@ -27,28 +27,30 @@ enum class EUnitAnimArmsMode : uint8 {
     Xbow
 };
 
+UENUM(BlueprintType)
+enum class EUnitAnimArmsModifier : uint8 {
+    None,
+    Reload
+};
+
 UCLASS(Transient, Blueprintable, HideCategories=AnimInstance, BlueprintType)
-class UnitAnimInstance : public UAnimInstance {
+class UUnitAnimInstance : public UAnimInstance {
     GENERATED_BODY()
 
 public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
     EUnitAnimMovementState Script_MovementState;
-
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
     EUnitAnimArmsMode Script_ArmsMode;
-
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
-    bool Script_Reloading;
-
+    EUnitAnimArmsModifier Script_ArmsModifier;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
     bool Script_Interacting;
-
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
     float Script_TimeDilation;
-
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
-    float Script_TorsoYRotation;
+    float Script_TorsoPitch;
+
 public:
-	UnitAnimInstance();
+	UUnitAnimInstance();
 };

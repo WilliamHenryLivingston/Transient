@@ -4,13 +4,16 @@ void AAIUnit::BeginPlay() {
 	Super::BeginPlay();
 }
 
+// TODO: Re-write.
 void AAIUnit::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
     if (this->AgroTarget != nullptr) {
-        if (this->WeaponItem != nullptr && this->WeaponItem->WeaponEmpty()) {
+        AWeaponItem* CurrentWeapon = this->UnitGetActiveWeapon();
+        if (CurrentWeapon != nullptr && CurrentWeapon->WeaponEmpty()) {
             this->OverrideArmState = true;
-            while (this->Magazines.Num() < 2) {
+
+            while (this->UnitGetMagazineCountForAmmoType(CurrentWeapon->AmmoTypeID) < 2) {
                 AMagazineItem* Spawned = this->GetWorld()->SpawnActor<AMagazineItem>(
                     this->AutoSpawnMagazine,
                     this->GetActorLocation(),
