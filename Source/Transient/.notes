@@ -8,3 +8,7 @@ GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("..."));
         FColor::Blue,
         false, 1.0f, 0, 0.1f
     );
+
+TODO refactor:
+Look vectoring all in unitpawn (incl TorsoPitch)
+weapon holster slots

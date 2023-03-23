@@ -2,31 +2,39 @@
 
 #include "CoreMinimal.h"
 
-#include "WeaponActor.h"
+#include "WeaponItem.h"
 
 #include "ProjectileWeapon.generated.h"
 
 UCLASS()
-class TRANSIENT_API AProjectileWeapon : public AWeaponActor {
+class TRANSIENT_API AProjectileWeapon : public AWeaponItem {
 	GENERATED_BODY()
 
 private:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Projectile Weapon")
+	float Spread = 3.0f;
+	UPROPERTY(EditAnywhere, Category="Projectile Weapon")
 	TSubclassOf<AProjectileActor> ProjectileType;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Item SFX")
+	USoundBase* ShootSound;
+	UPROPERTY(EditAnywhere, Category="Item SFX")
+	USoundBase* ReloadSound;
+	UPROPERTY(EditAnywhere, Category="Item SFX")
+	USoundBase* EmptySound;
+
+	UPROPERTY(EditAnywhere, Category="Projectile Weapon")
 	float FireCooldownTime = 0.25f;
+	UPROPERTY(EditAnywhere, Category="Projectile Weapon")
+	int CurrentMagazineAmmo = 0;
 
-	UPROPERTY(EditAnywhere)
-	int MagazineCapacity = 10;
-
-	UPROPERTY(EditAnywhere)
-	float ReloadTime = 1.0f;
-
-	float CurrentFireCooldown = 0.0f;
-
-	int CurrentMagazine = 0;
+	// State.
+	float FireCooldownTimer = 0.0f;
 
 public:
 	virtual void Tick(float DeltaTime) override;
+
+public:
+	virtual void WeaponSwapMagazines(int NewAmmoCount) override;
+	virtual bool WeaponEmpty() override;
 };

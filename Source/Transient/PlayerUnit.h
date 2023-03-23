@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 
 #include "UnitPawn.h"
 
@@ -13,13 +14,23 @@ class TRANSIENT_API APlayerUnit : public AUnitPawn {
 	GENERATED_BODY()
 
 private:
-	UPROPERTY(EditAnywhere)
+	// Child components.
+	UPROPERTY(EditAnywhere, Category="Player Camera")
 	UCameraComponent* CameraComponent;
+	UPROPERTY(EditAnywhere, Category="Player Camera")
+	USpringArmComponent* CameraArmComponent;
+	UStaticMeshComponent* AimIndicatorComponent;
 
+	// Input.
 	FVector2D MovementInput;
 
-	float CurrentForcedDilation;
+	// Other state.
+	AActor* CurrentAimHit;
 
+	float CurrentForcedDilation;
+	bool WantsDilate;
+
+// AActor.
 public:
 	APlayerUnit();
 
@@ -27,30 +38,26 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-protected:
-	virtual void BeginPlay() override;
-
-	virtual void OnUnitFace(FRotator Rotation) override;
-
 private:
-	UFUNCTION()
+// AUnitPawn overrides.
+	virtual void UnitDiscoverChildComponents() override;
+
+// Input binds.
 	void InputStartFire();
-
-	UFUNCTION()
 	void InputStopFire();
-
-	UFUNCTION()
 	void InputInteract();
-
-	UFUNCTION()
 	void InputForward(float AxisValue);
-
-	UFUNCTION()
 	void InputRight(float AxisValue);
-
-	UFUNCTION()
 	void InputStartDilate();
-
-	UFUNCTION()
 	void InputStopDilate();
+	void InputReload();
+	void InputEquipSlotA();
+	void InputEquipSlotB();
+	void InputEquipSlotC();
+	void InputEquipSlotD();
+	void InputEquipSlotE();
+	void InputStartCrouch();
+	void InputEndCrouch();
+	void InputJump();
+	void InputDropActive();
 };
