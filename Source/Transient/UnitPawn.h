@@ -93,6 +93,8 @@ private:
 	// Other state.
 	bool HasStaminaDrain;
 
+	bool Immobilized;
+
 protected:
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
 	float TakeReach = 300.0f; // TODO: Private later.
@@ -124,12 +126,12 @@ public:
 // Internals.
 private:
 	void UnitDequipActiveItem();
-	void UnitPlayGenericInteractionAnimation();
 	void UnitUpdateHostMesh(UStaticMeshComponent* Host, FEquippedMeshConfig* Config);
 
 // Exposures.
 protected:
 	virtual void UnitDiscoverDynamicChildComponents();
+	void UnitPlayGenericInteractionAnimation();
 
 	// Must be called at the end of child-class ticks.
 	void UnitPostTick(float DeltaTime);
@@ -144,6 +146,7 @@ protected:
 	void UnitUseActiveItem(AActor* Target);
 	void UnitSetCrouched(bool NewCrouch);
 	void UnitUpdateTorsoPitch(float TargetValue);
+	void UnitImmobilize(bool Which);
 
 public:
 	// State exposures.
@@ -152,9 +155,13 @@ public:
 	bool UnitIsCrouched();
 	AItemActor* UnitGetActiveItem();
 	AWeaponItem* UnitGetActiveWeapon();
+	AArmorItem* UnitGetArmor();
 
 	// Inventory.
 	void UnitDropActiveItem();
+	void UnitDropArmor();
+	bool UnitHasItem(AItemActor* Target);
+	void UnitDropItem(AItemActor* Target);
 	void UnitEquipFromSlot(int Index);
 	TArray<UUnitSlotComponent*> UnitGetEquippableSlots();
 	TArray<UUnitSlotComponent*> UnitGetEmptySlotsAllowing(EItemInventoryType Type);

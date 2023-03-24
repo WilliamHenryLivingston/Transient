@@ -34,11 +34,16 @@ public:
 	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
 	EUnitAnimArmsMode EquippedAnimArmsMode;
 
-protected:
-	IItemHolder* CurrentHolder;
-
+	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
+	FString ItemName;
 	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
 	bool UsesEquipMesh = true;
+	
+	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
+	FVector DirectAttachOffset;
+
+protected:
+	IItemHolder* CurrentHolder;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Item")
@@ -54,6 +59,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	virtual FString ItemGetDescriptorString();
 	virtual void ItemTake(IItemHolder* Target);
 	virtual void ItemDrop(IItemHolder* Target);
 };

@@ -23,7 +23,6 @@ void AUnitPawn::BeginPlay() {
 
 	this->JumpTimer = -1.0f; // TODO: Janky.
 	
-	
 	this->RigComponent = Cast<USkeletalMeshComponent>(this->FindComponentByClass(USkeletalMeshComponent::StaticClass()));
 	this->Animation = Cast<UUnitAnimInstance>(this->RigComponent->GetAnimInstance());
 	this->AudioComponent = Cast<UAudioComponent>(this->FindComponentByClass(UAudioComponent::StaticClass()));
@@ -108,7 +107,10 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	else {
 		this->UnitUpdateHostMesh(this->ActiveItemHostComponent, &this->ActiveItem->EquippedMesh);
 
-		if (this->InteractTimer <= 0.0f) {
+		if (this->Immobilized) {
+			this->Animation->Script_ArmsMode = EUnitAnimArmsMode::Empty;
+		}
+		else if (this->InteractTimer <= 0.0f) {
 			this->Animation->Script_ArmsMode = this->ActiveItem->EquippedAnimArmsMode;
 		}
 	}
@@ -142,7 +144,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		this->HasMoveTarget = false; // Can't move while crouched.
 	}
 
-	if (this->HasMoveTarget) {
+	if (this->HasMoveTarget && !this->Immobilized) {
 		FVector ActorForward = this->GetActorForwardVector();
 
 		FVector MoveDelta = (this->MoveTarget - CurrentLocation).GetSafeNormal() * this->MoveSpeed * DeltaTime;
@@ -234,6 +236,7 @@ void AUnitPawn::UnitUpdateHostMesh(UStaticMeshComponent* Host, FEquippedMeshConf
 // Getters.
 bool AUnitPawn::UnitIsCrouched() { return this->Crouching; }
 AItemActor* AUnitPawn::UnitGetActiveItem() { return this->ActiveItem; }
+AArmorItem* AUnitPawn::UnitGetArmor() { return this->ArmorItem; }
 
 AWeaponItem* AUnitPawn::UnitGetActiveWeapon() {
 	if (this->ActiveItem == nullptr) return nullptr;
@@ -242,7 +245,12 @@ AWeaponItem* AUnitPawn::UnitGetActiveWeapon() {
 }
 
 bool AUnitPawn::UnitAreArmsOccupied() {
-	return !this->OverrideArmState && (this->InteractTimer > 0.0f || this->ReloadTimer > 0.0f || this->UseTimer > 0.0f);
+	return !this->OverrideArmState && (
+		this->InteractTimer > 0.0f ||
+		this->ReloadTimer > 0.0f ||
+		this->UseTimer > 0.0f ||
+		this->Immobilized
+	);
 }
 
 bool AUnitPawn::UnitIsJumping() {
@@ -258,6 +266,47 @@ void AUnitPawn::UnitDropActiveItem() {
 
 	this->ActiveItem->ItemDrop(this);
 	this->ActiveItem = nullptr;
+}
+
+void AUnitPawn::UnitDropItem(AItemActor* Target) {
+	if (this->UnitAreArmsOccupied()) return;
+	
+	for (int i = 0; i < this->Slots.Num(); i++) {
+		UUnitSlotComponent* Check = this->Slots[i];
+
+		AItemActor* Content = Check->SlotGetContent();
+
+		if (Content == Target) {
+			this->UnitPlayGenericInteractionAnimation();
+			Content->ItemDrop(this);
+			Check->SlotSetContent(nullptr);
+
+			this->UnitDiscoverDynamicChildComponents();
+			return;
+		};
+	}
+}
+
+bool AUnitPawn::UnitHasItem(AItemActor* Target) {	
+	for (int i = 0; i < this->Slots.Num(); i++) {
+		UUnitSlotComponent* Check = this->Slots[i];
+
+		if (Check->SlotGetContent() == Target) return true;
+	}
+
+	return false;
+}
+
+void AUnitPawn::UnitDropArmor() {
+	if (this->ArmorItem == nullptr) return;
+	if (this->UnitAreArmsOccupied()) return;
+
+	this->UnitPlayGenericInteractionAnimation();
+
+	this->ArmorItem->ItemDrop(this);
+	this->ArmorItem = nullptr;
+
+	this->UnitDiscoverDynamicChildComponents();
 }
 
 void AUnitPawn::UnitDequipActiveItem() {
@@ -388,6 +437,13 @@ void AUnitPawn::UnitUseActiveItem(AActor* Target) {
 	AsUsable->ItemUse(Target);
 }
 
+void AUnitPawn::UnitImmobilize(bool Which) {
+	this->Immobilized = Which;
+	if (this->Immobilized) {
+		this->UnitSetTriggerPulled(false);
+	}
+}
+
 void AUnitPawn::UnitMoveTowards(FVector Target) {
 	if (this->JumpTimer > 0.0f) return; // No air control.
 
@@ -411,7 +467,7 @@ void AUnitPawn::UnitSetCrouched(bool NewCrouch) {
 }
 
 void AUnitPawn::UnitJump() {
-	if (this->JumpTimer > 0.0f || this->Crouching) return;
+	if (this->JumpTimer > 0.0f || this->Crouching || this->Immobilized) return;
 
 	// TODO: Kinda busted in slo-mo.
 	this->ColliderComponent->AddImpulse(FVector(0.0f, 0.0f, this->JumpStrength), FName("None"), true);
@@ -553,5 +609,20 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 	this->UnitPlayGenericInteractionAnimation();
 
 	TargetItem->ItemTake(this);
+	if (!TargetItem->UsesEquipMesh) {
+		TargetItem->AttachToComponent(
+			this->RigComponent,
+			FAttachmentTransformRules(
+				EAttachmentRule::SnapToTarget,
+				EAttachmentRule::SnapToTarget,
+				EAttachmentRule::KeepWorld,
+				true
+			),
+			FName("S_Armor") // TODO: Rename slot.
+		);
+		TargetItem->SetActorRelativeLocation(TargetItem->DirectAttachOffset);
+	}
 	PlaceableSlots[0]->SlotSetContent(TargetItem);
+
+	this->UnitDiscoverDynamicChildComponents();
 }

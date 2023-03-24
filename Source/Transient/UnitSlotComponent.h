@@ -4,6 +4,7 @@
 #include "Components/ActorComponent.h"
 
 #include "ItemActor.h"
+#include "UnitSlotColliderComponent.h"
 
 #include "UnitSlotComponent.generated.h"
 
@@ -14,12 +15,14 @@ class TRANSIENT_API UUnitSlotComponent : public UStaticMeshComponent {
 private:
 	UPROPERTY(EditAnywhere, Category="Inventory Slot")
 	AItemActor* Content;
+	UPROPERTY(EditAnywhere, Category="Inventory Slot")
+	float InventoryViewColliderRadius = 2.0f;
+
+	UUnitSlotColliderComponent* InventoryLookCollider;
 
 public:
 	UPROPERTY(EditAnywhere, Category="Inventory Slot")
 	TArray<EItemInventoryType> AllowedItems;
-
-	AItemActor* SourceItem;
 
 public:	
 	UUnitSlotComponent();

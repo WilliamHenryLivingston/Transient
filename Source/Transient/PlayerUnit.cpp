@@ -6,6 +6,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
+#include "UnitSlotColliderComponent.h"
+
 APlayerUnit::APlayerUnit() {
 	this->PrimaryActorTick.bCanEverTick = true;
 
@@ -46,22 +48,39 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &APlayerUnit::InputEndCrouch);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &APlayerUnit::InputJump);
 	PlayerInputComponent->BindAction("Drop", IE_Pressed, this, &APlayerUnit::InputDropActive);
+	PlayerInputComponent->BindAction("Inventory", IE_Pressed, this, &APlayerUnit::InputEnterInventory);
+	PlayerInputComponent->BindAction("Inventory", IE_Released, this, &APlayerUnit::InputExitInventory);
+	PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &APlayerUnit::InputStartAim);
+	PlayerInputComponent->BindAction("Aim", IE_Released, this, &APlayerUnit::InputEndAim);
 }
 
 void APlayerUnit::BeginPlay() {
 	Super::BeginPlay();
 
-	TArray<UStaticMeshComponent*> StaticMeshComponents;
-	this->GetComponents(StaticMeshComponents, true);
-	for (int i = 0; i < StaticMeshComponents.Num(); i++) {
-		UStaticMeshComponent* Check = StaticMeshComponents[i];
+	TArray<UStaticMeshComponent*> MeshComponents;
+	this->GetComponents(MeshComponents, true);
+	for (int i = 0; i < MeshComponents.Num(); i++) {
+		UStaticMeshComponent* Check = MeshComponents[i];
 
 		FString Name = Check->GetName();
 		if (Name.Equals("AimIndicator")) this->AimIndicatorComponent = Check;
 	}
+
+	this->StandardCameraArmLength = this->CameraArmComponent->TargetArmLength;
+	this->StandardCameraArmZOffset = this->CameraArmComponent->TargetOffset.Z;
+	this->StandardCameraPitch = this->CameraComponent->GetRelativeRotation().Pitch;
+	this->StandardAimIndicatorScale = this->AimIndicatorComponent->GetRelativeScale3D();
+
+	// First zoom is bugged without this.
+	FRotator InitialRotation = this->CameraComponent->GetRelativeRotation();
+	InitialRotation.Pitch -= 0.1f;
+	this->CameraComponent->SetRelativeRotation(InitialRotation);
+
+	this->MainUI = Cast<UMainUIWidget>(CreateWidget<UUserWidget>(this->GetWorld(), this->MainUIType));
+	this->MainUI->AddToViewport(1000);
 }
 
-// TODO: Move dilation.
+// TODO: Move dilation. Also this is a complete mess.
 void APlayerUnit::Tick(float DeltaTime) {
 	this->GetWorld()->GetWorldSettings()->SetTimeDilation(this->CurrentForcedDilation);
 
@@ -70,6 +89,52 @@ void APlayerUnit::Tick(float DeltaTime) {
 	this->Animation->Script_TimeDilation = this->CurrentForcedDilation;
 
 	Super::Tick(DeltaTime);
+
+	FRotator CameraRotation = this->CameraComponent->GetRelativeRotation();
+
+	float CameraMoveDelta = this->InventoryViewCameraLerpRate * DeltaTime;
+	float CameraAngleDelta = this->InventoryViewCameraPitchLerpRate * DeltaTime;
+
+	this->UnitImmobilize(this->InventoryView);
+
+	bool ResetAim = true;
+
+	if (this->InventoryView) {
+		this->Aiming = false;
+
+		this->AimIndicatorComponent->SetRelativeScale3D(this->StandardAimIndicatorScale * 0.4f);
+		this->CameraArmComponent->TargetArmLength = FMath::Max(
+			this->InventoryViewDistance,
+			this->CameraArmComponent->TargetArmLength - CameraMoveDelta
+		);
+		this->CameraArmComponent->TargetOffset.Z = FMath::Max(
+			0.0f,
+			this->CameraArmComponent->TargetOffset.Z - CameraMoveDelta
+		);
+
+		float NextCameraPitch = CameraRotation.Pitch + CameraAngleDelta;
+		if (NextCameraPitch > 0.0f) NextCameraPitch = 0.0f;
+
+		CameraRotation.Pitch = NextCameraPitch;
+	}
+	else {
+		this->AimIndicatorComponent->SetRelativeScale3D(this->StandardAimIndicatorScale);
+
+		this->CameraArmComponent->TargetArmLength = FMath::Min(
+			this->StandardCameraArmLength,
+			this->CameraArmComponent->TargetArmLength + CameraMoveDelta
+		);
+		this->CameraArmComponent->TargetOffset.Z = FMath::Min(
+			this->StandardCameraArmZOffset,
+			this->CameraArmComponent->TargetOffset.Z + CameraMoveDelta
+		);
+
+		float NextCameraPitch = CameraRotation.Pitch - CameraAngleDelta;
+		if (NextCameraPitch < this->StandardCameraPitch) NextCameraPitch = this->StandardCameraPitch;
+
+		CameraRotation.Pitch = NextCameraPitch;
+	}
+	this->CameraComponent->SetRelativeRotation(CameraRotation);
 	
 	if (this->WantsDilate && this->UnitDrainStamina(50.0f * RawDeltaTime)) {
 		this->CurrentForcedDilation = FMath::Max(0.25f, this->CurrentForcedDilation - (RawDeltaTime * 3.0f));
@@ -81,49 +146,167 @@ void APlayerUnit::Tick(float DeltaTime) {
 	}
 
 	FHitResult MouseHit;
-	this->GetWorld()->GetFirstPlayerController()->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery3, false, MouseHit);
+	this->GetWorld()->GetFirstPlayerController()->GetHitResultUnderCursorByChannel(
+		this->InventoryView ? ETraceTypeQuery::TraceTypeQuery3 : ETraceTypeQuery::TraceTypeQuery4,
+		false,
+		MouseHit
+	);
 
 	this->AimIndicatorComponent->SetWorldLocation(MouseHit.ImpactPoint);
 
-	AActor* HitActor = MouseHit.GetActor();
-	if (HitActor == this) {
-		this->CurrentAimHit = nullptr;
-
+	this->MainUI->Script_CurrentItemDescriptor = TEXT("");
+	if (this->InventoryView) {
 		this->UnitUpdateTorsoPitch(0.0f);
+
+		bool DropCurrent = this->DropInventoryFocused;
+		this->DropInventoryFocused = false;
+
+		FRotator CurrentRotation = this->GetActorRotation();
+		if (this->InventoryViewFaceTimer > 0.0f) {
+			this->InventoryViewFaceTimer -= DeltaTime;
+
+			this->UnitFaceTowards(this->CameraComponent->GetComponentLocation());
+		}
+		else {
+			CurrentRotation.Yaw += this->MovementInput.X * DeltaTime * this->InventoryViewCameraYawLerpRate;
+
+			this->SetActorRotation(CurrentRotation);
+		}
+
+		UPrimitiveComponent* HitComponent = MouseHit.GetComponent();
+		if (HitComponent != nullptr) {
+			UUnitSlotColliderComponent* AsSlotCollider = Cast<UUnitSlotColliderComponent>(HitComponent);
+
+			if (AsSlotCollider != nullptr) {
+				UUnitSlotComponent* HitSlot = Cast<UUnitSlotComponent>(AsSlotCollider->ParentSlot);
+				AItemActor* Content = HitSlot->SlotGetContent();
+
+				if (Content != nullptr) {
+					this->MainUI->Script_CurrentItemDescriptor = Content->ItemGetDescriptorString();
+
+					if (DropCurrent) {
+						Content->ItemDrop(this);
+						HitSlot->SlotSetContent(nullptr);
+						this->UnitPlayGenericInteractionAnimation();
+					}
+				}
+			}
+			else if (HitComponent->GetName().Equals(TEXT("InvViewActive"))) {
+				AItemActor* CurrentItem = this->UnitGetActiveItem();
+
+				if (CurrentItem != nullptr) {
+					this->MainUI->Script_CurrentItemDescriptor = CurrentItem->ItemGetDescriptorString();
+
+					if (DropCurrent) {
+						this->OverrideArmState = true;
+						this->UnitDropActiveItem();
+						this->OverrideArmState = false;
+						this->UnitPlayGenericInteractionAnimation();
+					}
+				}
+			}
+			else if (HitComponent->GetName().Equals(TEXT("InvViewArmor"))) {
+				AItemActor* CurrentArmor = this->UnitGetArmor();
+
+				if (CurrentArmor != nullptr) {
+					this->MainUI->Script_CurrentItemDescriptor = CurrentArmor->ItemGetDescriptorString();
+					
+					if (DropCurrent) {
+						this->OverrideArmState = true;
+						this->UnitDropArmor();
+						this->OverrideArmState = false;
+						this->UnitPlayGenericInteractionAnimation();
+					}
+				}
+			}
+			else if (HitComponent->GetName().Equals(TEXT("InvViewSelf"))) {
+				AItemActor* AsItem = Cast<AItemActor>(MouseHit.GetActor());
+
+				if (this->UnitHasItem(AsItem)) {
+					this->MainUI->Script_CurrentItemDescriptor = AsItem->ItemGetDescriptorString();
+
+					if (DropCurrent) {
+						this->OverrideArmState = true;
+						this->UnitDropItem(AsItem);
+						this->OverrideArmState = false;
+						this->UnitPlayGenericInteractionAnimation();
+					}
+				}
+			}
+		}
 	}
 	else {
-		this->CurrentAimHit = HitActor;
+		AActor* HitActor = MouseHit.GetActor();
+		if (HitActor == this) {
+			this->CurrentAimHit = nullptr;
 
-		if (HitActor == nullptr || HitActor->Tags.Contains(FName("Ground"))) {
 			this->UnitUpdateTorsoPitch(0.0f);
 		}
 		else {
-			FRotator LookRotation = UKismetMathLibrary::FindLookAtRotation(
-				this->GetActorLocation() + this->ItemHolderGetWeaponOffset(),
-				MouseHit.ImpactPoint
-			);
-			this->UnitUpdateTorsoPitch(LookRotation.Pitch);
+			this->CurrentAimHit = HitActor;
+
+			if (HitActor == nullptr || HitActor->Tags.Contains(FName("Ground"))) {
+				this->UnitUpdateTorsoPitch(0.0f);
+			}
+			else {
+				FRotator LookRotation = UKismetMathLibrary::FindLookAtRotation(
+					this->GetActorLocation() + this->ItemHolderGetWeaponOffset(),
+					MouseHit.ImpactPoint
+				);
+				this->UnitUpdateTorsoPitch(LookRotation.Pitch);
+			}
+
+			this->UnitFaceTowards(MouseHit.ImpactPoint);
 		}
+		
+		if (!this->MovementInput.IsZero()) {
+			FVector2D AdjustedInput = this->MovementInput.GetSafeNormal() * 500.0f;
 
-		this->UnitFaceTowards(MouseHit.ImpactPoint);
+			FVector NewLocation = this->GetActorLocation();
+
+			FVector CameraRight = this->CameraComponent->GetRightVector();
+			CameraRight.Z = 0;
+
+			FVector CameraForward = this->CameraComponent->GetForwardVector();
+			CameraForward.Z = 0;
+
+			NewLocation += CameraRight * AdjustedInput.X;
+			NewLocation += CameraForward * AdjustedInput.Y;
+
+			this->UnitMoveTowards(NewLocation);
+		}
 	}
 
-	if (!this->MovementInput.IsZero()) {
-		FVector2D AdjustedInput = this->MovementInput.GetSafeNormal() * 500.0f;
+	float AimDelta = this->AimSpeed * DeltaTime;
+	if (this->Aiming) {
+		float MouseSX, MouseSY;
+		this->GetWorld()->GetFirstPlayerController()->GetMousePosition(MouseSX, MouseSY);
+		int SSizeX, SSizeY;
+		this->GetWorld()->GetFirstPlayerController()->GetViewportSize(SSizeX, SSizeY);
+		MouseSX /= SSizeX;
+		MouseSY /= SSizeY;
 
-		FVector NewLocation = this->GetActorLocation();
-
-		FVector CameraRight = this->CameraComponent->GetRightVector();
-		CameraRight.Z = 0;
-
-		FVector CameraForward = this->CameraComponent->GetForwardVector();
-		CameraForward.Z = 0;
-
-		NewLocation += CameraRight * AdjustedInput.X;
-		NewLocation += CameraForward * AdjustedInput.Y;
-
-		this->UnitMoveTowards(NewLocation);
+		if (MouseSX < this->AimPadding && this->AimCameraOffset.Y > -this->AimMaxDistance) {
+			this->AimCameraOffset.Y -= AimDelta;
+		}
+		if (MouseSX > (1.0f - this->AimPadding) && this->AimCameraOffset.Y < this->AimMaxDistance) {
+			this->AimCameraOffset.Y += AimDelta; 
+		}
+		if (MouseSY < this->AimPadding && this->AimCameraOffset.X < this->AimMaxDistance) {
+			this->AimCameraOffset.X += AimDelta;
+		}
+		if (MouseSY > (1.0f - this->AimPadding) && this->AimCameraOffset.X > -this->AimMaxDistance) {
+			this->AimCameraOffset.X -= AimDelta; 
+		}
 	}
+	else {
+		AimDelta *= 5.0f;
+		if (this->AimCameraOffset.X > 0.0f) this->AimCameraOffset.X -= AimDelta;
+		if (this->AimCameraOffset.X < 0.0f) this->AimCameraOffset.X += AimDelta;
+		if (this->AimCameraOffset.Y > 0.0f) this->AimCameraOffset.Y -= AimDelta;
+		if (this->AimCameraOffset.Y < 0.0f) this->AimCameraOffset.Y += AimDelta;
+	}
+	this->CameraArmComponent->SetWorldLocation(this->GetActorLocation() + this->AimCameraOffset);
 	
     this->UnitPostTick(DeltaTime);
 }
@@ -155,6 +338,19 @@ void APlayerUnit::InputEquipSlotD() { this->UnitEquipFromSlot(3); }
 void APlayerUnit::InputEquipSlotE() { this->UnitEquipFromSlot(4); }
 void APlayerUnit::InputDropActive() { this->UnitDropActiveItem(); }
 
+void APlayerUnit::InputStartAim() {
+	if (this->InventoryView) {
+		this->DropInventoryFocused = true;
+	}
+	else {
+		this->Aiming = true;
+	}
+}
+
+void APlayerUnit::InputEndAim() {
+	this->Aiming = false;
+}
+
 void APlayerUnit::InputStartFire() {
 	if (this->UnitGetActiveWeapon() != nullptr) {
 		this->UnitSetTriggerPulled(true);
@@ -178,4 +374,13 @@ void APlayerUnit::InputStartDilate() {
 
 void APlayerUnit::InputStopDilate() {
 	this->WantsDilate = false;
+}
+
+void APlayerUnit::InputEnterInventory() {
+	this->InventoryView = true;
+	this->InventoryViewFaceTimer = 0.5f;
+}
+
+void APlayerUnit::InputExitInventory() {
+	this->InventoryView = false;
 }
