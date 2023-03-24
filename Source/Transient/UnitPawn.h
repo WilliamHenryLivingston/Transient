@@ -161,7 +161,9 @@ public:
 	void UnitDropActiveItem();
 	void UnitDropArmor();
 	bool UnitHasItem(AItemActor* Target);
+	bool UnitHasItemByName(FString ItemName);
 	void UnitDropItem(AItemActor* Target);
+	void UnitEquipItem(AItemActor* Target);
 	void UnitEquipFromSlot(int Index);
 	TArray<UUnitSlotComponent*> UnitGetEquippableSlots();
 	TArray<UUnitSlotComponent*> UnitGetEmptySlotsAllowing(EItemInventoryType Type);

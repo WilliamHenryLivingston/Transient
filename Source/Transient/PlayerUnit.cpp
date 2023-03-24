@@ -136,7 +136,7 @@ void APlayerUnit::Tick(float DeltaTime) {
 	}
 	this->CameraComponent->SetRelativeRotation(CameraRotation);
 	
-	if (this->WantsDilate && this->UnitDrainStamina(50.0f * RawDeltaTime)) {
+	if (this->WantsDilate && this->UnitHasItemByName(TEXT("time dilator")) && this->UnitDrainStamina(50.0f * RawDeltaTime)) {
 		this->CurrentForcedDilation = FMath::Max(0.25f, this->CurrentForcedDilation - (RawDeltaTime * 3.0f));
 		this->CameraComponent->PostProcessBlendWeight = FMath::Min(1.0f, this->CameraComponent->PostProcessBlendWeight + (RawDeltaTime * 3.0f));
 	}
@@ -160,6 +160,8 @@ void APlayerUnit::Tick(float DeltaTime) {
 
 		bool DropCurrent = this->DropInventoryFocused;
 		this->DropInventoryFocused = false;
+		bool EquipCurrent = this->EquipInventoryFocused;
+		this->EquipInventoryFocused = false;
 
 		FRotator CurrentRotation = this->GetActorRotation();
 		if (this->InventoryViewFaceTimer > 0.0f) {
@@ -177,60 +179,38 @@ void APlayerUnit::Tick(float DeltaTime) {
 		if (HitComponent != nullptr) {
 			UUnitSlotColliderComponent* AsSlotCollider = Cast<UUnitSlotColliderComponent>(HitComponent);
 
+			AItemActor* TargetedItem = nullptr;
+
 			if (AsSlotCollider != nullptr) {
 				UUnitSlotComponent* HitSlot = Cast<UUnitSlotComponent>(AsSlotCollider->ParentSlot);
-				AItemActor* Content = HitSlot->SlotGetContent();
-
-				if (Content != nullptr) {
-					this->MainUI->Script_CurrentItemDescriptor = Content->ItemGetDescriptorString();
-
-					if (DropCurrent) {
-						Content->ItemDrop(this);
-						HitSlot->SlotSetContent(nullptr);
-						this->UnitPlayGenericInteractionAnimation();
-					}
-				}
+				TargetedItem = HitSlot->SlotGetContent();
 			}
 			else if (HitComponent->GetName().Equals(TEXT("InvViewActive"))) {
-				AItemActor* CurrentItem = this->UnitGetActiveItem();
-
-				if (CurrentItem != nullptr) {
-					this->MainUI->Script_CurrentItemDescriptor = CurrentItem->ItemGetDescriptorString();
-
-					if (DropCurrent) {
-						this->OverrideArmState = true;
-						this->UnitDropActiveItem();
-						this->OverrideArmState = false;
-						this->UnitPlayGenericInteractionAnimation();
-					}
-				}
+				TargetedItem = this->UnitGetActiveItem();
 			}
 			else if (HitComponent->GetName().Equals(TEXT("InvViewArmor"))) {
-				AItemActor* CurrentArmor = this->UnitGetArmor();
-
-				if (CurrentArmor != nullptr) {
-					this->MainUI->Script_CurrentItemDescriptor = CurrentArmor->ItemGetDescriptorString();
-					
-					if (DropCurrent) {
-						this->OverrideArmState = true;
-						this->UnitDropArmor();
-						this->OverrideArmState = false;
-						this->UnitPlayGenericInteractionAnimation();
-					}
-				}
+				TargetedItem = this->UnitGetArmor();
 			}
 			else if (HitComponent->GetName().Equals(TEXT("InvViewSelf"))) {
 				AItemActor* AsItem = Cast<AItemActor>(MouseHit.GetActor());
+				
+				if (this->UnitHasItem(AsItem)) TargetedItem = AsItem;
+			}
+			
+			if (TargetedItem != nullptr) {
+				this->MainUI->Script_CurrentItemDescriptor = TargetedItem->ItemGetDescriptorString();
 
-				if (this->UnitHasItem(AsItem)) {
-					this->MainUI->Script_CurrentItemDescriptor = AsItem->ItemGetDescriptorString();
-
-					if (DropCurrent) {
-						this->OverrideArmState = true;
-						this->UnitDropItem(AsItem);
-						this->OverrideArmState = false;
-						this->UnitPlayGenericInteractionAnimation();
-					}
+				if (DropCurrent) {
+					this->OverrideArmState = true;
+					this->UnitDropItem(TargetedItem);
+					this->OverrideArmState = false;
+					this->UnitPlayGenericInteractionAnimation();
+				}
+				else if (EquipCurrent) {
+					this->OverrideArmState = true;
+					this->UnitEquipItem(TargetedItem);
+					this->OverrideArmState = false;
+					this->UnitPlayGenericInteractionAnimation();
 				}
 			}
 		}
@@ -352,7 +332,10 @@ void APlayerUnit::InputEndAim() {
 }
 
 void APlayerUnit::InputStartFire() {
-	if (this->UnitGetActiveWeapon() != nullptr) {
+	if (this->InventoryView) {
+		this->EquipInventoryFocused = true;
+	}
+	else if (this->UnitGetActiveWeapon() != nullptr) {
 		this->UnitSetTriggerPulled(true);
 	}
 	else {

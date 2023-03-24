@@ -59,6 +59,7 @@ private:
 	bool InventoryView;
 	float InventoryViewFaceTimer;
 	bool DropInventoryFocused;
+	bool EquipInventoryFocused;
 
 	bool Aiming;
 	FVector AimCameraOffset;

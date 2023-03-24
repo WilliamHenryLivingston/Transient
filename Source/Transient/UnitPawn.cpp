@@ -271,6 +271,16 @@ void AUnitPawn::UnitDropActiveItem() {
 void AUnitPawn::UnitDropItem(AItemActor* Target) {
 	if (this->UnitAreArmsOccupied()) return;
 	
+	if (Target == this->ActiveItem) {
+		this->UnitDropActiveItem();
+		return;
+	}
+
+	if (Target == this->ArmorItem) {
+		this->UnitDropArmor();
+		return;
+	}
+	
 	for (int i = 0; i < this->Slots.Num(); i++) {
 		UUnitSlotComponent* Check = this->Slots[i];
 
@@ -292,6 +302,17 @@ bool AUnitPawn::UnitHasItem(AItemActor* Target) {
 		UUnitSlotComponent* Check = this->Slots[i];
 
 		if (Check->SlotGetContent() == Target) return true;
+	}
+
+	return false;
+}
+
+bool AUnitPawn::UnitHasItemByName(FString ItemName) {	
+	for (int i = 0; i < this->Slots.Num(); i++) {
+		UUnitSlotComponent* Check = this->Slots[i];
+
+		AItemActor* CheckItem = Check->SlotGetContent();
+		if (CheckItem != nullptr && CheckItem->ItemName == ItemName) return true;
 	}
 
 	return false;
@@ -324,23 +345,38 @@ void AUnitPawn::UnitDequipActiveItem() {
 	this->ActiveItem = nullptr;
 }
 
+void AUnitPawn::UnitEquipItem(AItemActor* Target) {
+	if (this->UnitAreArmsOccupied()) return;
+
+	for (int i = 0; i < this->Slots.Num(); i++) {
+		UUnitSlotComponent* Check = this->Slots[i];
+
+		AItemActor* Content = Check->SlotGetContent();
+
+		if (Content == Target && Content->Equippable) {
+			this->UnitSetTriggerPulled(false);
+			this->UnitPlayGenericInteractionAnimation();
+
+			UUnitSlotComponent* TargetSlot = this->Slots[i];
+
+			AItemActor* TargetItem = TargetSlot->SlotGetContent();
+			TargetSlot->SlotSetContent(nullptr);
+
+			this->UnitDequipActiveItem();
+
+			this->ActiveItem = TargetItem;
+			return;
+		};
+	}
+}
+
 void AUnitPawn::UnitEquipFromSlot(int Index) {
 	if (this->UnitAreArmsOccupied()) return;
 
 	TArray<UUnitSlotComponent*> EquippableSlots = this->UnitGetEquippableSlots();
 	if (Index >= EquippableSlots.Num()) return;
 
-	this->UnitSetTriggerPulled(false);
-	this->UnitPlayGenericInteractionAnimation();
-
-	UUnitSlotComponent* TargetSlot = EquippableSlots[Index];
-
-	AItemActor* TargetItem = TargetSlot->SlotGetContent();
-	TargetSlot->SlotSetContent(nullptr);
-
-	this->UnitDequipActiveItem();
-
-	this->ActiveItem = TargetItem;
+	this->UnitEquipItem(EquippableSlots[Index]->SlotGetContent());
 }
 
 TArray<UUnitSlotComponent*> AUnitPawn::UnitGetEquippableSlots() {
@@ -604,9 +640,19 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 	}
 
 	TArray<UUnitSlotComponent*> PlaceableSlots = this->UnitGetEmptySlotsAllowing(TargetItem->InventoryType);
+	if (PlaceableSlots.Num() == 0) {
+		PlaceableSlots = this->UnitGetSlotsAllowing(TargetItem->InventoryType);
+	}
+
 	if (PlaceableSlots.Num() == 0) return;
 
 	this->UnitPlayGenericInteractionAnimation();
+
+	AItemActor* PreviousItem = PlaceableSlots[0]->SlotGetContent();
+	if (PreviousItem != nullptr) {
+		PreviousItem->ItemDrop(this);
+		PlaceableSlots[0]->SlotSetContent(nullptr);
+	}
 
 	TargetItem->ItemTake(this);
 	if (!TargetItem->UsesEquipMesh) {

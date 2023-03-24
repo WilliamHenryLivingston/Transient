@@ -33,10 +33,15 @@ void AItemActor::ItemTake(IItemHolder* Target) {
 void AItemActor::ItemDrop(IItemHolder* Target) {
 	this->CurrentHolder = nullptr;
 
-	FVector DropLocation = Target->ItemHolderGetLocation() + Target->ItemHolderGetRotation().RotateVector(FVector(150.0f, 0.0f, 0.0f));
+	FRotator ParentRotation = Target->ItemHolderGetRotation();
+	FVector DropLocation = Target->ItemHolderGetLocation() + ParentRotation.RotateVector(FVector(150.0f, 0.0f, 0.0f));
 	DropLocation.X += FMath::RandRange(-50.0f, 50.0f);
 	DropLocation.Y += FMath::RandRange(-50.0f, 50.0f);
 	this->SetActorLocation(DropLocation);
+
+	FRotator DropRotation = ParentRotation;
+	DropRotation.Yaw = FMath::RandRange(0.0f, 360.0f);
+	this->SetActorRotation(DropRotation);
 
 	if (this->UsesEquipMesh) this->SetActorHiddenInGame(false);
 	this->ColliderComponent->SetCollisionProfileName(FName("Item"), true);
