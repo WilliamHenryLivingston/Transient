@@ -7,7 +7,6 @@
 #include "ItemHolder.h"
 #include "UnitAnimInstance.h"
 #include "EquippedMeshConfig.h"
-#include "ItemContainerComponent.h"
 
 #include "ItemActor.generated.h"
 
@@ -38,6 +37,9 @@ public:
 protected:
 	IItemHolder* CurrentHolder;
 
+	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
+	bool UsesEquipMesh = true;
+
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Item")
 	UStaticMeshComponent* VisibleComponent;
@@ -52,7 +54,6 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	UItemContainerComponent* ItemAsContainer();
 	virtual void ItemTake(IItemHolder* Target);
 	virtual void ItemDrop(IItemHolder* Target);
 };

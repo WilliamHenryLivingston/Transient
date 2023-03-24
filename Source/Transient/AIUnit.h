@@ -18,6 +18,8 @@ private:
 	float DetectionDistance = 60.0f;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	TArray<AAINavNode*> Patrol;
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
+	float PatrolReachDistance = 200.0f;
 
 	AUnitPawn* AgroTarget;
 

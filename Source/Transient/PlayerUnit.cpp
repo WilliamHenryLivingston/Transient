@@ -48,8 +48,8 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Drop", IE_Pressed, this, &APlayerUnit::InputDropActive);
 }
 
-void APlayerUnit::UnitDiscoverChildComponents() {	
-	Super::UnitDiscoverChildComponents();
+void APlayerUnit::BeginPlay() {
+	Super::BeginPlay();
 
 	TArray<UStaticMeshComponent*> StaticMeshComponents;
 	this->GetComponents(StaticMeshComponents, true);
@@ -134,7 +134,7 @@ void APlayerUnit::InputInteract() {
 		AimedItem = Cast<AItemActor>(this->CurrentAimHit);
 
 		// TODO: Out of reach check shouldnt be here.
-		if (AimedItem != nullptr && (AimedItem->GetActorLocation() - this->GetActorLocation()).Size() > 150.0f) {
+		if (AimedItem != nullptr && (AimedItem->GetActorLocation() - this->GetActorLocation()).Size() > this->TakeReach) {
 			AimedItem = nullptr;
 		}
 	}

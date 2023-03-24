@@ -33,16 +33,14 @@ private:
 // AActor.
 public:
 	APlayerUnit();
-
 	virtual void Tick(float DeltaTime) override;
-
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-private:
-// AUnitPawn overrides.
-	virtual void UnitDiscoverChildComponents() override;
+protected:
+	virtual void BeginPlay() override;
 
-// Input binds.
+private:
+	// Input binds.
 	void InputStartFire();
 	void InputStopFire();
 	void InputInteract();

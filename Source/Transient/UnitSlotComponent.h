@@ -19,6 +19,8 @@ public:
 	UPROPERTY(EditAnywhere, Category="Inventory Slot")
 	TArray<EItemInventoryType> AllowedItems;
 
+	AItemActor* SourceItem;
+
 public:	
 	UUnitSlotComponent();
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

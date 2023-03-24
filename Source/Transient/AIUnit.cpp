@@ -64,7 +64,7 @@ void AAIUnit::Tick(float DeltaTime) {
             this->UnitMoveTowards(NextLocation);
             this->UnitFaceTowards(NextLocation);
 
-            if ((NextLocation - this->GetActorLocation()).Size() < 100.0f) {
+            if ((NextLocation - this->GetActorLocation()).Size() < this->PatrolReachDistance) {
                 this->PatrolNext++;
 
                 if (this->PatrolNext >= this->Patrol.Num()) {

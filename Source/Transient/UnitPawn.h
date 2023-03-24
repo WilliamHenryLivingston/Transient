@@ -38,7 +38,7 @@ private:
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
 	float JumpTime = 1.0f; // TODO: Replace with proper grounded check.
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
-	float UseReach = 100.0f;
+	float UseReach = 200.0f;
 
 	// Stats.
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
@@ -68,14 +68,11 @@ private:
 	// Internal child components.
 	USkeletalMeshComponent* RigComponent;
 	UStaticMeshComponent* ActiveItemHostComponent;
-	UStaticMeshComponent* ArmorHostComponent;
 
 	// Per-tick pending updates from child classes.
 	// Movement.
 	FVector MoveTarget;
-	FVector LastMoveTarget; // Tracks previous tick effective move target.
 	bool HasMoveTarget;
-	bool LastHasMoveTarget;
 
 	// XY-plane orientation.
 	FVector FaceTarget;
@@ -97,6 +94,9 @@ private:
 	bool HasStaminaDrain;
 
 protected:
+	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	float TakeReach = 300.0f; // TODO: Private later.
+
 	// Child components available to child classes.
 	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
 	UBoxComponent* ColliderComponent; // Exposed to allow configuration.
@@ -129,7 +129,7 @@ private:
 
 // Exposures.
 protected:
-	virtual void UnitDiscoverChildComponents();
+	virtual void UnitDiscoverDynamicChildComponents();
 
 	// Must be called at the end of child-class ticks.
 	void UnitPostTick(float DeltaTime);

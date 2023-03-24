@@ -20,19 +20,10 @@ AUnitPawn::AUnitPawn() {
 
 void AUnitPawn::BeginPlay() {
 	Super::BeginPlay();
+
+	this->JumpTimer = -1.0f; // TODO: Janky.
 	
-	this->UnitDiscoverChildComponents();
-
-	// Initialize inventory.
-	this->OverrideArmState = true;
-
-	if (this->ActiveItem != nullptr) this->UnitTakeItem(this->ActiveItem);
-	if (this->ArmorItem != nullptr) this->UnitTakeItem(this->ArmorItem);
-
-	this->OverrideArmState = false;
-}
-
-void AUnitPawn::UnitDiscoverChildComponents() {
+	
 	this->RigComponent = Cast<USkeletalMeshComponent>(this->FindComponentByClass(USkeletalMeshComponent::StaticClass()));
 	this->Animation = Cast<UUnitAnimInstance>(this->RigComponent->GetAnimInstance());
 	this->AudioComponent = Cast<UAudioComponent>(this->FindComponentByClass(UAudioComponent::StaticClass()));
@@ -45,11 +36,34 @@ void AUnitPawn::UnitDiscoverChildComponents() {
 
 		FString Name = Check->GetName();
 		if (Name.Equals("ActiveItemHost")) this->ActiveItemHostComponent = Check;
-		else if (Name.Equals("ArmorHost")) this->ArmorHostComponent = Check;
 	}
 
+	this->UnitDiscoverDynamicChildComponents();
+
+	// Initialize inventory.
+	this->OverrideArmState = true;
+
+	if (this->ActiveItem != nullptr) this->UnitTakeItem(this->ActiveItem);
+	if (this->ArmorItem != nullptr) this->UnitTakeItem(this->ArmorItem);
+
+	this->OverrideArmState = false;
+}
+
+void AUnitPawn::UnitDiscoverDynamicChildComponents() {
 	TArray<UUnitSlotComponent*> SlotComponents;
 	this->GetComponents(SlotComponents, true);
+
+	TArray<AActor*> Attached;
+	this->GetAttachedActors(Attached, false);
+
+	for (int i = 0; i < Attached.Num(); i++) {
+		AActor* Check = Attached[i];
+
+		TArray<UUnitSlotComponent*> IncludedComponents;
+		Check->GetComponents(IncludedComponents, true);
+
+		SlotComponents.Append(IncludedComponents);
+	}
 
 	this->Slots = SlotComponents;
 }
@@ -59,14 +73,14 @@ void AUnitPawn::Tick(float DeltaTime) {
 
 	this->AudioComponent->PitchMultiplier = this->GetWorld()->GetWorldSettings()->GetEffectiveTimeDilation();
 
-	this->LastHasMoveTarget = this->HasMoveTarget;
-	if (this->HasMoveTarget) this->LastMoveTarget = this->MoveTarget;
-
 	// Clear child class targeting for their tick.
 	this->TargetTorsoPitch = this->TorsoPitch;
 	this->HasStaminaDrain = false;
-	this->HasMoveTarget = false;
 	this->HasFaceTarget = false;
+
+	if (this->JumpTimer < 0.0f) {
+		this->HasMoveTarget = false;
+	}
 }
 
 void AUnitPawn::UnitPostTick(float DeltaTime) {
@@ -99,13 +113,6 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		}
 	}
 
-	if (this->ArmorItem == nullptr) {
-		this->UnitUpdateHostMesh(this->ArmorHostComponent, nullptr);
-	}
-	else {
-		this->UnitUpdateHostMesh(this->ArmorHostComponent, &this->ArmorItem->EquippedMesh);
-	}
-
 	if (this->UseTimer > 0.0f) {
 		this->UseTimer -= DeltaTime;
 		this->Animation->Script_ArmsModifier = EUnitAnimArmsModifier::Use;
@@ -121,22 +128,11 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	if (this->InteractTimer > 0.0f) this->InteractTimer -= DeltaTime;
 	this->Animation->Script_Interacting = this->InteractTimer > 0.0f;
 
+	FVector CurrentLocation = this->GetActorLocation();	
+
 	bool ActiveJump = this->JumpTimer > 0.0f;
-	FVector EffectiveMoveTarget = this->MoveTarget;
+	if (ActiveJump) this->JumpTimer -= DeltaTime;
 
-	FVector CurrentLocation = this->GetActorLocation();
-
-	if (ActiveJump) {
-		this->JumpTimer -= DeltaTime;
-
-		this->HasMoveTarget = this->LastHasMoveTarget;
-		if (this->HasMoveTarget) {
-			// Force move target; no air control. Extend xy-plane move target outwards by an
-			// arbitrary amount so it remains valid throughout the jump.
-			EffectiveMoveTarget = CurrentLocation + ((this->LastMoveTarget - CurrentLocation) * 1000.0f);
-		}
-	}
-	
 	// Movement update.
 	EUnitAnimMovementState MovementState = EUnitAnimMovementState::None;
 
@@ -149,10 +145,8 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	if (this->HasMoveTarget) {
 		FVector ActorForward = this->GetActorForwardVector();
 
-		FVector MoveDelta = (EffectiveMoveTarget - CurrentLocation).GetSafeNormal() * this->MoveSpeed * DeltaTime;
+		FVector MoveDelta = (this->MoveTarget - CurrentLocation).GetSafeNormal() * this->MoveSpeed * DeltaTime;
 		MoveDelta.Z = 0;
-
-		if (ActiveJump) MoveDelta *= 1.5f; // Move faster in air.
 
 		// Check whether strafing.
 		float Angle = acos(MoveDelta.Dot(ActorForward) / (MoveDelta.Length() * ActorForward.Length()));
@@ -423,6 +417,7 @@ void AUnitPawn::UnitJump() {
 	this->ColliderComponent->AddImpulse(FVector(0.0f, 0.0f, this->JumpStrength), FName("None"), true);
 
 	this->JumpTimer = this->JumpTime;
+	this->MoveTarget = this->GetActorForwardVector() * 10000.0f;
 }
 
 void AUnitPawn::UnitReload() {
@@ -538,6 +533,17 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 
 		this->ArmorItem = AsArmor;
 		this->ArmorItem->ItemTake(this);
+		this->ArmorItem->AttachToComponent(
+			this->RigComponent,
+			FAttachmentTransformRules(
+				EAttachmentRule::SnapToTarget,
+				EAttachmentRule::SnapToTarget,
+				EAttachmentRule::KeepWorld,
+				true
+			),
+			FName("S_Armor")
+		);
+		this->UnitDiscoverDynamicChildComponents();
 		return;
 	}
 
