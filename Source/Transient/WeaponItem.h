@@ -15,7 +15,7 @@ class TRANSIENT_API AWeaponItem : public AItemActor {
 
 public:
 	UPROPERTY(EditAnywhere, Category="Base Weapon")
-	float ReloadTime;
+	FAnimationConfig ReloadAnimation;
 	UPROPERTY(EditAnywhere, Category="Base Weapon")
 	int AmmoTypeID;
 
@@ -34,6 +34,7 @@ protected:
 
 public:
 	void WeaponSetTriggerPulled(bool NewTriggerPulled);
+	bool WeaponGetTriggerPulled();
 	virtual void WeaponSwapMagazines(int NewAmmoCount);
 	virtual bool WeaponEmpty();
 };

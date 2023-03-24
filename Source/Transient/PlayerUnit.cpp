@@ -136,7 +136,7 @@ void APlayerUnit::Tick(float DeltaTime) {
 	}
 	this->CameraComponent->SetRelativeRotation(CameraRotation);
 	
-	if (this->WantsDilate && this->UnitHasItemByName(TEXT("time dilator")) && this->UnitDrainStamina(50.0f * RawDeltaTime)) {
+	if (this->WantsDilate && this->UnitGetItemByName(TEXT("time dilator")) != nullptr && this->UnitDrainStamina(50.0f * RawDeltaTime)) {
 		this->CurrentForcedDilation = FMath::Max(0.25f, this->CurrentForcedDilation - (RawDeltaTime * 3.0f));
 		this->CameraComponent->PostProcessBlendWeight = FMath::Min(1.0f, this->CameraComponent->PostProcessBlendWeight + (RawDeltaTime * 3.0f));
 	}
@@ -155,6 +155,7 @@ void APlayerUnit::Tick(float DeltaTime) {
 	this->AimIndicatorComponent->SetWorldLocation(MouseHit.ImpactPoint);
 
 	this->MainUI->Script_CurrentItemDescriptor = TEXT("");
+	this->ForceArmsEmptyAnimation = this->InventoryView;
 	if (this->InventoryView) {
 		this->UnitUpdateTorsoPitch(0.0f);
 
@@ -201,16 +202,16 @@ void APlayerUnit::Tick(float DeltaTime) {
 				this->MainUI->Script_CurrentItemDescriptor = TargetedItem->ItemGetDescriptorString();
 
 				if (DropCurrent) {
-					this->OverrideArmState = true;
+					this->OverrideArmsState = true;
 					this->UnitDropItem(TargetedItem);
-					this->OverrideArmState = false;
-					this->UnitPlayGenericInteractionAnimation();
+					this->OverrideArmsState = false;
+					this->UnitPlayInteractAnimation();
 				}
 				else if (EquipCurrent) {
-					this->OverrideArmState = true;
+					this->OverrideArmsState = true;
 					this->UnitEquipItem(TargetedItem);
-					this->OverrideArmState = false;
-					this->UnitPlayGenericInteractionAnimation();
+					this->OverrideArmsState = false;
+					this->UnitPlayInteractAnimation();
 				}
 			}
 		}

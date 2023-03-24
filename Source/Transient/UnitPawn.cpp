@@ -3,7 +3,6 @@
 #include "Components/BoxComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
-#include "UsableItem.h"
 #include "EquippedMeshConfig.h"
 
 AUnitPawn::AUnitPawn() {
@@ -40,12 +39,12 @@ void AUnitPawn::BeginPlay() {
 	this->UnitDiscoverDynamicChildComponents();
 
 	// Initialize inventory.
-	this->OverrideArmState = true;
+	this->OverrideArmsState = true;
 
 	if (this->ActiveItem != nullptr) this->UnitTakeItem(this->ActiveItem);
 	if (this->ArmorItem != nullptr) this->UnitTakeItem(this->ArmorItem);
 
-	this->OverrideArmState = false;
+	this->OverrideArmsState = false;
 }
 
 void AUnitPawn::UnitDiscoverDynamicChildComponents() {
@@ -99,6 +98,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	}
 
 	// Timers and animation updates.
+	// ...Arms mode.
 	if (this->ActiveItem == nullptr) {
 		this->UnitUpdateHostMesh(this->ActiveItemHostComponent, nullptr);
 
@@ -110,32 +110,38 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		if (this->Immobilized) {
 			this->Animation->Script_ArmsMode = EUnitAnimArmsMode::Empty;
 		}
-		else if (this->InteractTimer <= 0.0f) {
-			this->Animation->Script_ArmsMode = this->ActiveItem->EquippedAnimArmsMode;
+		this->Animation->Script_ArmsMode = this->ActiveItem->EquippedAnimArmsMode;
+	}
+	if (this->ForceArmsEmptyAnimation) {
+		this->Animation->Script_ArmsMode = EUnitAnimArmsMode::Empty;
+	}
+
+	// ...Arms modifier (animation).
+	if (this->ArmsAnimationTimer > 0.0f) {
+		this->ArmsAnimationTimer -= DeltaTime;
+		this->Animation->Script_ArmsModifier = this->ArmsAnimation;
+
+		if (this->ArmsAnimationTimer < 0.0f && this->ArmsAnimationThen != nullptr) {
+			(this->*(this->ArmsAnimationThen))();
+			this->ArmsAnimationThen = nullptr;
+		}
+	}
+	else {
+		AWeaponItem* CurrentWeapon = this->UnitGetActiveWeapon();
+		if (CurrentWeapon != nullptr && CurrentWeapon->WeaponGetTriggerPulled()) {
+			this->Animation->Script_ArmsModifier = EUnitAnimArmsModifier::Fire;
+		}
+		else {
+			this->Animation->Script_ArmsModifier = EUnitAnimArmsModifier::None;
 		}
 	}
 
-	if (this->UseTimer > 0.0f) {
-		this->UseTimer -= DeltaTime;
-		this->Animation->Script_ArmsModifier = EUnitAnimArmsModifier::Use;
-	}
-	else if (this->ReloadTimer > 0.0f) {
-		this->ReloadTimer -= DeltaTime;
-		this->Animation->Script_ArmsModifier = EUnitAnimArmsModifier::Reload;
-	}
-	else {
-		this->Animation->Script_ArmsModifier = EUnitAnimArmsModifier::None;
-	}
-
-	if (this->InteractTimer > 0.0f) this->InteractTimer -= DeltaTime;
-	this->Animation->Script_Interacting = this->InteractTimer > 0.0f;
-
+	// Movement update.
 	FVector CurrentLocation = this->GetActorLocation();	
 
 	bool ActiveJump = this->JumpTimer > 0.0f;
 	if (ActiveJump) this->JumpTimer -= DeltaTime;
 
-	// Movement update.
 	EUnitAnimMovementState MovementState = EUnitAnimMovementState::None;
 
 	if (this->Crouching) {
@@ -214,12 +220,6 @@ float AUnitPawn::ItemHolderGetSpreadModifier() {
 }
 
 // Internals.
-void AUnitPawn::UnitPlayGenericInteractionAnimation() {
-	if (this->OverrideArmState) return;
-
-	this->InteractTimer = this->InteractAnimationTime;
-}
-
 void AUnitPawn::UnitUpdateHostMesh(UStaticMeshComponent* Host, FEquippedMeshConfig* Config) {
 	if (Host == nullptr) return;
 
@@ -231,6 +231,10 @@ void AUnitPawn::UnitUpdateHostMesh(UStaticMeshComponent* Host, FEquippedMeshConf
 	Host->SetStaticMesh(Config->Mesh);
 	Host->SetRelativeScale3D(Config->Scale);
 	Host->SetRelativeRotation(Config->Rotation);
+}
+
+void AUnitPawn::UnitFinishUse() {
+	this->CurrentUseItem->ItemUse(this->CurrentUseItemTarget);
 }
 
 // Getters.
@@ -245,10 +249,8 @@ AWeaponItem* AUnitPawn::UnitGetActiveWeapon() {
 }
 
 bool AUnitPawn::UnitAreArmsOccupied() {
-	return !this->OverrideArmState && (
-		this->InteractTimer > 0.0f ||
-		this->ReloadTimer > 0.0f ||
-		this->UseTimer > 0.0f ||
+	return !this->OverrideArmsState && (
+		this->ArmsAnimationTimer > 0.0f ||
 		this->Immobilized
 	);
 }
@@ -258,11 +260,83 @@ bool AUnitPawn::UnitIsJumping() {
 }
 
 // Inventory.
+void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
+	if (TargetItem == nullptr) return;
+	if (this->UnitAreArmsOccupied()) return;
+
+	if (TargetItem->Equippable) {
+		this->UnitPlayInteractAnimation();
+
+		this->UnitDequipActiveItem();
+
+		TargetItem->ItemTake(this);
+		this->ActiveItem = TargetItem;
+		return;
+	}
+
+	AArmorItem* AsArmor = Cast<AArmorItem>(TargetItem);
+	if (AsArmor != nullptr) {
+		this->UnitPlayInteractAnimation();
+
+		if (this->ArmorItem != nullptr) {
+			this->ArmorItem->ItemDrop(this);
+		}
+
+		this->ArmorItem = AsArmor;
+		this->ArmorItem->ItemTake(this);
+		this->ArmorItem->AttachToComponent(
+			this->RigComponent,
+			FAttachmentTransformRules(
+				EAttachmentRule::SnapToTarget,
+				EAttachmentRule::SnapToTarget,
+				EAttachmentRule::KeepWorld,
+				true
+			),
+			FName("S_Armor")
+		);
+		this->UnitDiscoverDynamicChildComponents();
+		return;
+	}
+
+	TArray<UUnitSlotComponent*> PlaceableSlots = this->UnitGetEmptySlotsAllowing(TargetItem->InventoryType);
+	if (PlaceableSlots.Num() == 0) {
+		PlaceableSlots = this->UnitGetSlotsAllowing(TargetItem->InventoryType);
+	}
+
+	if (PlaceableSlots.Num() == 0) return;
+
+	this->UnitPlayInteractAnimation();
+
+	AItemActor* PreviousItem = PlaceableSlots[0]->SlotGetContent();
+	if (PreviousItem != nullptr) {
+		PreviousItem->ItemDrop(this);
+		PlaceableSlots[0]->SlotSetContent(nullptr);
+	}
+
+	TargetItem->ItemTake(this);
+	if (!TargetItem->UsesEquipMesh) {
+		TargetItem->AttachToComponent(
+			this->RigComponent,
+			FAttachmentTransformRules(
+				EAttachmentRule::SnapToTarget,
+				EAttachmentRule::SnapToTarget,
+				EAttachmentRule::KeepWorld,
+				true
+			),
+			FName("S_Armor") // TODO: Rename slot.
+		);
+		TargetItem->SetActorRelativeLocation(TargetItem->DirectAttachOffset);
+	}
+	PlaceableSlots[0]->SlotSetContent(TargetItem);
+
+	this->UnitDiscoverDynamicChildComponents();
+}
+
 void AUnitPawn::UnitDropActiveItem() {
 	if (this->ActiveItem == nullptr) return;
 	if (this->UnitAreArmsOccupied()) return;
 
-	this->UnitPlayGenericInteractionAnimation();
+	this->UnitPlayInteractAnimation();
 
 	this->ActiveItem->ItemDrop(this);
 	this->ActiveItem = nullptr;
@@ -287,7 +361,7 @@ void AUnitPawn::UnitDropItem(AItemActor* Target) {
 		AItemActor* Content = Check->SlotGetContent();
 
 		if (Content == Target) {
-			this->UnitPlayGenericInteractionAnimation();
+			this->UnitPlayInteractAnimation();
 			Content->ItemDrop(this);
 			Check->SlotSetContent(nullptr);
 
@@ -307,22 +381,22 @@ bool AUnitPawn::UnitHasItem(AItemActor* Target) {
 	return false;
 }
 
-bool AUnitPawn::UnitHasItemByName(FString ItemName) {	
+AItemActor* AUnitPawn::UnitGetItemByName(FString ItemName) {	
 	for (int i = 0; i < this->Slots.Num(); i++) {
 		UUnitSlotComponent* Check = this->Slots[i];
 
 		AItemActor* CheckItem = Check->SlotGetContent();
-		if (CheckItem != nullptr && CheckItem->ItemName == ItemName) return true;
+		if (CheckItem != nullptr && CheckItem->ItemName == ItemName) return CheckItem;
 	}
 
-	return false;
+	return nullptr;
 }
 
 void AUnitPawn::UnitDropArmor() {
 	if (this->ArmorItem == nullptr) return;
 	if (this->UnitAreArmsOccupied()) return;
 
-	this->UnitPlayGenericInteractionAnimation();
+	this->UnitPlayInteractAnimation();
 
 	this->ArmorItem->ItemDrop(this);
 	this->ArmorItem = nullptr;
@@ -355,7 +429,7 @@ void AUnitPawn::UnitEquipItem(AItemActor* Target) {
 
 		if (Content == Target && Content->Equippable) {
 			this->UnitSetTriggerPulled(false);
-			this->UnitPlayGenericInteractionAnimation();
+			this->UnitPlayInteractAnimation();
 
 			UUnitSlotComponent* TargetSlot = this->Slots[i];
 
@@ -451,6 +525,19 @@ TArray<UUnitSlotComponent*> AUnitPawn::UnitGetSlotsContainingMagazines(int AmmoT
 	return Found;
 }
 
+// Animations.
+void AUnitPawn::UnitPlayAnimationOnce(EUnitAnimArmsModifier AnimationMod, FAnimationConfig Config, void (AUnitPawn::*Then)()) {
+	if (this->OverrideArmsState) return;
+
+	this->ArmsAnimation = AnimationMod;
+	this->ArmsAnimationTimer = Config.Time;
+	this->ArmsAnimationThen = Then;
+}
+
+void AUnitPawn::UnitPlayInteractAnimation() {
+	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Interact, this->InteractAnimation, nullptr);
+}
+
 // Actions.
 void AUnitPawn::UnitUseActiveItem(AActor* Target) {
 	if (this->UnitAreArmsOccupied()) return;
@@ -465,12 +552,11 @@ void AUnitPawn::UnitUseActiveItem(AActor* Target) {
 			(Target->GetActorLocation() - this->GetActorLocation()).Size() > this->UseReach
 		)
 	);
-	if (InvalidTarget) {
-		return;
-	}
+	if (InvalidTarget) return;
 
-	this->UseTimer = AsUsable->UseTime;
-	AsUsable->ItemUse(Target);
+	this->CurrentUseItem = AsUsable;
+	this->CurrentUseItemTarget = Target;
+	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Use, AsUsable->UseAnimation, &AUnitPawn::UnitFinishUse);
 }
 
 void AUnitPawn::UnitImmobilize(bool Which) {
@@ -541,7 +627,7 @@ void AUnitPawn::UnitReload() {
 	Weapon->WeaponSwapMagazines(SelectedMag->Ammo);
 	SelectedMag->Destroy();
 
-	this->ReloadTimer = Weapon->ReloadTime;
+	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Reload, Weapon->ReloadAnimation, nullptr);
 }
 
 void AUnitPawn::UnitSetTriggerPulled(bool NewTriggerPulled) {
@@ -563,7 +649,7 @@ bool AUnitPawn::UnitDrainStamina(float Amount) {
 	return false;
 }
 
-void AUnitPawn::UnitTakeDamage(FDamageProfile Profile) {
+void AUnitPawn::UnitTakeDamage(FDamageProfile Profile, AActor* Source) {
 	float Kinetic = Profile.KineticDamage;
 
 	//	Absorb damage with armor.
@@ -586,7 +672,7 @@ void AUnitPawn::UnitTakeDamage(FDamageProfile Profile) {
 }
 
 void AUnitPawn::UnitDie() {
-	this->OverrideArmState = true;
+	this->OverrideArmsState = true;
 	
 	for (int i = 0; i < this->Slots.Num(); i++) {
 		UUnitSlotComponent* Slot = this->Slots[i];
@@ -599,76 +685,4 @@ void AUnitPawn::UnitDie() {
 	}
 
 	this->Destroy();
-}
-
-void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
-	if (TargetItem == nullptr) return;
-	if (this->UnitAreArmsOccupied()) return;
-
-	if (TargetItem->Equippable) {
-		this->UnitPlayGenericInteractionAnimation();
-
-		this->UnitDequipActiveItem();
-
-		TargetItem->ItemTake(this);
-		this->ActiveItem = TargetItem;
-		return;
-	}
-
-	AArmorItem* AsArmor = Cast<AArmorItem>(TargetItem);
-	if (AsArmor != nullptr) {
-		this->UnitPlayGenericInteractionAnimation();
-
-		if (this->ArmorItem != nullptr) {
-			this->ArmorItem->ItemDrop(this);
-		}
-
-		this->ArmorItem = AsArmor;
-		this->ArmorItem->ItemTake(this);
-		this->ArmorItem->AttachToComponent(
-			this->RigComponent,
-			FAttachmentTransformRules(
-				EAttachmentRule::SnapToTarget,
-				EAttachmentRule::SnapToTarget,
-				EAttachmentRule::KeepWorld,
-				true
-			),
-			FName("S_Armor")
-		);
-		this->UnitDiscoverDynamicChildComponents();
-		return;
-	}
-
-	TArray<UUnitSlotComponent*> PlaceableSlots = this->UnitGetEmptySlotsAllowing(TargetItem->InventoryType);
-	if (PlaceableSlots.Num() == 0) {
-		PlaceableSlots = this->UnitGetSlotsAllowing(TargetItem->InventoryType);
-	}
-
-	if (PlaceableSlots.Num() == 0) return;
-
-	this->UnitPlayGenericInteractionAnimation();
-
-	AItemActor* PreviousItem = PlaceableSlots[0]->SlotGetContent();
-	if (PreviousItem != nullptr) {
-		PreviousItem->ItemDrop(this);
-		PlaceableSlots[0]->SlotSetContent(nullptr);
-	}
-
-	TargetItem->ItemTake(this);
-	if (!TargetItem->UsesEquipMesh) {
-		TargetItem->AttachToComponent(
-			this->RigComponent,
-			FAttachmentTransformRules(
-				EAttachmentRule::SnapToTarget,
-				EAttachmentRule::SnapToTarget,
-				EAttachmentRule::KeepWorld,
-				true
-			),
-			FName("S_Armor") // TODO: Rename slot.
-		);
-		TargetItem->SetActorRelativeLocation(TargetItem->DirectAttachOffset);
-	}
-	PlaceableSlots[0]->SlotSetContent(TargetItem);
-
-	this->UnitDiscoverDynamicChildComponents();
 }

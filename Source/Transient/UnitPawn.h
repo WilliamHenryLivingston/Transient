@@ -6,6 +6,7 @@
 #include "Components/AudioComponent.h"
 
 #include "ItemActor.h"
+#include "UsableItem.h"
 #include "MagazineItem.h"
 #include "WeaponItem.h"
 #include "ArmorItem.h"
@@ -53,10 +54,12 @@ private:
 	float StaminaRegen = 50.0f;
 
 	// Rig-related parameters.
-	UPROPERTY(EditAnywhere, Category="Unit Rig")
-	float InteractAnimationTime = 1.0f;
 	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
 	FVector WeaponOffset;
+	UPROPERTY(EditAnywhere, Category="Unit Rig")
+	FAnimationConfig InteractAnimation;
+	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
+	TArray<FAnimationConfig> MiscArmsAnimations;
 
 	// Inventory.
 	UPROPERTY(EditAnywhere, Category="Unit Inventory")
@@ -77,13 +80,18 @@ private:
 	// XY-plane orientation.
 	FVector FaceTarget;
 	bool HasFaceTarget;
+	
+	// Deferred action states.
+	AUsableItem* CurrentUseItem;
+	AActor* CurrentUseItemTarget;
 
 	// Rig state.
 	// TODO: Better anim timing system.
-	float ReloadTimer;
-	float InteractTimer;
-	float UseTimer;
 	float JumpTimer; // TODO: Remove once grounded check exists.
+
+	EUnitAnimArmsModifier ArmsAnimation;
+	float ArmsAnimationTimer;
+	void (AUnitPawn::*ArmsAnimationThen)();
 	
 	bool Crouching;
 
@@ -99,13 +107,15 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
 	float TakeReach = 300.0f; // TODO: Private later.
 
+	bool ForceArmsEmptyAnimation; // TODO: Better solution (inventory view).
+
 	// Child components available to child classes.
 	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
 	UBoxComponent* ColliderComponent; // Exposed to allow configuration.
 	UAudioComponent* AudioComponent;
 	UUnitAnimInstance* Animation;
 
-	bool OverrideArmState; // Used to prevent validity checks and animation on arm-based actions.
+	bool OverrideArmsState; // Used to prevent validity checks and animation on arm-based actions.
 
 // AActor methods.
 public:
@@ -128,25 +138,14 @@ private:
 	void UnitDequipActiveItem();
 	void UnitUpdateHostMesh(UStaticMeshComponent* Host, FEquippedMeshConfig* Config);
 
+	void UnitFinishUse();
+
 // Exposures.
 protected:
 	virtual void UnitDiscoverDynamicChildComponents();
-	void UnitPlayGenericInteractionAnimation();
 
 	// Must be called at the end of child-class ticks.
 	void UnitPostTick(float DeltaTime);
-
-	// Internal-only actions.
-	void UnitMoveTowards(FVector Target);
-	void UnitFaceTowards(FVector Target);
-	bool UnitDrainStamina(float Amount);
-	void UnitSetTriggerPulled(bool NewTriggerPulled);
-	void UnitReload();
-	void UnitJump();
-	void UnitUseActiveItem(AActor* Target);
-	void UnitSetCrouched(bool NewCrouch);
-	void UnitUpdateTorsoPitch(float TargetValue);
-	void UnitImmobilize(bool Which);
 
 public:
 	// State exposures.
@@ -161,7 +160,7 @@ public:
 	void UnitDropActiveItem();
 	void UnitDropArmor();
 	bool UnitHasItem(AItemActor* Target);
-	bool UnitHasItemByName(FString ItemName);
+	AItemActor* UnitGetItemByName(FString ItemName);
 	void UnitDropItem(AItemActor* Target);
 	void UnitEquipItem(AItemActor* Target);
 	void UnitEquipFromSlot(int Index);
@@ -170,9 +169,26 @@ public:
 	TArray<UUnitSlotComponent*> UnitGetSlotsAllowing(EItemInventoryType Type);
 	TArray<UUnitSlotComponent*> UnitGetSlotsContaining(EItemInventoryType Type);
 	TArray<UUnitSlotComponent*> UnitGetSlotsContainingMagazines(int AmmoTypeID);
+	
+	// Actions.
+	bool UnitDrainStamina(float Amount);
+	void UnitUpdateTorsoPitch(float TargetValue);
 
-	// Other actions.
-	void UnitTakeDamage(FDamageProfile Profile);
+	void UnitMoveTowards(FVector Target);
+	void UnitFaceTowards(FVector Target);
+	void UnitImmobilize(bool Which);
+	void UnitJump();
+	void UnitSetCrouched(bool NewCrouch);
+
+	void UnitUseActiveItem(AActor* Target);
+	void UnitSetTriggerPulled(bool NewTriggerPulled);
+	virtual void UnitReload();
+
+	void UnitPlayAnimationOnce(EUnitAnimArmsModifier Animation, FAnimationConfig Config, void (AUnitPawn::*Then)());
+	void UnitPlayInteractAnimation();
+
+	// External impacts.
+	virtual void UnitTakeDamage(FDamageProfile Profile, AActor* Source);
 	void UnitTakeItem(AItemActor* TargetItem);
 	void UnitDie();
 };

@@ -18,6 +18,9 @@ UCLASS()
 class TRANSIENT_API AProjectileActor : public AActor {
 	GENERATED_BODY()
 
+public:
+	AActor* Source;
+
 private:
 	UPROPERTY(EditAnywhere, Category="Projectile")
 	float Speed = 500.0f;

@@ -4,34 +4,52 @@
 
 #include "UnitPawn.h"
 #include "AINavNode.h"
+#include "AIGroup.h"
+#include "AIActions/AIActionExecutor.h"
+#include "AIActions/PatrolStepAIAction.h"
 
 #include "AIUnit.generated.h"
 
 UCLASS()
-class TRANSIENT_API AAIUnit : public AUnitPawn {
+class TRANSIENT_API AAIUnit : public AUnitPawn, public IAIGroupMember {
 	GENERATED_BODY()
 	
+public:
+	AAIGroup* Group;
+
 private:
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	TSubclassOf<AMagazineItem> AutoSpawnMagazine;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	float DetectionDistance = 60.0f;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
-	TArray<AAINavNode*> Patrol;
-	UPROPERTY(EditAnywhere, Category="AI Behavior")
-	float PatrolReachDistance = 200.0f;
+	TArray<FAIPatrolStep> Patrol;
 
-	AUnitPawn* AgroTarget;
+	AActor* AgroTarget;
+	AActor* PendingAgroTarget;
+	IAIActionExecutor* CurrentActionExecutor;
 
-	float AttackTime;
-	int PatrolNext;
+	int PatrolStep;
 
+// AActor.
 public:
 	virtual void Tick(float DeltaTime) override;
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(EEndPlayReason::Type Reason) override;
 
+// AUnitPawn.
+public:
+	virtual void UnitTakeDamage(FDamageProfile Profile, AActor* Source) override;
+	virtual void UnitReload() override;
+
+// IAIGroupMember.
+public:
+	virtual void AIGroupMemberJoin(AAIGroup* Group) override;
+	virtual void AIGroupMemberAlert(AActor* AgroTarget) override;
+
+// Internals.
 private:
-	AUnitPawn* AICheckDetection();
+	AActor* AICheckDetection();
 };

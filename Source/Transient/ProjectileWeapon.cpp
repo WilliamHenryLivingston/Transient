@@ -33,6 +33,9 @@ void AProjectileWeapon::Tick(float DeltaTime) {
             SpreadRotation,
             FActorSpawnParameters()
         );
+        if (Projectile != nullptr) {
+            Projectile->Source = Cast<AActor>(this->CurrentHolder);
+        }
 
         this->FireCooldownTimer = this->FireCooldownTime;
         this->CurrentMagazineAmmo--;

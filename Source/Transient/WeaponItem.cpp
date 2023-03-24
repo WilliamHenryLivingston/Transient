@@ -19,6 +19,10 @@ void AWeaponItem::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 }
 
+bool AWeaponItem::WeaponGetTriggerPulled() {
+	return this->TriggerPulled;
+}
+
 void AWeaponItem::WeaponSetTriggerPulled(bool NewTriggerPulled) {
 	this->TriggerPulled = NewTriggerPulled;
 }
