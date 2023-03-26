@@ -71,6 +71,7 @@ private:
 	// Internal child components.
 	USkeletalMeshComponent* RigComponent;
 	UStaticMeshComponent* ActiveItemHostComponent;
+	UStaticMeshComponent* ActiveItemAltHostComponent;
 
 	// Per-tick pending updates from child classes.
 	// Movement.
@@ -115,7 +116,12 @@ protected:
 	UAudioComponent* AudioComponent;
 	UUnitAnimInstance* Animation;
 
+public:
 	bool OverrideArmsState; // Used to prevent validity checks and animation on arm-based actions.
+
+public:
+	UPROPERTY(EditAnywhere, Category="Unit Stats")
+	int FactionID = 1;
 
 // AActor methods.
 public:
@@ -161,6 +167,7 @@ public:
 	void UnitDropArmor();
 	bool UnitHasItem(AItemActor* Target);
 	AItemActor* UnitGetItemByName(FString ItemName);
+	AItemActor* UnitGetItemByClass(TSubclassOf<AItemActor> ItemClass);
 	void UnitDropItem(AItemActor* Target);
 	void UnitEquipItem(AItemActor* Target);
 	void UnitEquipFromSlot(int Index);

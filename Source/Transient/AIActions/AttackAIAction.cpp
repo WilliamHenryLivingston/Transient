@@ -2,14 +2,15 @@
 
 #include "../AIUnit.h"
 
-CAttackAIAction::CAttackAIAction(AActor* Target) {
-    this->Target = Target;
+CAttackAIAction::CAttackAIAction(AActor* InitTarget) {
+    this->Target = InitTarget;
+    this->AttackTime = 0.0f;
 }
 
 CAttackAIAction::~CAttackAIAction() {}
 
-bool CAttackAIAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
-    if (!IsValid(this->Target)) return true;
+FAIActionExecutionResult CAttackAIAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
+    if (!IsValid(this->Target)) return this->Finished;
 
     AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
 
@@ -44,5 +45,5 @@ bool CAttackAIAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
         }
     }
 
-    return false;
+    return this->Unfinished;
 }

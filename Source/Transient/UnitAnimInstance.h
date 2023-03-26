@@ -33,7 +33,8 @@ UENUM(BlueprintType)
 enum class EUnitAnimArmsMode : uint8 {
     Empty,
     Mpz,
-    Xbow
+    Xbow,
+    Watercan
 };
 
 UENUM(BlueprintType)
@@ -42,10 +43,7 @@ enum class EUnitAnimArmsModifier : uint8 {
     Fire,
     Reload,
     Use,
-    Interact,
-    MiscAnim1,
-    MiscAnim2,
-    MiscAnim3
+    Interact
 };
 
 UCLASS(Transient, Blueprintable, HideCategories=AnimInstance, BlueprintType)

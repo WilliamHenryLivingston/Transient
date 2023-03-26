@@ -1,17 +1,34 @@
 #include "AIUnit.h"
 
 #include "AIActions/AttackAIAction.h"
-#include "AIActions/PatrolStepAIAction.h"
+#include "AIActions/PatrolAIAction.h"
 
 void AAIUnit::BeginPlay() {
 	Super::BeginPlay();
 
-    if (this->Patrol.Num() > 0) {
-        this->CurrentActionExecutor = new CPatrolStepAIAction(this->Patrol[this->PatrolStep]);
+    this->OverrideArmsState = true;
+    for (int i = 0; i < this->AutoSpawnInitialItems.Num(); i++) {
+        AItemActor* Spawned = this->GetWorld()->SpawnActor<AItemActor>(
+            this->AutoSpawnInitialItems[i],
+            this->GetActorLocation(),
+            this->GetActorRotation(),
+            FActorSpawnParameters()
+        );
+        if (Spawned == nullptr) continue;
+
+        this->UnitTakeItem(Spawned);
     }
+    this->OverrideArmsState = false;
+
+    this->ActionExecutorStack = TArray<IAIActionExecutor*>();
+    this->ActionExecutorStack.Push(new CPatrolAIAction(&this->Patrol));
 }
 
 void AAIUnit::EndPlay(EEndPlayReason::Type Reason) {
+    for (int i = 0; i < this->ActionExecutorStack.Num(); i++) {
+        delete this->ActionExecutorStack[i];
+    }
+
     if (this->Group != nullptr) {
         this->Group->Members.Remove(this);
     }
@@ -27,7 +44,6 @@ void AAIUnit::AIGroupMemberAlert(AActor* Target) {
     this->PendingAgroTarget = Target;
 }
 
-// TODO: Re-write.
 void AAIUnit::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
@@ -37,28 +53,26 @@ void AAIUnit::Tick(float DeltaTime) {
         NewAgroTarget = this->AICheckDetection();
     }
 
-    if (NewAgroTarget != nullptr) {
+    if (NewAgroTarget != nullptr && IsValid(NewAgroTarget)) {
         this->AgroTarget = NewAgroTarget;
 
         if (this->Group != nullptr) {
             this->Group->AIGroupDistributeAlert(this->AgroTarget);
         }
 
-        delete this->CurrentActionExecutor;
-        this->CurrentActionExecutor = new CAttackAIAction(this->AgroTarget);
+        this->ActionExecutorStack.Push(new CAttackAIAction(this->AgroTarget));
     }
 
-    if (this->CurrentActionExecutor != nullptr) {
-        bool Done = this->CurrentActionExecutor->AIActionTick(this, DeltaTime);
+    if (this->ActionExecutorStack.Num() > 0) {
+        IAIActionExecutor* CurrentExecutor = this->ActionExecutorStack[this->ActionExecutorStack.Num() - 1];
 
-        if (Done) {
-            delete this->CurrentActionExecutor;
-
-            if (this->Patrol.Num() > 0) {
-                this->PatrolStep = (this->PatrolStep + 1) % this->Patrol.Num();
-
-                this->CurrentActionExecutor = new CPatrolStepAIAction(this->Patrol[this->PatrolStep]);
-            }
+        FAIActionExecutionResult Result = CurrentExecutor->AIActionTick(this, DeltaTime);
+        if (Result.Finished) {
+            this->ActionExecutorStack.Pop(false);
+            delete CurrentExecutor;
+        }
+        if (Result.PushInner) {
+            this->ActionExecutorStack.Push(Result.PushInner);
         }
     }
 
@@ -123,10 +137,10 @@ AActor* AAIUnit::AICheckDetection() {
         if (AnyHitActor == nullptr) continue;
 
         AUnitPawn* AsPawn = Cast<AUnitPawn>(AnyHitActor);
-        if (AsPawn != nullptr) {
-            return AsPawn;
-        }
+        if (AsPawn != nullptr && AsPawn->FactionID != this->FactionID) { return AsPawn; }
     }
 
     return nullptr;
 }
+
+AActor* AAIUnit::AIGetAgroTarget() { return this->AgroTarget; }

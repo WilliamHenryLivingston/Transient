@@ -17,7 +17,8 @@ enum class EItemInventoryType : uint8 {
 	WeaponLarge,
 	Container,
 	Magazine,
-	Misc
+	Misc,
+	MiscLarge
 };
 
 UCLASS()
@@ -31,6 +32,8 @@ public:
 	EItemInventoryType InventoryType;
 	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	bool Equippable;
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
+	bool EquipAltHand;
 	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
 	EUnitAnimArmsMode EquippedAnimArmsMode;
 

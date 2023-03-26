@@ -34,6 +34,7 @@ void AUnitPawn::BeginPlay() {
 
 		FString Name = Check->GetName();
 		if (Name.Equals("ActiveItemHost")) this->ActiveItemHostComponent = Check;
+		else if (Name.Equals("ActiveItemAltHost")) this->ActiveItemAltHostComponent = Check;
 	}
 
 	this->UnitDiscoverDynamicChildComponents();
@@ -101,11 +102,19 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	// ...Arms mode.
 	if (this->ActiveItem == nullptr) {
 		this->UnitUpdateHostMesh(this->ActiveItemHostComponent, nullptr);
+		this->UnitUpdateHostMesh(this->ActiveItemAltHostComponent, nullptr);
 
 		this->Animation->Script_ArmsMode = EUnitAnimArmsMode::Empty;
 	}
 	else {
-		this->UnitUpdateHostMesh(this->ActiveItemHostComponent, &this->ActiveItem->EquippedMesh);
+		if (this->ActiveItem->EquipAltHand) {
+		this->UnitUpdateHostMesh(this->ActiveItemHostComponent, nullptr);
+			this->UnitUpdateHostMesh(this->ActiveItemAltHostComponent, &this->ActiveItem->EquippedMesh);
+		}
+		else {
+			this->UnitUpdateHostMesh(this->ActiveItemAltHostComponent, nullptr);
+			this->UnitUpdateHostMesh(this->ActiveItemHostComponent, &this->ActiveItem->EquippedMesh);
+		}
 
 		if (this->Immobilized) {
 			this->Animation->Script_ArmsMode = EUnitAnimArmsMode::Empty;
@@ -392,6 +401,17 @@ AItemActor* AUnitPawn::UnitGetItemByName(FString ItemName) {
 	return nullptr;
 }
 
+AItemActor* AUnitPawn::UnitGetItemByClass(TSubclassOf<AItemActor> ItemClass) {	
+	for (int i = 0; i < this->Slots.Num(); i++) {
+		UUnitSlotComponent* Check = this->Slots[i];
+
+		AItemActor* CheckItem = Check->SlotGetContent();
+		if (CheckItem != nullptr && CheckItem->IsA(ItemClass)) return CheckItem;
+	}
+
+	return nullptr;
+}
+
 void AUnitPawn::UnitDropArmor() {
 	if (this->ArmorItem == nullptr) return;
 	if (this->UnitAreArmsOccupied()) return;
@@ -420,6 +440,7 @@ void AUnitPawn::UnitDequipActiveItem() {
 }
 
 void AUnitPawn::UnitEquipItem(AItemActor* Target) {
+	if (Target == nullptr) return;
 	if (this->UnitAreArmsOccupied()) return;
 
 	for (int i = 0; i < this->Slots.Num(); i++) {
@@ -683,6 +704,8 @@ void AUnitPawn::UnitDie() {
 		Slot->SlotSetContent(nullptr);
 		Content->ItemDrop(this);
 	}
+
+	this->UnitDropActiveItem();
 
 	this->Destroy();
 }

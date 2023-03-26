@@ -19,6 +19,8 @@ public:
 
 private:
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
+	TArray<TSubclassOf<AItemActor>> AutoSpawnInitialItems;
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	TSubclassOf<AMagazineItem> AutoSpawnMagazine;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	float DetectionDistance = 60.0f;
@@ -26,8 +28,10 @@ private:
 	TArray<FAIPatrolStep> Patrol;
 
 	AActor* AgroTarget;
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	AActor* PendingAgroTarget;
-	IAIActionExecutor* CurrentActionExecutor;
+
+	TArray<IAIActionExecutor*> ActionExecutorStack;
 
 	int PatrolStep;
 
@@ -48,6 +52,9 @@ public:
 public:
 	virtual void AIGroupMemberJoin(AAIGroup* Group) override;
 	virtual void AIGroupMemberAlert(AActor* AgroTarget) override;
+
+public:
+	AActor* AIGetAgroTarget();
 
 // Internals.
 private:

@@ -1,8 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
 #include "GameFramework/Actor.h"
+
+#include "DebugViewActor.h"
 
 #include "AIGroup.generated.h"
 
@@ -20,7 +21,7 @@ public:
 };
 
 UCLASS()
-class TRANSIENT_API AAIGroup : public AActor {
+class TRANSIENT_API AAIGroup : public ADebugViewActor {
 	GENERATED_BODY()
 
 public:

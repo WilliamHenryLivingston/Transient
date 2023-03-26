@@ -2,17 +2,13 @@
 
 #include "CoreMinimal.h"
 
+#include "../ItemActor.h"
 #include "AIActionExecutor.h"
 
-class CAttackAIAction : public IAIActionExecutor {
-private:
-    AActor* Target;
-
-	float AttackTime;
-
+class CTakeCoverAction : public IAIActionExecutor {
 public:
-    CAttackAIAction(AActor* Target);
-    virtual ~CAttackAIAction() override;
+    CTakeCoverAction();
+    virtual ~CTakeCoverAction() override;
 
 public:
 	virtual FAIActionExecutionResult AIActionTick(AActor* Owner, float DeltaTime) override;
