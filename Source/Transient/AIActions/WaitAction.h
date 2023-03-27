@@ -5,17 +5,18 @@
 #include "../ItemActor.h"
 #include "AIActionExecutor.h"
 
-class CUseItemAction : public IAIActionExecutor {
+class CWaitAction : public IAIActionExecutor {
 private:
-    AItemActor* Target;
-    AActor* UseTarget;
-
-    bool UseStarted;
     float Timer;
+	float ScanTimer;
+
+    bool ScanIfIdle;
+
+	FVector ScanVector;
 
 public:
-    CUseItemAction(AItemActor* Target, AActor* UseTarget);
-    virtual ~CUseItemAction() override;
+    CWaitAction(float Duration, bool ScanIfIdle);
+    virtual ~CWaitAction() override;
 
 public:
 	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;

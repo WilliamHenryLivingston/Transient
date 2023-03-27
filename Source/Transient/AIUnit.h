@@ -6,7 +6,7 @@
 #include "AINavNode.h"
 #include "AIGroup.h"
 #include "AIActions/AIActionExecutor.h"
-#include "AIActions/PatrolStepAIAction.h"
+#include "AIActions/PatrolStepAction.h"
 
 #include "AIUnit.generated.h"
 
@@ -16,6 +16,13 @@ class TRANSIENT_API AAIUnit : public AUnitPawn, public IAIGroupMember {
 	
 public:
 	AAIGroup* Group;
+
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
+	bool AssaultIfAlone;
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
+	bool FullyPassive;
+
+	USceneComponent* DetectionSourceComponent;
 
 private:
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
@@ -27,7 +34,6 @@ private:
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	TArray<FAIPatrolStep> Patrol;
 
-	AActor* AgroTarget;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	AActor* PendingAgroTarget;
 
@@ -52,9 +58,6 @@ public:
 public:
 	virtual void AIGroupMemberJoin(AAIGroup* Group) override;
 	virtual void AIGroupMemberAlert(AActor* AgroTarget) override;
-
-public:
-	AActor* AIGetAgroTarget();
 
 // Internals.
 private:

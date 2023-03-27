@@ -11,22 +11,6 @@
 APlayerUnit::APlayerUnit() {
 	this->PrimaryActorTick.bCanEverTick = true;
 
-	this->ColliderComponent->SetCollisionProfileName(FName("Player"), true);
-
-	this->CurrentForcedDilation = 1.0f;
-
-	this->CameraArmComponent = this->CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
-	this->CameraArmComponent->bInheritPitch = false;
-	this->CameraArmComponent->bInheritRoll = false;
-	this->CameraArmComponent->bInheritYaw = false;
-	this->CameraArmComponent->TargetArmLength = 500.0f;
-	this->CameraArmComponent->TargetOffset = FVector(0.0f, 0.0f, 300.0f);
-	this->CameraArmComponent->SetupAttachment(this->RootComponent);
-
-	this->CameraComponent = this->CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	this->CameraComponent->SetupAttachment(this->CameraArmComponent);
-	this->CameraComponent->SetRelativeRotation(FRotator(-30.0f, 0.0f, 0.0f));
-
 	this->AutoPossessPlayer = EAutoReceiveInput::Player0;
 }
 
@@ -57,6 +41,14 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 void APlayerUnit::BeginPlay() {
 	Super::BeginPlay();
 
+	this->CurrentForcedDilation = 1.0f;
+
+	this->CameraArmComponent = this->FindComponentByClass<USpringArmComponent>();
+	this->CameraComponent = this->FindComponentByClass<UCameraComponent>();
+
+	this->ColliderComponent->SetCollisionProfileName(FName("Player"), true);
+
+	// TODO: Template helper for this.
 	TArray<UStaticMeshComponent*> MeshComponents;
 	this->GetComponents(MeshComponents, true);
 	for (int i = 0; i < MeshComponents.Num(); i++) {
@@ -101,6 +93,7 @@ void APlayerUnit::Tick(float DeltaTime) {
 
 	if (this->InventoryView) {
 		this->Aiming = false;
+		this->UnitSetTriggerPulled(false);
 
 		this->AimIndicatorComponent->SetRelativeScale3D(this->StandardAimIndicatorScale * 0.4f);
 		this->CameraArmComponent->TargetArmLength = FMath::Max(
@@ -188,6 +181,15 @@ void APlayerUnit::Tick(float DeltaTime) {
 			}
 			else if (HitComponent->GetName().Equals(TEXT("InvViewActive"))) {
 				TargetedItem = this->UnitGetActiveItem();
+				if (TargetedItem != nullptr && TargetedItem->EquipAltHand) {
+					TargetedItem = nullptr;
+				}
+			}
+			else if (HitComponent->GetName().Equals(TEXT("InvViewAltActive"))) {
+				TargetedItem = this->UnitGetActiveItem();
+				if (TargetedItem != nullptr && !TargetedItem->EquipAltHand) {
+					TargetedItem = nullptr;
+				}
 			}
 			else if (HitComponent->GetName().Equals(TEXT("InvViewArmor"))) {
 				TargetedItem = this->UnitGetArmor();

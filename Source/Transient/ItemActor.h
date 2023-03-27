@@ -45,12 +45,13 @@ public:
 	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
 	FVector DirectAttachOffset;
 
+	UPROPERTY(EditDefaultsOnly, Category="Item")
+	UStaticMeshComponent* VisibleComponent;
+
 protected:
 	IItemHolder* CurrentHolder;
 
 private:
-	UPROPERTY(EditDefaultsOnly, Category="Item")
-	UStaticMeshComponent* VisibleComponent;
 	UPROPERTY(EditDefaultsOnly, Category="Item")
 	UBoxComponent* ColliderComponent;
 

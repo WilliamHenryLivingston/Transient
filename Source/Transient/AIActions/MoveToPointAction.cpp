@@ -1,43 +1,76 @@
 #include "MoveToPointAction.h"
 
+#include "NavigationSystem.h"
+#include "NavigationPath.h"
+#include "Kismet/GameplayStatics.h"
+
+#include "../AINavManager.h"
 #include "../AIUnit.h"
 
+// TODO: Take vector as target.
 CMoveToPointAction::CMoveToPointAction(AActor* InitTarget, float InitReachDistance) {
     this->Target = InitTarget;
     this->ReachDistance = InitReachDistance;
 
     this->Planned = false;
-    this->Steps = TArray<AActor*>();
+    this->Steps = TArray<FVector>();
 }
 
 CMoveToPointAction::~CMoveToPointAction() {}
 
-FAIActionExecutionResult CMoveToPointAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
+FAIActionTickResult CMoveToPointAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
     if (this->Target == nullptr || !IsValid(this->Target)) return this->Finished;
 
     AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
 
     if (!this->Planned) {
-        this->Steps.Push(this->Target);
         this->PlanMove(Owner);
         this->Planned = true;
     }
+    
+    Owner->UnitSetCrouched(false);
 
-    if (this->Steps.Num() > 0) {
-        FVector TargetLocation = this->Steps[0]->GetActorLocation();
+    if (this->Steps.Num() == 0) return this->Finished;
 
-        Owner->UnitMoveTowards(TargetLocation);
+    FVector TargetLocation = this->Steps[0];
+
+    Owner->UnitMoveTowards(TargetLocation);
+    if (!Owner->UnitHasFaceTarget()) {
         Owner->UnitFaceTowards(TargetLocation);
-
-        bool Reached = (TargetLocation - Owner->GetActorLocation()).Size() < this->ReachDistance;
-        if (Reached) this->Steps.RemoveAt(0);
-
-        return this->Unfinished;
     }
 
-    return this->Finished;
+    FVector OwnerLocation = Owner->GetActorLocation();
+    OwnerLocation.Z = 0;
+    TargetLocation.Z = 0;
+
+    bool Reached = (TargetLocation - OwnerLocation).Size() < this->ReachDistance;
+    if (Reached) {
+        if (this->Steps.Num() == 1) return this->Finished;
+
+        this->Steps.RemoveAt(0);
+    }
+
+    return this->Unfinished;
 }
 
 void CMoveToPointAction::PlanMove(AActor* Owner) {
-    // TODO.
+    UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(Owner->GetWorld());
+    AAINavManager* NavManager = Cast<AAINavManager>(UGameplayStatics::GetActorOfClass(Owner->GetWorld(), AAINavManager::StaticClass()));
+
+    FSharedConstNavQueryFilter Filter;
+    FNavPathSharedPtr PathPtr;
+    FPathFindingQuery Query(
+        Owner,
+        *NavManager->NavData,
+        Owner->GetActorLocation(),
+        this->Target->GetActorLocation(),
+        Filter,
+        PathPtr
+    );
+    FPathFindingResult Result = NavSys->FindPathSync(Query, EPathFindingMode::Type::Regular);
+
+    TArray<FNavPathPoint> PathPoints = Result.Path->GetPathPoints();
+    for (int i = 0; i < PathPoints.Num(); i++) {
+        this->Steps.Push(PathPoints[i]);
+    }
 }

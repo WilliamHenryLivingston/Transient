@@ -19,6 +19,9 @@ public:
 	UPROPERTY(EditAnywhere, Category="Base Weapon")
 	int AmmoTypeID;
 
+	UPROPERTY(EditAnywhere, Category="AI Handling")
+	float AIEngageDistance = 500.0f;
+
 protected:
 	UPROPERTY(EditAnywhere, Category="Base Weapon")
 	FVector MuzzleLocation;
@@ -35,6 +38,7 @@ protected:
 public:
 	void WeaponSetTriggerPulled(bool NewTriggerPulled);
 	bool WeaponGetTriggerPulled();
+	FVector WeaponGetRelativeMuzzleAsEquipped();
 	virtual void WeaponSwapMagazines(int NewAmmoCount);
 	virtual bool WeaponEmpty();
 };

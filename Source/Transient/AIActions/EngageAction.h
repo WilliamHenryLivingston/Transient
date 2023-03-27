@@ -5,17 +5,17 @@
 #include "../ItemActor.h"
 #include "AIActionExecutor.h"
 
-class CUseItemAction : public IAIActionExecutor {
+class CEngageAction : public IAIActionExecutor {
 private:
-    AItemActor* Target;
-    AActor* UseTarget;
+    AActor* Target;
 
-    bool UseStarted;
     float Timer;
+    bool PopOut;
+    float PopOutTimer;
 
 public:
-    CUseItemAction(AItemActor* Target, AActor* UseTarget);
-    virtual ~CUseItemAction() override;
+    CEngageAction(AActor* Target, float Duration, bool PopOut);
+    virtual ~CEngageAction() override;
 
 public:
 	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;

@@ -14,13 +14,11 @@ void AProjectileWeapon::Tick(float DeltaTime) {
     }
 
     if (this->TriggerPulled && this->CurrentMagazineAmmo > 0) {
-        FRotator HolderRotation = this->CurrentHolder->ItemHolderGetRotation();
-
-        FVector FullWeaponOffset = this->CurrentHolder->ItemHolderGetWeaponOffset() + this->MuzzleLocation;
+        FVector WorldMuzzle = this->WeaponGetRelativeMuzzleAsEquipped();
 
         float AppliedSpread = this->Spread * this->CurrentHolder->ItemHolderGetSpreadModifier();
 
-        FRotator SpreadRotation = HolderRotation;
+        FRotator SpreadRotation = this->CurrentHolder->ItemHolderGetRotation();
         SpreadRotation.Yaw += FMath::RandRange(-AppliedSpread, AppliedSpread);
         SpreadRotation.Roll += FMath::RandRange(-AppliedSpread, AppliedSpread);
         SpreadRotation.Pitch += FMath::RandRange(-AppliedSpread, AppliedSpread);
@@ -29,7 +27,7 @@ void AProjectileWeapon::Tick(float DeltaTime) {
 
         AProjectileActor* Projectile = this->GetWorld()->SpawnActor<AProjectileActor>(
             this->ProjectileType,
-            this->CurrentHolder->ItemHolderGetLocation() + (HolderRotation.RotateVector(FullWeaponOffset)),
+            this->CurrentHolder->ItemHolderGetLocation() + WorldMuzzle,
             SpreadRotation,
             FActorSpawnParameters()
         );

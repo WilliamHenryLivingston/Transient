@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
-#include "Components/BoxComponent.h"
 #include "Components/AudioComponent.h"
 
 #include "ItemActor.h"
@@ -55,11 +54,14 @@ private:
 
 	// Rig-related parameters.
 	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
-	FVector WeaponOffset;
-	UPROPERTY(EditAnywhere, Category="Unit Rig")
 	FAnimationConfig InteractAnimation;
 	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
 	TArray<FAnimationConfig> MiscArmsAnimations;
+	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
+	float CrouchVerticalShrink = 0.6f;
+	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
+	float CrouchVerticalTranslate = 10.0f;
+
 
 	// Inventory.
 	UPROPERTY(EditAnywhere, Category="Unit Inventory")
@@ -69,6 +71,7 @@ private:
 	TArray<UUnitSlotComponent*> Slots;
 
 	// Internal child components.
+	USceneComponent* WeaponOffsetComponent;
 	USkeletalMeshComponent* RigComponent;
 	UStaticMeshComponent* ActiveItemHostComponent;
 	UStaticMeshComponent* ActiveItemAltHostComponent;
@@ -99,6 +102,10 @@ private:
 	float TorsoPitch;
 	float TargetTorsoPitch;
 
+	float BaseColliderVerticalScale;
+	float BaseRigVerticalOffset;
+	FVector BaseRigScale;
+
 	// Other state.
 	bool HasStaminaDrain;
 
@@ -111,8 +118,7 @@ protected:
 	bool ForceArmsEmptyAnimation; // TODO: Better solution (inventory view).
 
 	// Child components available to child classes.
-	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
-	UBoxComponent* ColliderComponent; // Exposed to allow configuration.
+	UShapeComponent* ColliderComponent;
 	UAudioComponent* AudioComponent;
 	UUnitAnimInstance* Animation;
 
@@ -183,6 +189,7 @@ public:
 
 	void UnitMoveTowards(FVector Target);
 	void UnitFaceTowards(FVector Target);
+	bool UnitHasFaceTarget();
 	void UnitImmobilize(bool Which);
 	void UnitJump();
 	void UnitSetCrouched(bool NewCrouch);

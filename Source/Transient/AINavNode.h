@@ -17,6 +17,8 @@ public:
 
 	UPROPERTY(EditAnywhere, Category="AI Nav")
 	bool CoverPosition;
+	UPROPERTY(EditAnywhere, Category="AI Nav")
+	bool CrouchFullCover;
 
 public:
 	AAINavNode();

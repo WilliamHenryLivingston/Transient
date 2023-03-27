@@ -11,7 +11,6 @@ void AAINavManager::BeginPlay() {
 
 	TArray<AActor*> FoundNodes;
 	UGameplayStatics::GetAllActorsOfClass(this->GetWorld(), AAINavNode::StaticClass(), FoundNodes);
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::FromInt(FoundNodes.Num()));
 
 	this->Nodes = TArray<AAINavNode*>();
 	for (int i = 0; i < FoundNodes.Num(); i++) {
@@ -21,6 +20,30 @@ void AAINavManager::BeginPlay() {
 
 void AAINavManager::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
+}
+
+bool AAINavManager::NavIsNodeClaimed(AAINavNode* Node) {
+	for (int i = 0; i < this->Claims.Num(); i++) {
+		if (this->Claims[i].Node == Node) return true;
+	}
+
+	return false;
+}
+
+void AAINavManager::NavClaimNode(AAINavNode* Node, AActor* Claimer) {
+	FNavNodeClaim Claim;
+	Claim.Claimer = Claimer;
+	Claim.Node = Node;
+
+	this->Claims.Push(Claim);
+}
+
+void AAINavManager::NavUnclaimAllNodes(AActor* Claimer) {
+	for (int i = 0; i < this->Claims.Num(); i++) {
+		while (i < this->Claims.Num() && this->Claims[i].Claimer == Claimer) {
+			this->Claims.RemoveAt(i);
+		}
+	}
 }
 
 TArray<AAINavNode*> AAINavManager::NavGetNearestNodes(AActor* From, int Count) {

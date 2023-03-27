@@ -6,7 +6,7 @@
 #include "../ItemActor.h"
 #include "AIActionExecutor.h"
 
-#include "PatrolStepAIAction.generated.h"
+#include "PatrolStepAction.generated.h"
 
 USTRUCT()
 struct FAIPatrolStep {
@@ -16,7 +16,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="Travel")
 	AAINavNode* Node;
 	UPROPERTY(EditAnywhere, Category="Travel")
-    float NodeReachDistance = 150.0f;
+    float NodeReachDistance = 50.0f;
 
 	UPROPERTY(EditAnywhere, Category="Equip")
 	bool EquipItem;
@@ -36,22 +36,19 @@ public:
 	bool ScanWhileWaiting = true;
 };
 
-class CPatrolStepAIAction : public IAIActionExecutor {
+class CPatrolStepAction : public IAIActionExecutor {
 private:
     FAIPatrolStep Step;
 
     bool TravelStarted;
     bool UseFinished;
 
-    float Timer;
-	float ScanTimer;
-	FVector ScanVector;
 	int RemainingItemUseTimes;
 
 public:
-    CPatrolStepAIAction(FAIPatrolStep Step);
-    virtual ~CPatrolStepAIAction() override;
+    CPatrolStepAction(FAIPatrolStep Step);
+    virtual ~CPatrolStepAction() override;
 
 public:
-	virtual FAIActionExecutionResult AIActionTick(AActor* Owner, float DeltaTime) override;
+	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;
 };

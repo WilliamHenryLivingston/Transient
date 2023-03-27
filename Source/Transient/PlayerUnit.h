@@ -16,13 +16,6 @@ class TRANSIENT_API APlayerUnit : public AUnitPawn {
 	GENERATED_BODY()
 
 private:
-	// Child components.
-	UPROPERTY(EditAnywhere, Category="Player Camera")
-	UCameraComponent* CameraComponent;
-	UPROPERTY(EditAnywhere, Category="Player Camera")
-	USpringArmComponent* CameraArmComponent;
-	UStaticMeshComponent* AimIndicatorComponent;
-
 	UPROPERTY(EditAnywhere, Category="Player Camera")
 	float InventoryViewDistance = 350.0f;
 	UPROPERTY(EditAnywhere, Category="Player Camera")
@@ -40,10 +33,14 @@ private:
 	UPROPERTY(EditAnywhere, Category="Player Camera")
 	float AimMaxDistance = 500.0f;
 
-	// Input.
+	// Child components.
+	UCameraComponent* CameraComponent;
+	USpringArmComponent* CameraArmComponent;
+	UStaticMeshComponent* AimIndicatorComponent;
+
+	// State.
 	FVector2D MovementInput;
 
-	// Other state.
 	AActor* CurrentAimHit;
 
 	UMainUIWidget* MainUI;

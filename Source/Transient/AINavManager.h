@@ -2,12 +2,18 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "NavigationSystem.h"
+#include "NavigationData.h"
 
 #include "DebugViewActor.h"
 #include "AINavNode.h"
 
 #include "AINavManager.generated.h"
+
+struct FNavNodeClaim {
+public:
+	AAINavNode* Node;
+	AActor* Claimer;
+};
 
 UCLASS()
 class TRANSIENT_API AAINavManager : public ADebugViewActor {
@@ -15,9 +21,12 @@ class TRANSIENT_API AAINavManager : public ADebugViewActor {
 
 public:
 	UPROPERTY(EditInstanceOnly, Category="Navigation Binding")
-	ANavMeshBoundsVolume* NavBounds;
+	ANavigationData* NavData;
 
 	TArray<AAINavNode*> Nodes;
+
+private:
+	TArray<FNavNodeClaim> Claims;
 
 public:	
 	AAINavManager();
@@ -27,5 +36,8 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	bool NavIsNodeClaimed(AAINavNode* Node);
+	void NavClaimNode(AAINavNode* Node, AActor* Claimer);
+	void NavUnclaimAllNodes(AActor* Claimer);
 	TArray<AAINavNode*> NavGetNearestNodes(AActor* From, int Count);
 };

@@ -2,23 +2,41 @@
 
 #include "../AIUnit.h"
 
-FAIActionExecutionResult::FAIActionExecutionResult() {
+FAIActionTickResult::FAIActionTickResult() {
     this->Finished = false;
-    this->PushInner = nullptr;
+    this->PushChild = nullptr;
 }
 
-FAIActionExecutionResult::FAIActionExecutionResult(bool Finished, IAIActionExecutor* PushInner) {
-    this->Finished = Finished;
-    this->PushInner = PushInner;
+FAIActionTickResult::FAIActionTickResult(bool InitFinished, IAIActionExecutor* InitPushChild) {
+    this->Finished = InitFinished;
+    this->PushChild = InitPushChild;
+}
+
+FAIParentActionTickResult::FAIParentActionTickResult() {
+    this->StopChildren = false;
+    this->PushChild = nullptr;
+}
+
+FAIParentActionTickResult::FAIParentActionTickResult(bool InitStopChildren, IAIActionExecutor* InitPushChild) {
+    this->StopChildren = InitStopChildren;
+    this->PushChild = InitPushChild;
 }
 
 IAIActionExecutor::IAIActionExecutor() {
-    this->Unfinished = FAIActionExecutionResult(false, nullptr);
-    this->Finished = FAIActionExecutionResult(true, nullptr);
+    this->Unfinished = FAIActionTickResult(false, nullptr);
+    this->Finished = FAIActionTickResult(true, nullptr);
 }
 
 IAIActionExecutor::~IAIActionExecutor() {}
 
-FAIActionExecutionResult IAIActionExecutor::AIActionTick(AActor* Owner, float DeltaTime) {
-    return FAIActionExecutionResult(true, nullptr);
+bool IAIActionExecutor::AIActionIsAttackOn(AActor* Target) {
+    return false;
+}
+
+FAIActionTickResult IAIActionExecutor::AIActionTick(AActor* Owner, float DeltaTime) {
+    return FAIActionTickResult(true, nullptr);
+}
+
+FAIParentActionTickResult IAIActionExecutor::AIParentActionTick(AActor* Owner, float DeltaTime) {
+    return FAIParentActionTickResult(false, nullptr);
 }

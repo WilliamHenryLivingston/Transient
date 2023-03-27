@@ -4,26 +4,39 @@
 
 class IAIActionExecutor;
 
-class FAIActionExecutionResult {
+class FAIActionTickResult {
 
 public:
 	bool Finished;
-	IAIActionExecutor* PushInner;
+	IAIActionExecutor* PushChild;
 
 public:
-	FAIActionExecutionResult();
-	FAIActionExecutionResult(bool Finished, IAIActionExecutor* PushInner);
+	FAIActionTickResult();
+	FAIActionTickResult(bool Finished, IAIActionExecutor* PushChild);
+};
+
+class FAIParentActionTickResult {
+
+public:
+	bool StopChildren;
+	IAIActionExecutor* PushChild;
+
+public:
+	FAIParentActionTickResult();
+	FAIParentActionTickResult(bool StopChildren, IAIActionExecutor* PushChild);
 };
 
 class IAIActionExecutor {
 
 protected:
-	FAIActionExecutionResult Unfinished;
-	FAIActionExecutionResult Finished;
+	FAIActionTickResult Unfinished;
+	FAIActionTickResult Finished;
 
 public:
 	IAIActionExecutor();
 	virtual ~IAIActionExecutor();
 	// TODO: Forward declare AAIActor?
-	virtual FAIActionExecutionResult AIActionTick(AActor* Owner, float DeltaTime);
+	virtual bool AIActionIsAttackOn(AActor* Target);
+	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime);
+	virtual FAIParentActionTickResult AIParentActionTick(AActor* Owner, float DeltaTime);
 };

@@ -34,7 +34,9 @@ enum class EUnitAnimArmsMode : uint8 {
     Empty,
     Mpz,
     Xbow,
-    Watercan
+    Watercan,
+    Keycard,
+    RepairTool
 };
 
 UENUM(BlueprintType)

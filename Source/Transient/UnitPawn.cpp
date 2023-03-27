@@ -3,18 +3,11 @@
 #include "Components/BoxComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
+#include "TransientDebug.h"
 #include "EquippedMeshConfig.h"
 
 AUnitPawn::AUnitPawn() {
 	this->PrimaryActorTick.bCanEverTick = true;
-
-	this->RootComponent = this->CreateDefaultSubobject<UBoxComponent>(TEXT("RootCollider"));
-	this->ColliderComponent = (UBoxComponent*)this->RootComponent;
-	this->ColliderComponent->SetSimulatePhysics(true);
-	this->ColliderComponent->SetEnableGravity(true);
-	this->ColliderComponent->BodyInstance.bLockXRotation = true;
-	this->ColliderComponent->BodyInstance.bLockYRotation = true;
-	this->ColliderComponent->SetCollisionProfileName(FName("Pawn"), true);
 }
 
 void AUnitPawn::BeginPlay() {
@@ -22,11 +15,28 @@ void AUnitPawn::BeginPlay() {
 
 	this->JumpTimer = -1.0f; // TODO: Janky.
 	
-	this->RigComponent = Cast<USkeletalMeshComponent>(this->FindComponentByClass(USkeletalMeshComponent::StaticClass()));
+	this->RigComponent = this->FindComponentByClass<USkeletalMeshComponent>();
 	this->Animation = Cast<UUnitAnimInstance>(this->RigComponent->GetAnimInstance());
-	this->AudioComponent = Cast<UAudioComponent>(this->FindComponentByClass(UAudioComponent::StaticClass()));
+	this->AudioComponent = this->FindComponentByClass<UAudioComponent>();
 
-	// Search static meshes for hosts.
+	TArray<UShapeComponent*> ShapeComponents;
+	this->GetComponents(ShapeComponents, true);
+	for (int i = 0; i < ShapeComponents.Num(); i++) {
+		UShapeComponent* Check = ShapeComponents[i];
+
+		FString Name = Check->GetName();
+		if (Name.Equals("RootCollider")) this->ColliderComponent = Check;
+	}
+	
+	TArray<USceneComponent*> SceneComponents;
+	this->GetComponents(SceneComponents, true);
+	for (int i = 0; i < SceneComponents.Num(); i++) {
+		USceneComponent* Check = SceneComponents[i];
+
+		FString Name = Check->GetName();
+		if (Name.Equals("WeaponOffset")) this->WeaponOffsetComponent = Check;
+	}
+
 	TArray<UStaticMeshComponent*> StaticMeshComponents;
 	this->GetComponents(StaticMeshComponents, true);
 	for (int i = 0; i < StaticMeshComponents.Num(); i++) {
@@ -36,6 +46,11 @@ void AUnitPawn::BeginPlay() {
 		if (Name.Equals("ActiveItemHost")) this->ActiveItemHostComponent = Check;
 		else if (Name.Equals("ActiveItemAltHost")) this->ActiveItemAltHostComponent = Check;
 	}
+
+	this->ColliderComponent->SetHiddenInGame(NODEBUG_COLLIDERS);
+	this->BaseColliderVerticalScale = this->ColliderComponent->GetRelativeScale3D().Z;
+	this->BaseRigScale = this->RigComponent->GetRelativeScale3D();
+	this->BaseRigVerticalOffset = this->RigComponent->GetRelativeLocation().Z;
 
 	this->UnitDiscoverDynamicChildComponents();
 
@@ -108,7 +123,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	}
 	else {
 		if (this->ActiveItem->EquipAltHand) {
-		this->UnitUpdateHostMesh(this->ActiveItemHostComponent, nullptr);
+			this->UnitUpdateHostMesh(this->ActiveItemHostComponent, nullptr);
 			this->UnitUpdateHostMesh(this->ActiveItemAltHostComponent, &this->ActiveItem->EquippedMesh);
 		}
 		else {
@@ -153,11 +168,22 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 
 	EUnitAnimMovementState MovementState = EUnitAnimMovementState::None;
 
+	FVector ColliderScale = this->ColliderComponent->GetRelativeScale3D();
+	ColliderScale.Z = this->BaseColliderVerticalScale;
+	FVector RigLocation = this->RigComponent->GetRelativeLocation();
+	RigLocation.Z = this->BaseRigVerticalOffset;
+	FVector RigScale = this->BaseRigScale;
 	if (this->Crouching) {
 		MovementState = EUnitAnimMovementState::Crouch;
+		ColliderScale.Z *= this->CrouchVerticalShrink;
+		RigLocation.Z += this->CrouchVerticalTranslate;
+		RigScale.Z *= this->BaseColliderVerticalScale / ColliderScale.Z;
 		
-		this->HasMoveTarget = false; // Can't move while crouched.
+		this->HasMoveTarget = false;
 	}
+	this->ColliderComponent->SetRelativeScale3D(ColliderScale);
+	this->RigComponent->SetRelativeLocation(RigLocation);
+	this->RigComponent->SetRelativeScale3D(RigScale);
 
 	if (this->HasMoveTarget && !this->Immobilized) {
 		FVector ActorForward = this->GetActorForwardVector();
@@ -174,7 +200,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 			(ActorForward.X * MoveDelta.Y) + (ActorForward.Y * MoveDelta.X)
 		)) + 180.0f;
 
-		if (abs(AngleDeg - 45.0f) < 90.0f) MovementState = EUnitAnimMovementState::WalkBwd;
+		if (abs(AngleDeg - 45.0f) < 90.0f && AngleDeg > 45.0f) MovementState = EUnitAnimMovementState::WalkBwd;
 		else if (abs(AngleDeg - (45.0f * 3.0f)) < 90.0f) MovementState = EUnitAnimMovementState::WalkLeft;
 		else if (abs(AngleDeg - (45.0f * 5.0f)) < 90.0f) MovementState = EUnitAnimMovementState::WalkFwd;
 		else MovementState = EUnitAnimMovementState::WalkRight;
@@ -211,9 +237,9 @@ void AUnitPawn::ItemHolderPlaySound(USoundBase* Sound) {
 }
 
 FVector AUnitPawn::ItemHolderGetWeaponOffset() {
-	FVector AdjustedOffset = this->WeaponOffset;
-	if (this->Crouching) AdjustedOffset.Z *= 0.66f;
-	
+	FVector AdjustedOffset = this->WeaponOffsetComponent->GetRelativeLocation();
+	if (this->Crouching) AdjustedOffset.Z *= this->CrouchVerticalShrink;
+
 	return AdjustedOffset;
 }
 
@@ -266,6 +292,10 @@ bool AUnitPawn::UnitAreArmsOccupied() {
 
 bool AUnitPawn::UnitIsJumping() {
 	return this->JumpTimer > 0.0f;
+}
+
+bool AUnitPawn::UnitHasFaceTarget() {
+	return this->HasFaceTarget;
 }
 
 // Inventory.

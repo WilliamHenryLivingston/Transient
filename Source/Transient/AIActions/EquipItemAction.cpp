@@ -9,7 +9,7 @@ CEquipItemAction::CEquipItemAction(AItemActor* InitTarget) {
 
 CEquipItemAction::~CEquipItemAction() {}
 
-FAIActionExecutionResult CEquipItemAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
+FAIActionTickResult CEquipItemAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
     AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
 
     if (Owner->UnitAreArmsOccupied()) return this->Unfinished;

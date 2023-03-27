@@ -16,5 +16,5 @@ public:
     virtual ~CEquipItemAction() override;
 
 public:
-	virtual FAIActionExecutionResult AIActionTick(AActor* Owner, float DeltaTime) override;
+	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;
 };

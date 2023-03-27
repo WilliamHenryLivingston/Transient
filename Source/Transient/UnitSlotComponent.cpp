@@ -2,6 +2,7 @@
 
 #include "Components/SphereComponent.h"
 
+#include "TransientDebug.h"
 #include "EquippedMeshConfig.h"
 #include "ItemHolder.h"
 
@@ -26,7 +27,7 @@ void UUnitSlotComponent::BeginPlay() {
 	this->InventoryLookCollider->SetSphereRadius(0.0f);
 	this->InventoryLookCollider->SetCollisionProfileName(FName("EquipHost"));
 	this->InventoryLookCollider->ParentSlot = this;
-	//this->InventoryLookCollider->SetHiddenInGame(false);
+	this->InventoryLookCollider->SetHiddenInGame(NODEBUG_COLLIDERS);
 
 	if (this->Content != nullptr) {
 		this->Content->ItemTake(Cast<IItemHolder>(this->GetOwner()));
