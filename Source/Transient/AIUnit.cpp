@@ -1,107 +1,210 @@
 #include "AIUnit.h"
 
+#include "Kismet/GameplayStatics.h"
+
+#include "TransientDebug.h"
+#include "AINavManager.h"
+#include "AIActions/AttackAction.h"
+#include "AIActions/PatrolAction.h"
+
 void AAIUnit::BeginPlay() {
 	Super::BeginPlay();
+
+	TArray<USceneComponent*> SceneComponents;
+	this->GetComponents(SceneComponents, true);
+	for (int i = 0; i < SceneComponents.Num(); i++) {
+		USceneComponent* Check = SceneComponents[i];
+
+		FString Name = Check->GetName();
+		if (Name.Equals("DetectionSource")) this->DetectionSourceComponent = Check;
+	}
+
+    this->OverrideArmsState = true;
+
+    for (int i = 0; i < this->AutoSpawnInitialItems.Num(); i++) {
+        AItemActor* Spawned = this->GetWorld()->SpawnActor<AItemActor>(
+            this->AutoSpawnInitialItems[i],
+            this->GetActorLocation(),
+            this->GetActorRotation(),
+            FActorSpawnParameters()
+        );
+        if (Spawned == nullptr) continue;
+
+        this->UnitTakeItem(Spawned);
+    }
+
+    this->OverrideArmsState = false;
+
+    this->ActionExecutorStack = TArray<IAIActionExecutor*>();
+    this->ActionExecutorStack.Push(new CPatrolAction(&this->Patrol));
 }
 
-// TODO: Re-write.
+void AAIUnit::EndPlay(EEndPlayReason::Type Reason) {
+    for (int i = 0; i < this->ActionExecutorStack.Num(); i++) {
+        delete this->ActionExecutorStack[i];
+    }
+
+    if (this->Group != nullptr) {
+        this->Group->Members.Remove(this);
+    }
+
+    AAINavManager* NavManager = Cast<AAINavManager>(UGameplayStatics::GetActorOfClass(this->GetWorld(), AAINavManager::StaticClass()));
+    NavManager->NavUnclaimAllNodes(this);
+    
+    Super::EndPlay(Reason);
+}
+
+void AAIUnit::AIGroupMemberJoin(AAIGroup* Target) {
+    this->Group = Target;
+}
+
+void AAIUnit::AIGroupMemberAlert(AActor* Target) {
+    if (this->PendingAgroTarget == nullptr && IsValid(Target)) {
+        this->PendingAgroTarget = Target;
+    }
+}
+
 void AAIUnit::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
-    if (this->AgroTarget != nullptr) {
-        AWeaponItem* CurrentWeapon = this->UnitGetActiveWeapon();
-        if (CurrentWeapon != nullptr && CurrentWeapon->WeaponEmpty()) {
-            this->OverrideArmState = true;
+    AActor* NewAgroTarget = this->PendingAgroTarget;
+    this->PendingAgroTarget = nullptr;
+    if (NewAgroTarget == nullptr) {
+        NewAgroTarget = this->AICheckDetection();
+    }
 
-            while (this->UnitGetSlotsContainingMagazines(CurrentWeapon->AmmoTypeID).Num() < 2) {
-                AMagazineItem* Spawned = this->GetWorld()->SpawnActor<AMagazineItem>(
-                    this->AutoSpawnMagazine,
-                    this->GetActorLocation(),
-                    this->GetActorRotation(),
-                    FActorSpawnParameters()
-                );
-                if (Spawned == nullptr) break;
-
-                this->UnitTakeItem(Spawned);
+    if (!this->FullyPassive && NewAgroTarget != nullptr && IsValid(NewAgroTarget)) {
+        bool IsDuplicate = false;
+        for (int i = 0; i < this->ActionExecutorStack.Num(); i++) {
+            if (this->ActionExecutorStack[i]->AIActionIsAttackOn(NewAgroTarget)) {
+                IsDuplicate = true;
+                break;
             }
-            this->OverrideArmState = false;
+        }
 
-            this->UnitReload();
+        if (!IsDuplicate) {
+            if (this->Group != nullptr) {
+                this->Group->AIGroupDistributeAlert(NewAgroTarget);
+            }
+            this->ActionExecutorStack.Push(new CAttackAction(NewAgroTarget));
+        }
+    }
+
+    int StopBeyond = -1;
+    IAIActionExecutor* DeferredPush = nullptr;
+    for (int i = 0; i < this->ActionExecutorStack.Num(); i++) {
+        IAIActionExecutor* Executor = this->ActionExecutorStack[i];
+
+        if (i == this->ActionExecutorStack.Num() - 1) {
+            FAIActionTickResult Result = Executor->AIActionTick(this, DeltaTime);
+
+            if (Result.Finished) {
+                this->ActionExecutorStack.Pop(false);
+                delete Executor;
+            }
+            if (Result.PushChild != nullptr) {
+                this->ActionExecutorStack.Push(Result.PushChild);
+            }
         }
         else {
-            FVector MoveTowards = this->AgroTarget->GetActorLocation();
+            FAIParentActionTickResult Result = Executor->AIParentActionTick(this, DeltaTime);
 
-            float Distance = (MoveTowards - this->GetActorLocation()).Length();
-
-            FVector Forward = this->GetActorForwardVector();
-            FVector Move = MoveTowards - this->GetActorLocation();
-            float Angle = acos(Move.Dot(Forward) / (Move.Length() * Forward.Length()));
-            if (Angle > 0.15f) {
-                this->UnitFaceTowards(MoveTowards);
+            if (Result.PushChild != nullptr) {
+                DeferredPush = Result.PushChild;
             }
-
-            if (this->AttackTime <= 0.0f && Distance > 300.0f) {
-                this->UnitMoveTowards(MoveTowards);
-            }
-            else if (this->AttackTime <= 0.0f && Distance < 600.0f) {
-                this->AttackTime = 2.0f;
-            }
-
-            this->UnitSetCrouched(this->AttackTime > 0.0f);
-            bool IsCrouched = this->UnitIsCrouched();
-            this->UnitSetTriggerPulled(IsCrouched);
-            if (IsCrouched) {
-                this->AttackTime -= DeltaTime;
+            if (Result.StopChildren) {
+                StopBeyond = i;
+                break;
             }
         }
     }
-    else {
-        this->AgroTarget = this->AICheckDetection();
 
-        if (this->Patrol.Num() > 0) {
-            FVector NextLocation = this->Patrol[this->PatrolNext]->GetActorLocation();
-
-            this->UnitMoveTowards(NextLocation);
-            this->UnitFaceTowards(NextLocation);
-
-            if ((NextLocation - this->GetActorLocation()).Size() < 100.0f) {
-                this->PatrolNext++;
-
-                if (this->PatrolNext >= this->Patrol.Num()) {
-                    this->PatrolNext = 0;
-                }
-            }
+    if (StopBeyond >= 0) {
+        while (this->ActionExecutorStack.Num() - 1 > StopBeyond) {
+            delete this->ActionExecutorStack[this->ActionExecutorStack.Num() - 1];
+            this->ActionExecutorStack.Pop(false);
         }
+    }
+    if (DeferredPush != nullptr) {
+        this->ActionExecutorStack.Push(DeferredPush);
     }
 
     this->UnitPostTick(DeltaTime);
 }
 
-AUnitPawn* AAIUnit::AICheckDetection() {
-    FVector CurrentLocation = this->GetActorLocation();
+void AAIUnit::UnitReload() {
+    if (this->UnitAreArmsOccupied()) return;
+
+    AWeaponItem* CurrentWeapon = this->UnitGetActiveWeapon();
+    if (CurrentWeapon == nullptr) return;
+
+    this->OverrideArmsState = true;
+
+    while (this->UnitGetSlotsContainingMagazines(CurrentWeapon->AmmoTypeID).Num() < 2) {
+        AMagazineItem* Spawned = this->GetWorld()->SpawnActor<AMagazineItem>(
+            this->AutoSpawnMagazine,
+            this->GetActorLocation(),
+            this->GetActorRotation(),
+            FActorSpawnParameters()
+        );
+        if (Spawned == nullptr) break;
+
+        this->UnitTakeItem(Spawned);
+    }
+
+    this->OverrideArmsState = false;
+
+    Super::UnitReload();
+}
+
+void AAIUnit::UnitTakeDamage(FDamageProfile Profile, AActor* Source) {
+    if (Source != nullptr) {
+        AUnitPawn* AsUnit = Cast<AUnitPawn>(Source);
+        if (AsUnit != nullptr && AsUnit->FactionID != this->FactionID) {
+            this->PendingAgroTarget = Source;
+        }
+    }
+
+    Super::UnitTakeDamage(Profile, Source);
+}
+
+AActor* AAIUnit::AICheckDetection() {
+    FVector HeadLocation = this->DetectionSourceComponent->GetComponentLocation();
     
     for (int i = 0; i < 5; i++) {
         FRotator CastRotation = this->GetActorRotation();
         CastRotation.Yaw += 15.0f * (i - 2);
-        FVector DetectionRayEnd = CurrentLocation + (CastRotation.RotateVector(FVector(this->DetectionDistance, 0.0f, 0.0f)));
 
         FHitResult DetectionRayHit;
 
         FCollisionQueryParams DetectionRayParams;
         DetectionRayParams.AddIgnoredActor(this);
 
+        // ...
+        if (!NODEBUG_COLLIDERS) DrawDebugLine(
+            this->GetWorld(), 
+            HeadLocation,
+            HeadLocation + (CastRotation.RotateVector(FVector(this->DetectionDistance, 0.0f, 0.0f))),
+            FColor::Blue,
+            false, 
+            0.2f,
+            100,
+            1.0f
+        );
+        // ...
+
         this->GetWorld()->LineTraceSingleByChannel(
             DetectionRayHit,
-            CurrentLocation, DetectionRayEnd,
+            HeadLocation,
+            HeadLocation + (CastRotation.RotateVector(FVector(this->DetectionDistance, 0.0f, 0.0f))),
             ECollisionChannel::ECC_Visibility, DetectionRayParams
         );
 
         AActor* AnyHitActor = DetectionRayHit.GetActor();
-
         if (AnyHitActor == nullptr) continue;
 
         AUnitPawn* AsPawn = Cast<AUnitPawn>(AnyHitActor);
-        if (AsPawn != nullptr) {
+        if (AsPawn != nullptr && AsPawn->FactionID != this->FactionID) {
             return AsPawn;
         }
     }

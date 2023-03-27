@@ -7,7 +7,6 @@
 #include "ItemHolder.h"
 #include "UnitAnimInstance.h"
 #include "EquippedMeshConfig.h"
-#include "ItemContainerComponent.h"
 
 #include "ItemActor.generated.h"
 
@@ -18,7 +17,8 @@ enum class EItemInventoryType : uint8 {
 	WeaponLarge,
 	Container,
 	Magazine,
-	Misc
+	Misc,
+	MiscLarge
 };
 
 UCLASS()
@@ -32,15 +32,26 @@ public:
 	EItemInventoryType InventoryType;
 	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	bool Equippable;
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
+	bool EquipAltHand;
 	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
 	EUnitAnimArmsMode EquippedAnimArmsMode;
+
+	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
+	FString ItemName;
+	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
+	bool UsesEquipMesh = true;
+	
+	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
+	FVector DirectAttachOffset;
+
+	UPROPERTY(EditDefaultsOnly, Category="Item")
+	UStaticMeshComponent* VisibleComponent;
 
 protected:
 	IItemHolder* CurrentHolder;
 
 private:
-	UPROPERTY(EditDefaultsOnly, Category="Item")
-	UStaticMeshComponent* VisibleComponent;
 	UPROPERTY(EditDefaultsOnly, Category="Item")
 	UBoxComponent* ColliderComponent;
 
@@ -52,7 +63,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	UItemContainerComponent* ItemAsContainer();
+	virtual FString ItemGetDescriptorString();
 	virtual void ItemTake(IItemHolder* Target);
 	virtual void ItemDrop(IItemHolder* Target);
 };

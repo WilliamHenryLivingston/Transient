@@ -2,10 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
-#include "Components/BoxComponent.h"
 #include "Components/AudioComponent.h"
 
 #include "ItemActor.h"
+#include "UsableItem.h"
 #include "MagazineItem.h"
 #include "WeaponItem.h"
 #include "ArmorItem.h"
@@ -38,7 +38,7 @@ private:
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
 	float JumpTime = 1.0f; // TODO: Replace with proper grounded check.
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
-	float UseReach = 100.0f;
+	float UseReach = 200.0f;
 
 	// Stats.
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
@@ -53,10 +53,15 @@ private:
 	float StaminaRegen = 50.0f;
 
 	// Rig-related parameters.
-	UPROPERTY(EditAnywhere, Category="Unit Rig")
-	float InteractAnimationTime = 1.0f;
 	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
-	FVector WeaponOffset;
+	FAnimationConfig InteractAnimation;
+	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
+	TArray<FAnimationConfig> MiscArmsAnimations;
+	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
+	float CrouchVerticalShrink = 0.6f;
+	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
+	float CrouchVerticalTranslate = 10.0f;
+
 
 	// Inventory.
 	UPROPERTY(EditAnywhere, Category="Unit Inventory")
@@ -66,44 +71,63 @@ private:
 	TArray<UUnitSlotComponent*> Slots;
 
 	// Internal child components.
+	USceneComponent* WeaponOffsetComponent;
 	USkeletalMeshComponent* RigComponent;
 	UStaticMeshComponent* ActiveItemHostComponent;
-	UStaticMeshComponent* ArmorHostComponent;
+	UStaticMeshComponent* ActiveItemAltHostComponent;
 
 	// Per-tick pending updates from child classes.
 	// Movement.
 	FVector MoveTarget;
-	FVector LastMoveTarget; // Tracks previous tick effective move target.
 	bool HasMoveTarget;
-	bool LastHasMoveTarget;
 
 	// XY-plane orientation.
 	FVector FaceTarget;
 	bool HasFaceTarget;
+	
+	// Deferred action states.
+	AUsableItem* CurrentUseItem;
+	AActor* CurrentUseItemTarget;
 
 	// Rig state.
 	// TODO: Better anim timing system.
-	float ReloadTimer;
-	float InteractTimer;
-	float UseTimer;
 	float JumpTimer; // TODO: Remove once grounded check exists.
+
+	EUnitAnimArmsModifier ArmsAnimation;
+	float ArmsAnimationTimer;
+	void (AUnitPawn::*ArmsAnimationThen)();
 	
 	bool Crouching;
 
 	float TorsoPitch;
 	float TargetTorsoPitch;
 
+	float BaseColliderVerticalScale;
+	float BaseRigVerticalOffset;
+	FVector BaseRigScale;
+
 	// Other state.
 	bool HasStaminaDrain;
 
+	bool Immobilized;
+
 protected:
+	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	float TakeReach = 300.0f; // TODO: Private later.
+
+	bool ForceArmsEmptyAnimation; // TODO: Better solution (inventory view).
+
 	// Child components available to child classes.
-	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
-	UBoxComponent* ColliderComponent; // Exposed to allow configuration.
+	UShapeComponent* ColliderComponent;
 	UAudioComponent* AudioComponent;
 	UUnitAnimInstance* Animation;
 
-	bool OverrideArmState; // Used to prevent validity checks and animation on arm-based actions.
+public:
+	bool OverrideArmsState; // Used to prevent validity checks and animation on arm-based actions.
+
+public:
+	UPROPERTY(EditAnywhere, Category="Unit Stats")
+	int FactionID = 1;
 
 // AActor methods.
 public:
@@ -124,26 +148,16 @@ public:
 // Internals.
 private:
 	void UnitDequipActiveItem();
-	void UnitPlayGenericInteractionAnimation();
 	void UnitUpdateHostMesh(UStaticMeshComponent* Host, FEquippedMeshConfig* Config);
+
+	void UnitFinishUse();
 
 // Exposures.
 protected:
-	virtual void UnitDiscoverChildComponents();
+	virtual void UnitDiscoverDynamicChildComponents();
 
 	// Must be called at the end of child-class ticks.
 	void UnitPostTick(float DeltaTime);
-
-	// Internal-only actions.
-	void UnitMoveTowards(FVector Target);
-	void UnitFaceTowards(FVector Target);
-	bool UnitDrainStamina(float Amount);
-	void UnitSetTriggerPulled(bool NewTriggerPulled);
-	void UnitReload();
-	void UnitJump();
-	void UnitUseActiveItem(AActor* Target);
-	void UnitSetCrouched(bool NewCrouch);
-	void UnitUpdateTorsoPitch(float TargetValue);
 
 public:
 	// State exposures.
@@ -152,18 +166,43 @@ public:
 	bool UnitIsCrouched();
 	AItemActor* UnitGetActiveItem();
 	AWeaponItem* UnitGetActiveWeapon();
+	AArmorItem* UnitGetArmor();
 
 	// Inventory.
 	void UnitDropActiveItem();
+	void UnitDropArmor();
+	bool UnitHasItem(AItemActor* Target);
+	AItemActor* UnitGetItemByName(FString ItemName);
+	AItemActor* UnitGetItemByClass(TSubclassOf<AItemActor> ItemClass);
+	void UnitDropItem(AItemActor* Target);
+	void UnitEquipItem(AItemActor* Target);
 	void UnitEquipFromSlot(int Index);
 	TArray<UUnitSlotComponent*> UnitGetEquippableSlots();
 	TArray<UUnitSlotComponent*> UnitGetEmptySlotsAllowing(EItemInventoryType Type);
 	TArray<UUnitSlotComponent*> UnitGetSlotsAllowing(EItemInventoryType Type);
 	TArray<UUnitSlotComponent*> UnitGetSlotsContaining(EItemInventoryType Type);
 	TArray<UUnitSlotComponent*> UnitGetSlotsContainingMagazines(int AmmoTypeID);
+	
+	// Actions.
+	bool UnitDrainStamina(float Amount);
+	void UnitUpdateTorsoPitch(float TargetValue);
 
-	// Other actions.
-	void UnitTakeDamage(FDamageProfile Profile);
+	void UnitMoveTowards(FVector Target);
+	void UnitFaceTowards(FVector Target);
+	bool UnitHasFaceTarget();
+	void UnitImmobilize(bool Which);
+	void UnitJump();
+	void UnitSetCrouched(bool NewCrouch);
+
+	void UnitUseActiveItem(AActor* Target);
+	void UnitSetTriggerPulled(bool NewTriggerPulled);
+	virtual void UnitReload();
+
+	void UnitPlayAnimationOnce(EUnitAnimArmsModifier Animation, FAnimationConfig Config, void (AUnitPawn::*Then)());
+	void UnitPlayInteractAnimation();
+
+	// External impacts.
+	virtual void UnitTakeDamage(FDamageProfile Profile, AActor* Source);
 	void UnitTakeItem(AItemActor* TargetItem);
 	void UnitDie();
 };

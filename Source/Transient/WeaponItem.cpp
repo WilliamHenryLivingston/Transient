@@ -19,8 +19,19 @@ void AWeaponItem::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 }
 
+bool AWeaponItem::WeaponGetTriggerPulled() {
+	return this->TriggerPulled;
+}
+
 void AWeaponItem::WeaponSetTriggerPulled(bool NewTriggerPulled) {
 	this->TriggerPulled = NewTriggerPulled;
+}
+
+FVector AWeaponItem::WeaponGetRelativeMuzzleAsEquipped() {
+	if (this->CurrentHolder == nullptr) return FVector(); // Invalid call.
+
+	FVector LocalMuzzle = this->CurrentHolder->ItemHolderGetWeaponOffset() + this->MuzzleLocation;
+	return this->CurrentHolder->ItemHolderGetRotation().RotateVector(LocalMuzzle);
 }
 
 // Stubs.

@@ -5,6 +5,15 @@
 
 #include "UnitAnimInstance.generated.h"
 
+USTRUCT()
+struct FAnimationConfig {
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, Category="Animation Config")
+	float Time = 1.0f;
+};
+
 UENUM(BlueprintType)
 enum class EUnitAnimMovementState : uint8 {
     None,
@@ -24,14 +33,19 @@ UENUM(BlueprintType)
 enum class EUnitAnimArmsMode : uint8 {
     Empty,
     Mpz,
-    Xbow
+    Xbow,
+    Watercan,
+    Keycard,
+    RepairTool
 };
 
 UENUM(BlueprintType)
 enum class EUnitAnimArmsModifier : uint8 {
     None,
+    Fire,
     Reload,
-    Use
+    Use,
+    Interact
 };
 
 UCLASS(Transient, Blueprintable, HideCategories=AnimInstance, BlueprintType)
@@ -45,8 +59,6 @@ public:
     EUnitAnimArmsMode Script_ArmsMode;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
     EUnitAnimArmsModifier Script_ArmsModifier;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
-    bool Script_Interacting;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
     float Script_TimeDilation;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")

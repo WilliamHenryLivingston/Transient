@@ -12,3 +12,27 @@ GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("..."));
 TODO refactor:
 Look vectoring all in unitpawn (incl TorsoPitch)
 weapon holster slots
+"play animation" system in unitpawn
+procedual camera push
+
+AI 
+- ai in groups
+- un-agro'd
+    - moveing between points
+    - playing animations and audio
+    - agro on targets
+- agro'd
+    - attack towards player
+    - take cover
+    - retreat
+    - emit audio / play animation (taunt)
+
+TRAPS
+bear traps -> hit trigger -> stuck in trapped -> play anim
+    design:
+        - integrated into environment hidden
+lance -> hit trigger -> warning queue -> projectile fires at you -> if hit restricts movement
+laser -> agros AI
+    -> enemies can also agro eachother
+
+environment triggers

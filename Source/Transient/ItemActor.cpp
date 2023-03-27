@@ -25,7 +25,7 @@ void AItemActor::Tick(float DeltaTime) {
 void AItemActor::ItemTake(IItemHolder* Target) {
 	this->CurrentHolder = Target;
 
-	this->SetActorHiddenInGame(true);
+	if (this->UsesEquipMesh) this->SetActorHiddenInGame(true);
 	this->ColliderComponent->SetSimulatePhysics(false);
 	this->ColliderComponent->SetCollisionProfileName(FName("NoCollision"), true);
 }
@@ -33,20 +33,21 @@ void AItemActor::ItemTake(IItemHolder* Target) {
 void AItemActor::ItemDrop(IItemHolder* Target) {
 	this->CurrentHolder = nullptr;
 
-	FVector DropLocation = Target->ItemHolderGetLocation();
+	FRotator ParentRotation = Target->ItemHolderGetRotation();
+	FVector DropLocation = Target->ItemHolderGetLocation() + ParentRotation.RotateVector(FVector(150.0f, 0.0f, 0.0f));
 	DropLocation.X += FMath::RandRange(-50.0f, 50.0f);
 	DropLocation.Y += FMath::RandRange(-50.0f, 50.0f);
 	this->SetActorLocation(DropLocation);
 
-	this->SetActorHiddenInGame(false);
+	FRotator DropRotation = ParentRotation;
+	DropRotation.Yaw = FMath::RandRange(0.0f, 360.0f);
+	this->SetActorRotation(DropRotation);
+
+	if (this->UsesEquipMesh) this->SetActorHiddenInGame(false);
 	this->ColliderComponent->SetCollisionProfileName(FName("Item"), true);
 	this->ColliderComponent->SetSimulatePhysics(true);
 }
 
-UItemContainerComponent* AItemActor::ItemAsContainer() {
-	TArray<UItemContainerComponent*> ContainerComponents;
-	this->GetComponents(ContainerComponents, false);
-
-	if (ContainerComponents.Num() == 0) return nullptr;
-	return ContainerComponents[0];
+FString AItemActor::ItemGetDescriptorString() {
+	return this->ItemName;
 }
