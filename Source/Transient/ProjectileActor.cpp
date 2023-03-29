@@ -36,7 +36,7 @@ void AProjectileActor::OnCollideUnchecked(
 	AUnitPawn* HitUnit = Cast<AUnitPawn>(OtherActor);
 
 	if (HitUnit != nullptr) {
-		HitUnit->UnitTakeDamage(this->DamageProfile);
+		HitUnit->UnitTakeDamage(this->DamageProfile, this->Source);
 	}
 
 	this->Destroy();

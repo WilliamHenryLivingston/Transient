@@ -16,7 +16,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="Usable")
 	bool RequiresTarget;
 	UPROPERTY(EditAnywhere, Category="Usable")
-	float UseTime = 1.0f;
+	FAnimationConfig UseAnimation;
 
 public:
 	virtual void ItemUse(AActor* Target);
