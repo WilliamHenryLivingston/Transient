@@ -11,7 +11,9 @@ struct FDamageProfile {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere)
-	float KineticDamage;
+	float Kinetic;
+	UPROPERTY(EditAnywhere)
+	float Electric;
 };
 
 UCLASS()

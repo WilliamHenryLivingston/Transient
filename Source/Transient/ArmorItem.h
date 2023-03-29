@@ -12,5 +12,5 @@ class TRANSIENT_API AArmorItem : public AItemActor {
 
 public:
 	UPROPERTY(EditAnywhere, Category="Armor")
-	float Health = 300.0f;
+	float KineticHealth = 300.0f;
 };

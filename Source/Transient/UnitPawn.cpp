@@ -700,26 +700,35 @@ bool AUnitPawn::UnitDrainStamina(float Amount) {
 	return false;
 }
 
+void AUnitPawn::UnitHealDamage(FDamageProfile Healing) {
+	this->KineticHealth = FMath::Min(this->MaxKineticHealth, this->KineticHealth + Healing.Kinetic);
+	this->ElectricHealth = FMath::Min(this->MaxElectricHealth, this->ElectricHealth + Healing.Electric);
+}
+
 void AUnitPawn::UnitTakeDamage(FDamageProfile Profile, AActor* Source) {
-	float Kinetic = Profile.KineticDamage;
+	float Kinetic = Profile.Kinetic;
+	float Electric = Profile.Electric;
 
 	//	Absorb damage with armor.
 	if (this->ArmorItem != nullptr) {
-		if (Kinetic >= this->ArmorItem->Health) {
-			Kinetic -= this->ArmorItem->Health;
+		if (Kinetic >= this->ArmorItem->KineticHealth) {
+			Kinetic -= this->ArmorItem->KineticHealth;
 
 			AArmorItem* Armor = this->ArmorItem;
 			this->ArmorItem = nullptr;
 			Armor->Destroy();
 		}
 		else {
-			this->ArmorItem->Health -= Kinetic;
+			this->ArmorItem->KineticHealth -= Kinetic;
 			Kinetic = 0;
 		}
 	}
 
-	this->Health -= Kinetic;
-	if (this->Health <= 0.0f) this->UnitDie();
+	this->KineticHealth -= Kinetic;
+	this->ElectricHealth -= Electric;
+	if (this->KineticHealth <= 0.0f || this->ElectricHealth <= 0.0f) {
+		this->UnitDie();
+	}
 }
 
 void AUnitPawn::UnitDie() {

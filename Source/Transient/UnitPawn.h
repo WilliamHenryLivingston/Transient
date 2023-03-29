@@ -42,9 +42,13 @@ private:
 
 	// Stats.
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
-	float Health = 300.0f;
+	float KineticHealth = 300.0f;
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
-	float MaxHealth = 300.0f;
+	float MaxKineticHealth = 300.0f;
+	UPROPERTY(EditAnywhere, Category="Unit Stats")
+	float ElectricHealth = 300.0f;
+	UPROPERTY(EditAnywhere, Category="Unit Stats")
+	float MaxElectricHealth = 300.0f;
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
 	float Stamina = 300.0f;
 	UPROPERTY(EditAnywhere, Category="Unit Stats");
@@ -203,6 +207,7 @@ public:
 
 	// External impacts.
 	virtual void UnitTakeDamage(FDamageProfile Profile, AActor* Source);
+	void UnitHealDamage(FDamageProfile Healing);
 	void UnitTakeItem(AItemActor* TargetItem);
 	void UnitDie();
 };
