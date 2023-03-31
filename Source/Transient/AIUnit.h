@@ -26,8 +26,6 @@ public:
 
 private:
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
-	TArray<TSubclassOf<AItemActor>> AutoSpawnInitialItems;
-	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	TSubclassOf<AMagazineItem> AutoSpawnMagazine;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	float DetectionDistance = 60.0f;

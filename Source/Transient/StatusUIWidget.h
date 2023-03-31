@@ -9,5 +9,12 @@
 UCLASS()
 class TRANSIENT_API UStatusUIWidget : public UUserWidget {
 	GENERATED_BODY()
-	
+
+public:
+	UPROPERTY(BlueprintReadWrite)
+	float Script_KineticHealth;
+	UPROPERTY(BlueprintReadWrite)
+	float Script_Energy;
+	UPROPERTY(BlueprintReadWrite)
+	float Script_Stamina;
 };

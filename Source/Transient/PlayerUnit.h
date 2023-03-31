@@ -5,9 +5,11 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/WidgetComponent.h"
 
 #include "UnitPawn.h"
 #include "MainUIWidget.h"
+#include "StatusUIWidget.h"
 
 #include "PlayerUnit.generated.h"
 
@@ -44,6 +46,9 @@ private:
 	AActor* CurrentAimHit;
 
 	UMainUIWidget* MainUI;
+	UStatusUIWidget* StatusUI;
+	UStatusUIWidget* ExpandedStatusUI;
+	UWidgetComponent* ExpandedStatusUIComponent;
 
 	float CurrentForcedDilation;
 	bool WantsDilate;
@@ -93,4 +98,6 @@ private:
 	void InputExitInventory();
 	void InputStartAim();
 	void InputEndAim();
+	void InputStartCheckStatus();
+	void InputEndCheckStatus();
 };

@@ -6,6 +6,7 @@
 
 #include "ProjectileActor.generated.h"
 
+// TODO: Move.
 USTRUCT()
 struct FDamageProfile {
 	GENERATED_BODY()
@@ -13,7 +14,7 @@ struct FDamageProfile {
 	UPROPERTY(EditAnywhere)
 	float Kinetic;
 	UPROPERTY(EditAnywhere)
-	float Electric;
+	float Energy;
 };
 
 UCLASS()

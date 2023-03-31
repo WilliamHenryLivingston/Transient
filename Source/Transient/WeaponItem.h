@@ -18,6 +18,8 @@ public:
 	FAnimationConfig ReloadAnimation;
 	UPROPERTY(EditAnywhere, Category="Base Weapon")
 	int AmmoTypeID;
+	UPROPERTY(EditAnywhere, Category="Base Weapon")
+	bool ImmobilizeOnReload;
 
 	UPROPERTY(EditAnywhere, Category="AI Handling")
 	float AIEngageDistance = 500.0f;

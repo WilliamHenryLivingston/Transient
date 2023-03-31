@@ -19,24 +19,12 @@ void AAIUnit::BeginPlay() {
 		if (Name.Equals("DetectionSource")) this->DetectionSourceComponent = Check;
 	}
 
-    this->OverrideArmsState = true;
-
-    for (int i = 0; i < this->AutoSpawnInitialItems.Num(); i++) {
-        AItemActor* Spawned = this->GetWorld()->SpawnActor<AItemActor>(
-            this->AutoSpawnInitialItems[i],
-            this->GetActorLocation(),
-            this->GetActorRotation(),
-            FActorSpawnParameters()
-        );
-        if (Spawned == nullptr) continue;
-
-        this->UnitTakeItem(Spawned);
-    }
-
-    this->OverrideArmsState = false;
-
     this->ActionExecutorStack = TArray<IAIActionExecutor*>();
     this->ActionExecutorStack.Push(new CPatrolAction(&this->Patrol));
+
+    this->OverrideArmsState = false;
+    this->UnitReload();
+    this->OverrideArmsState = true;
 }
 
 void AAIUnit::EndPlay(EEndPlayReason::Type Reason) {

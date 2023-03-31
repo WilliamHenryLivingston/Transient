@@ -5,6 +5,7 @@
 
 #include "TransientDebug.h"
 #include "EquippedMeshConfig.h"
+#include "ProjectileWeapon.h"
 
 AUnitPawn::AUnitPawn() {
 	this->PrimaryActorTick.bCanEverTick = true;
@@ -12,6 +13,8 @@ AUnitPawn::AUnitPawn() {
 
 void AUnitPawn::BeginPlay() {
 	Super::BeginPlay();
+
+	this->ReloadingLock = false;
 
 	this->JumpTimer = -1.0f; // TODO: Janky.
 	
@@ -55,7 +58,19 @@ void AUnitPawn::BeginPlay() {
 	this->UnitDiscoverDynamicChildComponents();
 
 	// Initialize inventory.
-	this->OverrideArmsState = true;
+    this->OverrideArmsState = true;
+
+    for (int i = 0; i < this->AutoSpawnInitialItems.Num(); i++) {
+        AItemActor* Spawned = this->GetWorld()->SpawnActor<AItemActor>(
+            this->AutoSpawnInitialItems[i],
+            this->GetActorLocation(),
+            this->GetActorRotation(),
+            FActorSpawnParameters()
+        );
+        if (Spawned == nullptr) continue;
+
+        this->UnitTakeItem(Spawned);
+    }
 
 	if (this->ActiveItem != nullptr) this->UnitTakeItem(this->ActiveItem);
 	if (this->ArmorItem != nullptr) this->UnitTakeItem(this->ArmorItem);
@@ -89,7 +104,6 @@ void AUnitPawn::Tick(float DeltaTime) {
 
 	// Clear child class targeting for their tick.
 	this->TargetTorsoPitch = this->TorsoPitch;
-	this->HasStaminaDrain = false;
 	this->HasFaceTarget = false;
 
 	if (this->JumpTimer < 0.0f) {
@@ -109,7 +123,10 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	this->Animation->Script_TorsoPitch = -this->TorsoPitch;
 
 	// Stats update.
-	if (!this->HasStaminaDrain) {
+	if (this->StaminaRegenTimer > 0.0f) {
+		this->StaminaRegenTimer -= DeltaTime;
+	}
+	else if (this->Stamina < this->MaxStamina && this->UnitDrainEnergy(this->StaminaRegen * 0.25f * DeltaTime)) {
 		this->Stamina = FMath::Min(this->MaxStamina, this->Stamina + (this->StaminaRegen * DeltaTime));
 	}
 
@@ -141,6 +158,14 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	}
 
 	// ...Arms modifier (animation).
+	if (this->CheckingStatus) {
+		this->ArmsAnimationTimer = 10.0f;
+		this->ArmsAnimation = EUnitAnimArmsModifier::CheckStatus;
+	}
+	else if (this->ArmsAnimation == EUnitAnimArmsModifier::CheckStatus) {
+		this->ArmsAnimationTimer = 0.0f;
+	}
+
 	if (this->ArmsAnimationTimer > 0.0f) {
 		this->ArmsAnimationTimer -= DeltaTime;
 		this->Animation->Script_ArmsModifier = this->ArmsAnimation;
@@ -185,7 +210,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	this->RigComponent->SetRelativeLocation(RigLocation);
 	this->RigComponent->SetRelativeScale3D(RigScale);
 
-	if (this->HasMoveTarget && !this->Immobilized) {
+	if (this->HasMoveTarget && !this->Immobilized && !this->ReloadingLock && this->UnitDrainEnergy(1.0f * DeltaTime)) {
 		FVector ActorForward = this->GetActorForwardVector();
 
 		FVector MoveDelta = (this->MoveTarget - CurrentLocation).GetSafeNormal() * this->MoveSpeed * DeltaTime;
@@ -286,6 +311,7 @@ AWeaponItem* AUnitPawn::UnitGetActiveWeapon() {
 bool AUnitPawn::UnitAreArmsOccupied() {
 	return !this->OverrideArmsState && (
 		this->ArmsAnimationTimer > 0.0f ||
+		this->CheckingStatus ||
 		this->Immobilized
 	);
 }
@@ -590,6 +616,16 @@ void AUnitPawn::UnitPlayInteractAnimation() {
 }
 
 // Actions.
+void AUnitPawn::UnitSetCheckingStatus(bool NewChecking) {
+	if (NewChecking) {
+		if (this->UnitAreArmsOccupied()) return;
+
+		this->UnitSetTriggerPulled(false);
+	}
+
+	this->CheckingStatus = NewChecking;
+}
+
 void AUnitPawn::UnitUseActiveItem(AActor* Target) {
 	if (this->UnitAreArmsOccupied()) return;
 
@@ -642,6 +678,8 @@ void AUnitPawn::UnitSetCrouched(bool NewCrouch) {
 void AUnitPawn::UnitJump() {
 	if (this->JumpTimer > 0.0f || this->Crouching || this->Immobilized) return;
 
+	if (!this->UnitDrainEnergy(5.0f)) return;
+
 	// TODO: Kinda busted in slo-mo.
 	this->ColliderComponent->AddImpulse(FVector(0.0f, 0.0f, this->JumpStrength), FName("None"), true);
 
@@ -676,9 +714,19 @@ void AUnitPawn::UnitReload() {
 
 	SelectedSlot->SlotSetContent(nullptr);
 	Weapon->WeaponSwapMagazines(SelectedMag->Ammo);
+	AProjectileWeapon* AsProjectileWeapon = Cast<AProjectileWeapon>(Weapon);
+	if (AsProjectileWeapon != nullptr) {
+		AsProjectileWeapon->ProjectileType = SelectedMag->ProjectileType;
+	}
+
 	SelectedMag->Destroy();
 
-	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Reload, Weapon->ReloadAnimation, nullptr);
+	this->ReloadingLock = Weapon->ImmobilizeOnReload;
+	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Reload, Weapon->ReloadAnimation, &AUnitPawn::UnitPostReload);
+}
+
+void AUnitPawn::UnitPostReload() {
+	this->ReloadingLock = false;
 }
 
 void AUnitPawn::UnitSetTriggerPulled(bool NewTriggerPulled) {
@@ -693,7 +741,16 @@ void AUnitPawn::UnitSetTriggerPulled(bool NewTriggerPulled) {
 bool AUnitPawn::UnitDrainStamina(float Amount) {
 	if (this->Stamina > Amount) {
 		this->Stamina -= Amount;
-		this->HasStaminaDrain = true;
+		this->StaminaRegenTimer = 1.0f;
+		return true;
+	}
+
+	return false;
+}
+
+bool AUnitPawn::UnitDrainEnergy(float Amount) {
+	if (this->Energy > Amount) {
+		this->Energy -= Amount;
 		return true;
 	}
 
@@ -702,12 +759,11 @@ bool AUnitPawn::UnitDrainStamina(float Amount) {
 
 void AUnitPawn::UnitHealDamage(FDamageProfile Healing) {
 	this->KineticHealth = FMath::Min(this->MaxKineticHealth, this->KineticHealth + Healing.Kinetic);
-	this->ElectricHealth = FMath::Min(this->MaxElectricHealth, this->ElectricHealth + Healing.Electric);
+	this->Energy = FMath::Min(this->MaxEnergy, this->Energy + Healing.Energy);
 }
 
 void AUnitPawn::UnitTakeDamage(FDamageProfile Profile, AActor* Source) {
 	float Kinetic = Profile.Kinetic;
-	float Electric = Profile.Electric;
 
 	//	Absorb damage with armor.
 	if (this->ArmorItem != nullptr) {
@@ -725,8 +781,8 @@ void AUnitPawn::UnitTakeDamage(FDamageProfile Profile, AActor* Source) {
 	}
 
 	this->KineticHealth -= Kinetic;
-	this->ElectricHealth -= Electric;
-	if (this->KineticHealth <= 0.0f || this->ElectricHealth <= 0.0f) {
+	this->Energy -= Profile.Energy;
+	if (this->KineticHealth <= 0.0f) {
 		this->UnitDie();
 	}
 }

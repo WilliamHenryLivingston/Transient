@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 
 #include "UsableItem.h"
+#include "ProjectileActor.h"
 
 #include "RepairItem.generated.h"
 

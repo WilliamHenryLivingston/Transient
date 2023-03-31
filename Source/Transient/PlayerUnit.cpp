@@ -6,6 +6,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
+#include "InteractiveActor.h"
 #include "UnitSlotColliderComponent.h"
 
 APlayerUnit::APlayerUnit() {
@@ -36,6 +37,8 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Inventory", IE_Released, this, &APlayerUnit::InputExitInventory);
 	PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &APlayerUnit::InputStartAim);
 	PlayerInputComponent->BindAction("Aim", IE_Released, this, &APlayerUnit::InputEndAim);
+	PlayerInputComponent->BindAction("CheckStatus", IE_Pressed, this, &APlayerUnit::InputStartCheckStatus);
+	PlayerInputComponent->BindAction("CheckStatus", IE_Released, this, &APlayerUnit::InputEndCheckStatus);
 }
 
 void APlayerUnit::BeginPlay() {
@@ -67,6 +70,20 @@ void APlayerUnit::BeginPlay() {
 	FRotator InitialRotation = this->CameraComponent->GetRelativeRotation();
 	InitialRotation.Pitch -= 0.1f;
 	this->CameraComponent->SetRelativeRotation(InitialRotation);
+
+	// Setup UIs.
+	TArray<UWidgetComponent*> WidgetComponents;
+	this->GetComponents(WidgetComponents, true);
+	for (int i = 0; i < WidgetComponents.Num(); i++) {
+		UWidgetComponent* Check = WidgetComponents[i];
+
+		FString Name = Check->GetName();
+		if (Name.Equals("StatusWidget")) this->StatusUI = Cast<UStatusUIWidget>(Check->GetUserWidgetObject());
+		else if (Name.Equals("ExpandedStatusWidget")) {
+			this->ExpandedStatusUIComponent = Check;
+			this->ExpandedStatusUI = Cast<UStatusUIWidget>(Check->GetUserWidgetObject());
+		}
+	}
 
 	this->MainUI = Cast<UMainUIWidget>(CreateWidget<UUserWidget>(this->GetWorld(), this->MainUIType));
 	this->MainUI->AddToViewport(1000);
@@ -129,7 +146,7 @@ void APlayerUnit::Tick(float DeltaTime) {
 	}
 	this->CameraComponent->SetRelativeRotation(CameraRotation);
 	
-	if (this->WantsDilate && this->UnitGetItemByName(TEXT("time dilator")) != nullptr && this->UnitDrainStamina(50.0f * RawDeltaTime)) {
+	if (this->WantsDilate && this->UnitGetItemByName(TEXT("time dilator")) != nullptr && this->UnitDrainStamina(200.0f * RawDeltaTime)) {
 		this->CurrentForcedDilation = FMath::Max(0.25f, this->CurrentForcedDilation - (RawDeltaTime * 3.0f));
 		this->CameraComponent->PostProcessBlendWeight = FMath::Min(1.0f, this->CameraComponent->PostProcessBlendWeight + (RawDeltaTime * 3.0f));
 	}
@@ -146,6 +163,19 @@ void APlayerUnit::Tick(float DeltaTime) {
 	);
 
 	this->AimIndicatorComponent->SetWorldLocation(MouseHit.ImpactPoint);
+
+	this->ExpandedStatusUI->Script_KineticHealth = this->StatusUI->Script_KineticHealth = this->KineticHealth / this->MaxKineticHealth;
+	this->ExpandedStatusUI->Script_Energy = this->StatusUI->Script_Energy = this->Energy / this->MaxEnergy;
+	this->ExpandedStatusUI->Script_Stamina = this->StatusUI->Script_Stamina = this->Stamina / this->MaxStamina;
+	this->ExpandedStatusUIComponent->SetVisibility(this->CheckingStatus);
+	if (this->CheckingStatus) {
+		this->ExpandedStatusUIComponent->SetWorldRotation(
+			UKismetMathLibrary::FindLookAtRotation(
+				this->ExpandedStatusUIComponent->GetComponentLocation(),
+				this->CameraComponent->GetComponentLocation()
+			)
+		);
+	}
 
 	this->MainUI->Script_CurrentItemDescriptor = TEXT("");
 	this->ForceArmsEmptyAnimation = this->InventoryView;
@@ -294,18 +324,30 @@ void APlayerUnit::Tick(float DeltaTime) {
     this->UnitPostTick(DeltaTime);
 }
 
+// TODO: Out of reach checks shouldn't be here.
 void APlayerUnit::InputInteract() {
-	AItemActor* AimedItem = nullptr;
-	if (this->CurrentAimHit != nullptr) {
-		AimedItem = Cast<AItemActor>(this->CurrentAimHit);
+	if (this->CurrentAimHit == nullptr) return;
+	
+	float Distance = (this->CurrentAimHit->GetActorLocation() - this->GetActorLocation()).Size();
 
-		// TODO: Out of reach check shouldnt be here.
-		if (AimedItem != nullptr && (AimedItem->GetActorLocation() - this->GetActorLocation()).Size() > this->TakeReach) {
-			AimedItem = nullptr;
-		}
+	AItemActor* AimedItem = Cast<AItemActor>(this->CurrentAimHit);
+	if (Distance > this->TakeReach) AimedItem = nullptr;
+
+	if (AimedItem != nullptr) {
+		this->UnitTakeItem(AimedItem);
+		return;
 	}
 
-	if (AimedItem != nullptr) this->UnitTakeItem(AimedItem);
+	AInteractiveActor* AimedInteractive = Cast<AInteractiveActor>(this->CurrentAimHit);
+	if (Distance > this->UseReach) AimedInteractive = nullptr;
+
+	if (AimedInteractive != nullptr) {
+		if (this->UnitAreArmsOccupied()) return;
+
+		this->UnitPlayInteractAnimation();
+		AimedInteractive->InteractiveUse(this);
+		return;
+	}
 }
 
 // Input binds.
@@ -369,4 +411,12 @@ void APlayerUnit::InputEnterInventory() {
 
 void APlayerUnit::InputExitInventory() {
 	this->InventoryView = false;
+}
+
+void APlayerUnit::InputStartCheckStatus() {
+	this->UnitSetCheckingStatus(true);
+}
+
+void APlayerUnit::InputEndCheckStatus() {
+	this->UnitSetCheckingStatus(false);
 }

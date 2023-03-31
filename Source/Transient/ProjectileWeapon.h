@@ -10,11 +10,12 @@ UCLASS()
 class TRANSIENT_API AProjectileWeapon : public AWeaponItem {
 	GENERATED_BODY()
 
+public:
+	TSubclassOf<AProjectileActor> ProjectileType;
+
 private:
 	UPROPERTY(EditAnywhere, Category="Projectile Weapon")
 	float Spread = 3.0f;
-	UPROPERTY(EditAnywhere, Category="Projectile Weapon")
-	TSubclassOf<AProjectileActor> ProjectileType;
 
 	UPROPERTY(EditAnywhere, Category="Item SFX")
 	USoundBase* ShootSound;

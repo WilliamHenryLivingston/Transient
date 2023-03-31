@@ -37,22 +37,22 @@ private:
 	float JumpStrength = 300.0f;
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
 	float JumpTime = 1.0f; // TODO: Replace with proper grounded check.
-	UPROPERTY(EditAnywhere, Category="Unit Movement")
-	float UseReach = 200.0f;
 
 	// Stats.
+protected: // TODO: No, add methods.
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
 	float KineticHealth = 300.0f;
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
 	float MaxKineticHealth = 300.0f;
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
-	float ElectricHealth = 300.0f;
+	float Energy = 300.0f;
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
-	float MaxElectricHealth = 300.0f;
+	float MaxEnergy = 300.0f;
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
 	float Stamina = 300.0f;
 	UPROPERTY(EditAnywhere, Category="Unit Stats");
 	float MaxStamina = 300.0f;
+private:
 	UPROPERTY(EditAnywhere, Category="Unit Stats");
 	float StaminaRegen = 50.0f;
 
@@ -68,6 +68,8 @@ private:
 
 
 	// Inventory.
+	UPROPERTY(EditAnywhere, Category="Unit Inventory")
+	TArray<TSubclassOf<AItemActor>> AutoSpawnInitialItems;
 	UPROPERTY(EditAnywhere, Category="Unit Inventory")
 	AItemActor* ActiveItem;
 	UPROPERTY(EditAnywhere, Category="Unit Inventory")
@@ -111,15 +113,19 @@ private:
 	FVector BaseRigScale;
 
 	// Other state.
-	bool HasStaminaDrain;
+	float StaminaRegenTimer;
 
 	bool Immobilized;
+	bool ReloadingLock;
 
 protected:
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
 	float TakeReach = 300.0f; // TODO: Private later.
+	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	float UseReach = 300.0f;
 
 	bool ForceArmsEmptyAnimation; // TODO: Better solution (inventory view).
+	bool CheckingStatus; // TODO
 
 	// Child components available to child classes.
 	UShapeComponent* ColliderComponent;
@@ -155,6 +161,7 @@ private:
 	void UnitUpdateHostMesh(UStaticMeshComponent* Host, FEquippedMeshConfig* Config);
 
 	void UnitFinishUse();
+	void UnitPostReload();
 
 // Exposures.
 protected:
@@ -189,6 +196,7 @@ public:
 	
 	// Actions.
 	bool UnitDrainStamina(float Amount);
+	bool UnitDrainEnergy(float Amount);
 	void UnitUpdateTorsoPitch(float TargetValue);
 
 	void UnitMoveTowards(FVector Target);
@@ -203,6 +211,7 @@ public:
 	virtual void UnitReload();
 
 	void UnitPlayAnimationOnce(EUnitAnimArmsModifier Animation, FAnimationConfig Config, void (AUnitPawn::*Then)());
+	void UnitSetCheckingStatus(bool NewChecking);
 	void UnitPlayInteractAnimation();
 
 	// External impacts.

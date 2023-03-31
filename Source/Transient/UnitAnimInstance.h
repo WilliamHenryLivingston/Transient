@@ -36,7 +36,8 @@ enum class EUnitAnimArmsMode : uint8 {
     Xbow,
     Watercan,
     Keycard,
-    RepairTool
+    RepairTool,
+    Battery
 };
 
 UENUM(BlueprintType)
@@ -45,7 +46,8 @@ enum class EUnitAnimArmsModifier : uint8 {
     Fire,
     Reload,
     Use,
-    Interact
+    Interact,
+    CheckStatus
 };
 
 UCLASS(Transient, Blueprintable, HideCategories=AnimInstance, BlueprintType)

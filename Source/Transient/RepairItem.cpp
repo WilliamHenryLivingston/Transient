@@ -1,11 +1,16 @@
 #include "RepairItem.h"
 
-void ARepairItem::ItemUse(AActor* Target) {
-    this->CurrentHolder->UnitHealDamage(this->Healing);
+#include "UnitPawn.h"
 
-    this->CurrentHolder->OverrideArmsState = true;
-    this->CurrentHolder->UnitDropItem(this);
-    this->CurrentHolder->OverrideArmsState = false;
+void ARepairItem::ItemUse(AActor* Target) {
+    // TODO: Why does IItemHolder even exist?
+    AUnitPawn* AsUnit = Cast<AUnitPawn>(this->CurrentHolder);
+
+    AsUnit->UnitHealDamage(this->Healing);
+
+    AsUnit->OverrideArmsState = true;
+    AsUnit->UnitDropItem(this);
+    AsUnit->OverrideArmsState = false;
 
     this->Destroy();
 }

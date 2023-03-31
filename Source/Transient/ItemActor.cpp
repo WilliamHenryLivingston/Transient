@@ -1,5 +1,7 @@
 #include "ItemActor.h"
 
+#include "TransientDebug.h"
+
 AItemActor::AItemActor() {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -16,6 +18,8 @@ AItemActor::AItemActor() {
 
 void AItemActor::BeginPlay() {
 	Super::BeginPlay();
+
+	this->ColliderComponent->SetHiddenInGame(NODEBUG_COLLIDERS);
 }
 
 void AItemActor::Tick(float DeltaTime) {
