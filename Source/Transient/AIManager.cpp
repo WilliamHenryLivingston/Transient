@@ -1,12 +1,12 @@
-#include "AINavManager.h"
+#include "AIManager.h"
 
 #include "Kismet/GameplayStatics.h"
 
-AAINavManager::AAINavManager() {
+AAIManager::AAIManager() {
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-void AAINavManager::BeginPlay() {
+void AAIManager::BeginPlay() {
 	Super::BeginPlay();
 
 	TArray<AActor*> FoundNodes;
@@ -18,11 +18,11 @@ void AAINavManager::BeginPlay() {
 	}
 }
 
-void AAINavManager::Tick(float DeltaTime) {
+void AAIManager::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 }
 
-bool AAINavManager::NavIsNodeClaimed(AAINavNode* Node) {
+bool AAIManager::AIIsNavNodeClaimed(AAINavNode* Node) {
 	for (int i = 0; i < this->Claims.Num(); i++) {
 		if (this->Claims[i].Node == Node) return true;
 	}
@@ -30,7 +30,7 @@ bool AAINavManager::NavIsNodeClaimed(AAINavNode* Node) {
 	return false;
 }
 
-void AAINavManager::NavClaimNode(AAINavNode* Node, AActor* Claimer) {
+void AAIManager::AIClaimNavNode(AAINavNode* Node, AActor* Claimer) {
 	FNavNodeClaim Claim;
 	Claim.Claimer = Claimer;
 	Claim.Node = Node;
@@ -38,7 +38,7 @@ void AAINavManager::NavClaimNode(AAINavNode* Node, AActor* Claimer) {
 	this->Claims.Push(Claim);
 }
 
-void AAINavManager::NavUnclaimAllNodes(AActor* Claimer) {
+void AAIManager::AIUnclaimAllNavNodes(AActor* Claimer) {
 	for (int i = 0; i < this->Claims.Num(); i++) {
 		while (i < this->Claims.Num() && this->Claims[i].Claimer == Claimer) {
 			this->Claims.RemoveAt(i);
@@ -46,7 +46,7 @@ void AAINavManager::NavUnclaimAllNodes(AActor* Claimer) {
 	}
 }
 
-TArray<AAINavNode*> AAINavManager::NavGetNearestNodes(AActor* From, int Count) {
+TArray<AAINavNode*> AAIManager::AIGetNavNearestNodes(AActor* From, int Count) {
 	// TODO: Rewrite, too lazy to to properly.
 
 	FVector FromLocation = From->GetActorLocation();
@@ -72,4 +72,24 @@ TArray<AAINavNode*> AAINavManager::NavGetNearestNodes(AActor* From, int Count) {
 	}
 
 	return Result;
+}
+
+AAIManager* AAIManager::AIGetManagerInstance(UWorld* WorldCtx) {
+	return Cast<AAIManager>(UGameplayStatics::GetActorOfClass(WorldCtx, AAIManager::StaticClass()));
+}
+
+bool AAIManager::AIIsFactionEnemy(int MyFaction, int OtherFaction) {
+	if (MyFaction == OtherFaction) return false;
+
+	for (int i = 0; i < this->FactionConfig.Num(); i++) {
+		FFactionAlliance Check = this->FactionConfig[i];
+
+		bool Allied = (
+			(Check.FactionA == MyFaction && Check.FactionB == OtherFaction) ||
+			(Check.FactionB == MyFaction && Check.FactionA == OtherFaction)
+		);
+		if (Allied) return false;
+	}
+
+	return true;
 }

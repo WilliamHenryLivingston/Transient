@@ -2,9 +2,8 @@
 
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
-#include "Kismet/GameplayStatics.h"
 
-#include "../AINavManager.h"
+#include "../AIManager.h"
 #include "../AIUnit.h"
 
 // TODO: Take vector as target.
@@ -55,13 +54,13 @@ FAIActionTickResult CMoveToPointAction::AIActionTick(AActor* RawOwner, float Del
 
 void CMoveToPointAction::PlanMove(AActor* Owner) {
     UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(Owner->GetWorld());
-    AAINavManager* NavManager = Cast<AAINavManager>(UGameplayStatics::GetActorOfClass(Owner->GetWorld(), AAINavManager::StaticClass()));
+    AAIManager* Manager = AAIManager::AIGetManagerInstance(Owner->GetWorld());
 
     FSharedConstNavQueryFilter Filter;
     FNavPathSharedPtr PathPtr;
     FPathFindingQuery Query(
         Owner,
-        *NavManager->NavData,
+        *Manager->NavData,
         Owner->GetActorLocation(),
         this->Target->GetActorLocation(),
         Filter,

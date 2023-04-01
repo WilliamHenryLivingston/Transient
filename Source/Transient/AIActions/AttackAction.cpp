@@ -1,11 +1,10 @@
 #include "AttackAction.h"
 
-#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
 #include "../TransientDebug.h"
 #include "../AIUnit.h"
-#include "../AINavManager.h"
+#include "../AIManager.h"
 #include "EngageAction.h"
 #include "MoveToPointAction.h"
 
@@ -75,13 +74,15 @@ FAIParentActionTickResult CAttackAction::AIParentActionTick(AActor* RawOwner, fl
             FCollisionQueryParams()
         );
 
+        AAIManager* Manager = AAIManager::AIGetManagerInstance(Owner->GetWorld());
+
         AActor* FireVictim = FireCheckHit.GetActor();
         bool ShouldFire = (
             (
                 // Friendly fire check.
                 FireVictim == nullptr ||
                 !FireVictim->IsA(AUnitPawn::StaticClass()) ||
-                Cast<AUnitPawn>(FireVictim)->FactionID != Owner->FactionID
+                Manager->AIIsFactionEnemy(Cast<AUnitPawn>(FireVictim)->FactionID, Owner->FactionID)
             ) && (
                 // Shoot at cover check.
                 this->Cover == nullptr ||
@@ -120,7 +121,7 @@ FAIActionTickResult CAttackAction::AIActionTick(AActor* RawOwner, float DeltaTim
         return this->Finished;
     }
 
-    AAINavManager* NavManager = Cast<AAINavManager>(UGameplayStatics::GetActorOfClass(Owner->GetWorld(), AAINavManager::StaticClass()));
+    AAIManager* Manager = AAIManager::AIGetManagerInstance(Owner->GetWorld());
 
     bool Assaulting = Owner->AssaultIfAlone;
     if (Owner->Group != nullptr) {
@@ -129,15 +130,15 @@ FAIActionTickResult CAttackAction::AIActionTick(AActor* RawOwner, float DeltaTim
     if (Assaulting && (Owner->GetActorLocation() - this->Target->GetActorLocation()).Size() > CurrentWeapon->AIEngageDistance) {
         this->Engaging = true;
         this->Cover = nullptr;
-        NavManager->NavUnclaimAllNodes(Owner);
+        Manager->AIUnclaimAllNavNodes(Owner);
         return FAIActionTickResult(false, new CMoveToPointAction(this->Target, CurrentWeapon->AIEngageDistance / 2.0f));
     }
     else if (!Assaulting && (this->Cover == nullptr || FMath::RandRange(0.0f, 1.0f) < 0.5f)) {
         this->Engaging = false;
-        NavManager->NavUnclaimAllNodes(Owner);
+        Manager->AIUnclaimAllNavNodes(Owner);
 
         // ... find cover
-        TArray<AAINavNode*> CheckSet = NavManager->NavGetNearestNodes(Owner, 10);
+        TArray<AAINavNode*> CheckSet = Manager->AIGetNavNearestNodes(Owner, 10);
 
         FVector ThreatLocation = this->Target->GetActorLocation();
 
@@ -147,7 +148,7 @@ FAIActionTickResult CAttackAction::AIActionTick(AActor* RawOwner, float DeltaTim
             AAINavNode* Check = CheckSet[i];
 
             if (!Check->CoverPosition) continue;
-            if (NavManager->NavIsNodeClaimed(Check)) continue;
+            if (Manager->AIIsNavNodeClaimed(Check)) continue;
 
             FVector CheckLocation = Check->GetActorLocation();
             float RootDist = (CheckLocation - ThreatLocation).Size();
@@ -166,7 +167,7 @@ FAIActionTickResult CAttackAction::AIActionTick(AActor* RawOwner, float DeltaTim
         // TODO: Why is this getting hit?
         if (this->Cover == nullptr) return this->Finished; // Broken.
 
-        NavManager->NavClaimNode(Cover, Owner);
+        Manager->AIClaimNavNode(Cover, Owner);
         return FAIActionTickResult(false, new CMoveToPointAction(this->Cover, 50.0f));
     }
     else {

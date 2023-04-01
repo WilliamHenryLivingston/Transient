@@ -61,6 +61,15 @@ void APlayerUnit::BeginPlay() {
 		if (Name.Equals("AimIndicator")) this->AimIndicatorComponent = Check;
 	}
 
+	TArray<USceneComponent*> SceneComponents;
+	this->GetComponents(SceneComponents, true);
+	for (int i = 0; i < SceneComponents.Num(); i++) {
+		USceneComponent* Check = SceneComponents[i];
+
+		FString Name = Check->GetName();
+		if (Name.Equals("AimRoot")) this->AimRootComponent = Check;
+	}
+
 	this->StandardCameraArmLength = this->CameraArmComponent->TargetArmLength;
 	this->StandardCameraArmZOffset = this->CameraArmComponent->TargetOffset.Z;
 	this->StandardCameraPitch = this->CameraComponent->GetRelativeRotation().Pitch;
@@ -263,7 +272,7 @@ void APlayerUnit::Tick(float DeltaTime) {
 			}
 			else {
 				FRotator LookRotation = UKismetMathLibrary::FindLookAtRotation(
-					this->GetActorLocation() + FVector(0.0f, 0.0f, 30.0f),
+					this->AimRootComponent->GetComponentLocation(),
 					MouseHit.ImpactPoint
 				);
 				this->UnitUpdateTorsoPitch(LookRotation.Pitch);

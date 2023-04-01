@@ -1,3 +1,5 @@
+// Copyright: R. Saxifrage, 2023. All rights reserved.
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -39,6 +41,7 @@ private:
 	UCameraComponent* CameraComponent;
 	USpringArmComponent* CameraArmComponent;
 	UStaticMeshComponent* AimIndicatorComponent;
+	USceneComponent* AimRootComponent;
 
 	// State.
 	FVector2D MovementInput;

@@ -1,9 +1,7 @@
 #include "AIUnit.h"
 
-#include "Kismet/GameplayStatics.h"
-
 #include "TransientDebug.h"
-#include "AINavManager.h"
+#include "AIManager.h"
 #include "AIActions/AttackAction.h"
 #include "AIActions/PatrolAction.h"
 
@@ -36,8 +34,8 @@ void AAIUnit::EndPlay(EEndPlayReason::Type Reason) {
         this->Group->Members.Remove(this);
     }
 
-    AAINavManager* NavManager = Cast<AAINavManager>(UGameplayStatics::GetActorOfClass(this->GetWorld(), AAINavManager::StaticClass()));
-    NavManager->NavUnclaimAllNodes(this);
+    AAIManager* Manager = AAIManager::AIGetManagerInstance(this->GetWorld());
+    Manager->AIUnclaimAllNavNodes(this);
     
     Super::EndPlay(Reason);
 }
@@ -147,8 +145,9 @@ void AAIUnit::UnitReload() {
 
 void AAIUnit::UnitTakeDamage(FDamageProfile Profile, AActor* Source) {
     if (Source != nullptr) {
+        AAIManager* Manager = AAIManager::AIGetManagerInstance(this->GetWorld());
         AUnitPawn* AsUnit = Cast<AUnitPawn>(Source);
-        if (AsUnit != nullptr && AsUnit->FactionID != this->FactionID) {
+        if (AsUnit != nullptr && Manager->AIIsFactionEnemy(AsUnit->FactionID, this->FactionID)) {
             this->PendingAgroTarget = Source;
         }
     }
@@ -158,6 +157,8 @@ void AAIUnit::UnitTakeDamage(FDamageProfile Profile, AActor* Source) {
 
 AActor* AAIUnit::AICheckDetection() {
     FVector HeadLocation = this->DetectionSourceComponent->GetComponentLocation();
+
+    AAIManager* Manager = AAIManager::AIGetManagerInstance(this->GetWorld());
     
     for (int i = 0; i < 5; i++) {
         FRotator CastRotation = this->GetActorRotation();
@@ -192,7 +193,7 @@ AActor* AAIUnit::AICheckDetection() {
         if (AnyHitActor == nullptr) continue;
 
         AUnitPawn* AsPawn = Cast<AUnitPawn>(AnyHitActor);
-        if (AsPawn != nullptr && AsPawn->FactionID != this->FactionID) {
+        if (AsPawn != nullptr && Manager->AIIsFactionEnemy(AsPawn->FactionID, this->FactionID)) {
             return AsPawn;
         }
     }

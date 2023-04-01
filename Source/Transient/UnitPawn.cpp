@@ -50,6 +50,9 @@ void AUnitPawn::BeginPlay() {
 	// Initialize inventory.
     this->OverrideArmsState = true;
 
+	if (this->ActiveItem != nullptr) this->UnitTakeItem(this->ActiveItem);
+	if (this->ArmorItem != nullptr) this->UnitTakeItem(this->ArmorItem);
+
     for (int i = 0; i < this->AutoSpawnInitialItems.Num(); i++) {
         AItemActor* Spawned = this->GetWorld()->SpawnActor<AItemActor>(
             this->AutoSpawnInitialItems[i],
@@ -61,9 +64,6 @@ void AUnitPawn::BeginPlay() {
 
         this->UnitTakeItem(Spawned);
     }
-
-	if (this->ActiveItem != nullptr) this->UnitTakeItem(this->ActiveItem);
-	if (this->ArmorItem != nullptr) this->UnitTakeItem(this->ArmorItem);
 
 	this->OverrideArmsState = false;
 }
@@ -697,7 +697,7 @@ void AUnitPawn::UnitSetCrouched(bool NewCrouch) {
 void AUnitPawn::UnitJump() {
 	if (this->JumpTimer > 0.0f || this->Crouching || this->Immobilized) return;
 
-	if (!this->UnitDrainEnergy(5.0f)) return;
+	if (!this->UnitDrainStamina(5.0f)) return;
 
 	// TODO: Kinda busted in slo-mo.
 	this->ColliderComponent->AddImpulse(FVector(0.0f, 0.0f, this->JumpStrength), FName("None"), true);
@@ -746,6 +746,8 @@ void AUnitPawn::UnitReload() {
 		),
 		FName("None")
 	);
+	SelectedMag->SetActorRelativeRotation(SelectedMag->EquippedRotation);
+	SelectedMag->SetActorRelativeLocation(SelectedMag->EquippedOffset);
 	Weapon->WeaponSwapMagazines(nullptr);
 	
 	FAnimationConfig Config = Weapon->ReloadAnimation;

@@ -1,3 +1,5 @@
+// Copyright: R. Saxifrage, 2023. All rights reserved.
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -17,8 +19,14 @@ public:
 	UPROPERTY(EditAnywhere, Category="Magazine")
 	int Ammo;
 	UPROPERTY(EditAnywhere, Category="Magazine")
+	int Capacity;
+	UPROPERTY(EditAnywhere, Category="Magazine")
 	int AmmoTypeID;
+
+	UPROPERTY(EditDefaultsOnly, Category="Magazine")
+	TArray<UStaticMesh*> StateVariants;
 
 public:
 	AMagazineItem();
+	virtual void Tick(float DeltaTime) override;
 };
