@@ -3,14 +3,10 @@
 #include "Components/SphereComponent.h"
 
 #include "TransientDebug.h"
-#include "EquippedMeshConfig.h"
 #include "ItemHolder.h"
 
 UUnitSlotComponent::UUnitSlotComponent() {
 	PrimaryComponentTick.bCanEverTick = true;
-
-	this->SetSimulatePhysics(false);
-	this->SetCollisionProfileName(FName("NoCollision"), true);
 }
 
 void UUnitSlotComponent::BeginPlay() {
@@ -48,18 +44,22 @@ void UUnitSlotComponent::SlotSetContent(AItemActor* NewContent) {
 
 	if (this->Content == nullptr) {
 		this->InventoryLookCollider->SetSphereRadius(0.0f);
-		this->SetStaticMesh(nullptr);
 	}
 	else {
-		FEquippedMeshConfig Config = this->Content->EquippedMesh;
-		this->SetStaticMesh(Config.Mesh);
-		this->SetRelativeScale3D(Config.Scale);
-		if (Config.Scale.X > 0.1f) {
-			this->InventoryLookCollider->SetSphereRadius(this->InventoryViewColliderRadius * (1.0f / Config.Scale.X));
-		}
-		else {
-			this->InventoryLookCollider->SetSphereRadius(0.0f);
-		}
-		this->SetRelativeRotation(Config.AltRotation);
+		this->Content->AttachToComponent(
+			this,
+			FAttachmentTransformRules(
+				EAttachmentRule::SnapToTarget,
+				EAttachmentRule::SnapToTarget,
+				EAttachmentRule::KeepWorld,
+				true
+			),
+			FName("None")
+		);
+
+		this->Content->SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
+		this->Content->SetActorRelativeLocation(this->Content->InSlotOffset);
+		this->Content->SetActorRelativeRotation(this->Content->InSlotRotation);
+		this->InventoryLookCollider->SetSphereRadius(this->InventoryViewColliderRadius * this->Content->SlotColliderModifier);
 	}
 }

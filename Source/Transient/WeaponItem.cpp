@@ -1,6 +1,7 @@
 #include "WeaponItem.h"
 
 #include "ProjectileActor.h"
+#include "MagazineItem.h"
 
 #include "Components/BoxComponent.h"
 
@@ -12,7 +13,17 @@ AWeaponItem::AWeaponItem() {
 }
 
 void AWeaponItem::BeginPlay() {
-	Super::BeginPlay();	
+	Super::BeginPlay();
+	
+	TArray<USceneComponent*> SceneComponents;
+	this->GetComponents(SceneComponents, true);
+	for (int i = 0; i < SceneComponents.Num(); i++) {
+		USceneComponent* Check = SceneComponents[i];
+
+		FString Name = Check->GetName();
+		if (Name.Equals("MuzzlePosition")) this->MuzzlePosition = Check;
+		else if (Name.Equals("ActiveMagazineHost")) this->ActiveMagazineHost = Check;
+	}
 }
 
 void AWeaponItem::Tick(float DeltaTime) {
@@ -27,13 +38,46 @@ void AWeaponItem::WeaponSetTriggerPulled(bool NewTriggerPulled) {
 	this->TriggerPulled = NewTriggerPulled;
 }
 
-FVector AWeaponItem::WeaponGetRelativeMuzzleAsEquipped() {
-	if (this->CurrentHolder == nullptr) return FVector(); // Invalid call.
+FVector AWeaponItem::WeaponGetMuzzlePosition() {
+	return this->MuzzlePosition->GetComponentLocation();
+}
 
-	FVector LocalMuzzle = this->CurrentHolder->ItemHolderGetWeaponOffset() + this->MuzzleLocation;
-	return this->CurrentHolder->ItemHolderGetRotation().RotateVector(LocalMuzzle);
+FRotator AWeaponItem::WeaponGetMuzzleRotation() {
+	return this->MuzzlePosition->GetComponentRotation();
+}
+
+void AWeaponItem::WeaponSwapMagazines(AMagazineItem* NewMagazine) {
+	this->WeaponDisposeCurrentMagazine();
+
+	this->ActiveMagazine = NewMagazine;
+	if (this->ActiveMagazine == nullptr) return;
+
+	this->CurrentHolder->ItemHolderPlaySound(this->ReloadSound);
+
+	this->ActiveMagazine->AttachToComponent(
+		this->ActiveMagazineHost,
+		FAttachmentTransformRules(
+			EAttachmentRule::SnapToTarget,
+			EAttachmentRule::SnapToTarget,
+			EAttachmentRule::KeepWorld,
+			true
+		),
+		FName("None")
+	);
+}
+
+void AWeaponItem::WeaponDisposeCurrentMagazine() {
+	if (this->ActiveMagazine == nullptr) return;
+
+	if (this->ActiveMagazine->Ammo > 0) {
+		this->ActiveMagazine->DetachFromActor(FDetachmentTransformRules(EDetachmentRule::KeepWorld, false));
+		this->ActiveMagazine->ItemDrop(this->CurrentHolder);
+	}
+	else {
+		this->ActiveMagazine->Destroy();
+	}
+	this->ActiveMagazine = nullptr;
 }
 
 // Stubs.
-void AWeaponItem::WeaponSwapMagazines(int NewAmmoCount) { return; }
 bool AWeaponItem::WeaponEmpty() { return false; }

@@ -6,7 +6,6 @@
 
 #include "ItemHolder.h"
 #include "UnitAnimInstance.h"
-#include "EquippedMeshConfig.h"
 
 #include "ItemActor.generated.h"
 
@@ -26,8 +25,16 @@ class TRANSIENT_API AItemActor : public AActor {
 	GENERATED_BODY()
 	
 public:
-	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
-	FEquippedMeshConfig EquippedMesh; // TODO: Rename to InventoryMesh.
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
+	FRotator EquippedRotation;
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
+	FVector EquippedOffset;
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
+	FRotator InSlotRotation;
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
+	FVector InSlotOffset;
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
+	float SlotColliderModifier = 1.0f;
 	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	EItemInventoryType InventoryType;
 	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
@@ -39,11 +46,6 @@ public:
 
 	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
 	FString ItemName;
-	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
-	bool UsesEquipMesh = true;
-	
-	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
-	FVector DirectAttachOffset;
 
 	UPROPERTY(EditDefaultsOnly, Category="Item")
 	UStaticMeshComponent* VisibleComponent;

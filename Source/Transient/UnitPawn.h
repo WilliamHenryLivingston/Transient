@@ -66,7 +66,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
 	float CrouchVerticalTranslate = 10.0f;
 
-
 	// Inventory.
 	UPROPERTY(EditAnywhere, Category="Unit Inventory")
 	TArray<TSubclassOf<AItemActor>> AutoSpawnInitialItems;
@@ -77,10 +76,9 @@ private:
 	TArray<UUnitSlotComponent*> Slots;
 
 	// Internal child components.
-	USceneComponent* WeaponOffsetComponent;
 	USkeletalMeshComponent* RigComponent;
-	UStaticMeshComponent* ActiveItemHostComponent;
-	UStaticMeshComponent* ActiveItemAltHostComponent;
+	USceneComponent* ActiveItemHostComponent;
+	USceneComponent* ActiveItemAltHostComponent;
 
 	// Per-tick pending updates from child classes.
 	// Movement.
@@ -93,6 +91,7 @@ private:
 	
 	// Deferred action states.
 	AUsableItem* CurrentUseItem;
+	AMagazineItem* LoadingMagazine;
 	AActor* CurrentUseItemTarget;
 
 	// Rig state.
@@ -101,6 +100,7 @@ private:
 
 	EUnitAnimArmsModifier ArmsAnimation;
 	float ArmsAnimationTimer;
+	float ArmsAnimationCooldownTimer;
 	void (AUnitPawn::*ArmsAnimationThen)();
 	
 	bool Crouching;
@@ -115,8 +115,9 @@ private:
 	// Other state.
 	float StaminaRegenTimer;
 
+	bool ReloadingMoveLock;
+
 	bool Immobilized;
-	bool ReloadingLock;
 
 protected:
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
@@ -126,6 +127,8 @@ protected:
 
 	bool ForceArmsEmptyAnimation; // TODO: Better solution (inventory view).
 	bool CheckingStatus; // TODO
+
+	float AnimationScale;
 
 	// Child components available to child classes.
 	UShapeComponent* ColliderComponent;
@@ -151,17 +154,17 @@ protected:
 public:
 	virtual FVector ItemHolderGetLocation() override;
 	virtual FRotator ItemHolderGetRotation() override;
-	virtual FVector ItemHolderGetWeaponOffset() override;
 	virtual void ItemHolderPlaySound(USoundBase* Sound) override;
 	virtual float ItemHolderGetSpreadModifier() override;
 
 // Internals.
 private:
 	void UnitDequipActiveItem();
-	void UnitUpdateHostMesh(UStaticMeshComponent* Host, FEquippedMeshConfig* Config);
+	void UnitRawSetActiveItem(AItemActor* Item);
 
 	void UnitFinishUse();
-	void UnitPostReload();
+	void ThenPostReload();
+	void ThenMidReload();
 
 // Exposures.
 protected:

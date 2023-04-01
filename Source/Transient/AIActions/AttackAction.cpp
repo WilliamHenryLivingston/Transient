@@ -64,7 +64,7 @@ FAIParentActionTickResult CAttackAction::AIParentActionTick(AActor* RawOwner, fl
         Owner->UnitFaceTowards(TargetLocation);
         Owner->UnitUpdateTorsoPitch(UKismetMathLibrary::FindLookAtRotation(OwnerHeadLocation, TargetLocation).Pitch);
 
-        FVector WeaponMuzzle = Owner->GetActorLocation() + Owner->UnitGetActiveWeapon()->WeaponGetRelativeMuzzleAsEquipped();
+        FVector WeaponMuzzle = Owner->UnitGetActiveWeapon()->WeaponGetMuzzlePosition();
 
         FHitResult FireCheckHit;
         Owner->GetWorld()->LineTraceSingleByChannel(

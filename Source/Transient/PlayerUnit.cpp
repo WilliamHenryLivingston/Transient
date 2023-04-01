@@ -95,9 +95,9 @@ void APlayerUnit::Tick(float DeltaTime) {
 
 	float RawDeltaTime = DeltaTime;
 	DeltaTime = DeltaTime * (1.0f / this->CurrentForcedDilation);
-	this->Animation->Script_TimeDilation = this->CurrentForcedDilation;
 
 	Super::Tick(DeltaTime);
+	this->AnimationScale = this->CurrentForcedDilation;
 
 	FRotator CameraRotation = this->CameraComponent->GetRelativeRotation();
 
@@ -263,7 +263,7 @@ void APlayerUnit::Tick(float DeltaTime) {
 			}
 			else {
 				FRotator LookRotation = UKismetMathLibrary::FindLookAtRotation(
-					this->GetActorLocation() + this->ItemHolderGetWeaponOffset(),
+					this->GetActorLocation(),
 					MouseHit.ImpactPoint
 				);
 				this->UnitUpdateTorsoPitch(LookRotation.Pitch);

@@ -43,4 +43,3 @@ IMPROVEMENTS:
 * crouched state -> shorter and thinner collider (crouch behind 2 crates without getting hit)
 * sliding
 * crossbow doesn't agro when you kill and enemy but a loud gun does
-* fuck equipped mesh!

@@ -6,6 +6,7 @@
 #include "ProjectileActor.h"
 #include "ItemActor.h"
 #include "UnitAnimInstance.h"
+#include "MagazineItem.h"
 
 #include "WeaponItem.generated.h"
 
@@ -20,15 +21,22 @@ public:
 	int AmmoTypeID;
 	UPROPERTY(EditAnywhere, Category="Base Weapon")
 	bool ImmobilizeOnReload;
+	UPROPERTY(EditAnywhere, Category="Base Weapon")
+	float ReloadMagazineAttachTime = 0.5f;
+
+	UPROPERTY(EditAnywhere, Category="Item SFX")
+	USoundBase* ReloadSound;
 
 	UPROPERTY(EditAnywhere, Category="AI Handling")
 	float AIEngageDistance = 500.0f;
 
 protected:
-	UPROPERTY(EditAnywhere, Category="Base Weapon")
-	FVector MuzzleLocation;
-
 	bool TriggerPulled;
+
+	AMagazineItem* ActiveMagazine;
+
+	USceneComponent* MuzzlePosition;
+	USceneComponent* ActiveMagazineHost;
 
 public:
 	AWeaponItem();
@@ -40,7 +48,9 @@ protected:
 public:
 	void WeaponSetTriggerPulled(bool NewTriggerPulled);
 	bool WeaponGetTriggerPulled();
-	FVector WeaponGetRelativeMuzzleAsEquipped();
-	virtual void WeaponSwapMagazines(int NewAmmoCount);
+	void WeaponDisposeCurrentMagazine();
+	FVector WeaponGetMuzzlePosition();
+	FRotator WeaponGetMuzzleRotation();
+	void WeaponSwapMagazines(AMagazineItem* NewMagazine);
 	virtual bool WeaponEmpty();
 };

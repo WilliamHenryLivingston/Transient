@@ -29,7 +29,6 @@ void AItemActor::Tick(float DeltaTime) {
 void AItemActor::ItemTake(IItemHolder* Target) {
 	this->CurrentHolder = Target;
 
-	if (this->UsesEquipMesh) this->SetActorHiddenInGame(true);
 	this->ColliderComponent->SetSimulatePhysics(false);
 	this->ColliderComponent->SetCollisionProfileName(FName("NoCollision"), true);
 }
@@ -47,7 +46,8 @@ void AItemActor::ItemDrop(IItemHolder* Target) {
 	DropRotation.Yaw = FMath::RandRange(0.0f, 360.0f);
 	this->SetActorRotation(DropRotation);
 
-	if (this->UsesEquipMesh) this->SetActorHiddenInGame(false);
+	this->SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
+
 	this->ColliderComponent->SetCollisionProfileName(FName("Item"), true);
 	this->ColliderComponent->SetSimulatePhysics(true);
 }

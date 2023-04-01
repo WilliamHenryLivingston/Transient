@@ -13,8 +13,8 @@ void AProjectileWeapon::Tick(float DeltaTime) {
         this->TriggerPulled = false;
     }
 
-    if (this->TriggerPulled && this->CurrentMagazineAmmo > 0) {
-        FVector WorldMuzzle = this->WeaponGetRelativeMuzzleAsEquipped();
+    if (this->TriggerPulled && this->ActiveMagazine != nullptr && this->ActiveMagazine->Ammo > 0) {
+        FVector WorldMuzzle = this->WeaponGetMuzzlePosition();
 
         float AppliedSpread = this->Spread * this->CurrentHolder->ItemHolderGetSpreadModifier();
 
@@ -26,8 +26,8 @@ void AProjectileWeapon::Tick(float DeltaTime) {
         this->CurrentHolder->ItemHolderPlaySound(this->ShootSound);
 
         AProjectileActor* Projectile = this->GetWorld()->SpawnActor<AProjectileActor>(
-            this->ProjectileType,
-            this->CurrentHolder->ItemHolderGetLocation() + WorldMuzzle,
+            this->ActiveMagazine->ProjectileType,
+            WorldMuzzle,
             SpreadRotation,
             FActorSpawnParameters()
         );
@@ -36,7 +36,10 @@ void AProjectileWeapon::Tick(float DeltaTime) {
         }
 
         this->FireCooldownTimer = this->FireCooldownTime;
-        this->CurrentMagazineAmmo--;
+        this->ActiveMagazine->Ammo--;
+        if (this->ActiveMagazine->Ammo <= 0) {
+            this->ActiveMagazine->Destroy();
+        }
     }
     else if (this->TriggerPulled) {
         this->TriggerPulled = false;
@@ -45,12 +48,6 @@ void AProjectileWeapon::Tick(float DeltaTime) {
     }
 }
 
-void AProjectileWeapon::WeaponSwapMagazines(int NewAmmoCount) {
-    this->CurrentHolder->ItemHolderPlaySound(this->ReloadSound);
-
-    this->CurrentMagazineAmmo = NewAmmoCount;
-}
-
 bool AProjectileWeapon::WeaponEmpty() {
-	return this->CurrentMagazineAmmo == 0;
+	return this->ActiveMagazine == nullptr || this->ActiveMagazine->Ammo == 0;
 }

@@ -13,7 +13,6 @@ class IItemHolder {
 	GENERATED_BODY()
 
 public:
-	virtual FVector ItemHolderGetWeaponOffset();
 	virtual FVector ItemHolderGetLocation();
 	virtual FRotator ItemHolderGetRotation();
 	virtual float ItemHolderGetSpreadModifier();
