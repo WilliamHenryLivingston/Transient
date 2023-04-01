@@ -822,7 +822,18 @@ void AUnitPawn::UnitTakeDamage(FDamageProfile Profile, AActor* Source) {
 	}
 
 	this->KineticHealth -= Kinetic;
-	this->Energy -= Profile.Energy;
+	
+	float EnergyDamage = Profile.Energy;
+	if (EnergyDamage > this->Energy) {
+		EnergyDamage -= this->Energy;
+		this->Energy = 0.0f;
+		this->Stamina -= EnergyDamage;
+		if (this->Stamina < 0.0f) this->Stamina = 0.0f;
+	}
+	else {
+		this->Energy -= EnergyDamage;
+	}
+
 	if (this->KineticHealth <= 0.0f) {
 		this->UnitDie();
 	}

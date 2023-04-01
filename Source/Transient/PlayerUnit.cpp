@@ -263,7 +263,7 @@ void APlayerUnit::Tick(float DeltaTime) {
 			}
 			else {
 				FRotator LookRotation = UKismetMathLibrary::FindLookAtRotation(
-					this->GetActorLocation(),
+					this->GetActorLocation() + FVector(0.0f, 0.0f, 30.0f),
 					MouseHit.ImpactPoint
 				);
 				this->UnitUpdateTorsoPitch(LookRotation.Pitch);

@@ -58,6 +58,9 @@ private:
 	float StandardCameraPitch;
 	FVector StandardAimIndicatorScale;
 
+	float PickupInfoTimer;
+	FString PickupInfo;
+
 	bool InventoryView;
 	float InventoryViewFaceTimer;
 	bool DropInventoryFocused;

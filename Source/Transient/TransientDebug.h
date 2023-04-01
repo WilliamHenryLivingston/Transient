@@ -1,3 +1,3 @@
-#define NODEBUG_COLLIDERS false
+#define NODEBUG_COLLIDERS true
 
-#define C_LOG(S) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT(S))
+#define C_LOG(S) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, S)

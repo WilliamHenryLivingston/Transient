@@ -29,11 +29,17 @@ private:
 	float Speed = 500.0f;
 	UPROPERTY(EditAnywhere, Category="Projectile")
 	FDamageProfile DamageProfile;
+	UPROPERTY(EditAnywhere, Category="Projectile")
+	bool StickOnStaticCollide;
+	UPROPERTY(EditAnywhere, Category="Projectile")
+	UMaterial* BulletHoleDecal;
 
 	UPROPERTY(EditDefaultsOnly, Category="BP Object Common")
 	UStaticMeshComponent* VisibleComponent;
 	UPROPERTY(EditDefaultsOnly, Category="BP Object Common")
 	UBoxComponent* ColliderComponent;
+
+	int Inertness;
 
 public:	
 	AProjectileActor();
