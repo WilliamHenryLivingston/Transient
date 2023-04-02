@@ -113,6 +113,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		float InteractDelta = DeltaTime;
 		if (LowPower) InteractDelta *= 0.25f;
 
+		this->Animation->Script_ArmsInteractTarget = this->CurrentInteractActor->InteractAnimation;
 		this->CurrentInteractActor->InteractTimer += InteractDelta;
 		this->TargetTorsoPitch = UKismetMathLibrary::FindLookAtRotation(
 			this->AimRootComponent->GetComponentLocation(),
@@ -121,6 +122,9 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		this->FaceTarget = this->CurrentInteractActor->GetActorLocation();
 		this->HasFaceTarget = true;
 		this->Immobilized = true;
+	}
+	else {
+		this->Animation->Script_ArmsInteractTarget = EUnitAnimArmsInteractTarget::None;
 	}
 
 	// Update torso pitch.
@@ -144,18 +148,18 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	// Timers and animation updates.
 	// ...Arms mode.
 	if (this->ActiveItem == nullptr) {
-		this->Animation->Script_ArmsMode = EUnitAnimArmsMode::Empty;
+		this->Animation->Script_ArmsState = EUnitAnimArmsState::Empty;
 	}
 	else {
 		this->ActiveItem->SetActorScale3D(FVector(1.0f, 1.0f, 1.0f)); // TODO: What the fuck?
 
 		if (this->Immobilized) {
-			this->Animation->Script_ArmsMode = EUnitAnimArmsMode::Empty;
+			this->Animation->Script_ArmsState = EUnitAnimArmsState::Empty;
 		}
-		this->Animation->Script_ArmsMode = this->ActiveItem->EquippedAnimArmsMode;
+		this->Animation->Script_ArmsState = this->ActiveItem->EquippedAnimArmsMode;
 	}
 	if (this->ForceArmsEmptyAnimation) {
-		this->Animation->Script_ArmsMode = EUnitAnimArmsMode::Empty;
+		this->Animation->Script_ArmsState = EUnitAnimArmsState::Empty;
 	}
 
 	// ...Arms modifier (animation).
@@ -202,7 +206,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	bool ActiveJump = this->JumpTimer > 0.0f;
 	if (ActiveJump) this->JumpTimer -= DeltaTime;
 
-	EUnitAnimMovementState MovementState = EUnitAnimMovementState::None;
+	EUnitAnimLegsState LegsState = EUnitAnimLegsState::None;
 
 	FVector ColliderScale = this->ColliderComponent->GetRelativeScale3D();
 	ColliderScale.Z = this->BaseColliderVerticalScale;
@@ -210,7 +214,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	RigLocation.Z = this->BaseRigVerticalOffset;
 	FVector RigScale = this->BaseRigScale;
 	if (this->Crouching) {
-		MovementState = EUnitAnimMovementState::Crouch;
+		LegsState = EUnitAnimLegsState::Crouch;
 		ColliderScale.Z *= this->CrouchVerticalShrink;
 		RigLocation.Z += this->CrouchVerticalTranslate;
 		RigScale.Z *= this->BaseColliderVerticalScale / ColliderScale.Z;
@@ -239,18 +243,18 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 			(ActorForward.X * MoveDelta.Y) + (ActorForward.Y * MoveDelta.X)
 		)) + 180.0f;
 
-		if (abs(AngleDeg - 45.0f) < 90.0f && AngleDeg > 45.0f) MovementState = EUnitAnimMovementState::WalkBwd;
-		else if (abs(AngleDeg - (45.0f * 3.0f)) < 90.0f) MovementState = EUnitAnimMovementState::WalkLeft;
-		else if (abs(AngleDeg - (45.0f * 5.0f)) < 90.0f) MovementState = EUnitAnimMovementState::WalkFwd;
-		else MovementState = EUnitAnimMovementState::WalkRight;
+		if (abs(AngleDeg - 45.0f) < 90.0f && AngleDeg > 45.0f) LegsState = EUnitAnimLegsState::WalkBwd;
+		else if (abs(AngleDeg - (45.0f * 3.0f)) < 90.0f) LegsState = EUnitAnimLegsState::WalkLeft;
+		else if (abs(AngleDeg - (45.0f * 5.0f)) < 90.0f) LegsState = EUnitAnimLegsState::WalkFwd;
+		else LegsState = EUnitAnimLegsState::WalkRight;
 
 		this->SetActorLocation(CurrentLocation + MoveDelta);
 	}
 
 	// Jump animation has highest priority.
-	if (ActiveJump) MovementState = EUnitAnimMovementState::Jump;
+	if (ActiveJump) LegsState = EUnitAnimLegsState::Jump;
 
-	this->Animation->Script_MovementState = MovementState;
+	this->Animation->Script_LegsState = LegsState;
 
 	// Facing update.
 	if (this->HasFaceTarget) {
@@ -721,7 +725,7 @@ void AUnitPawn::UnitInteractWith(AActor* Target) {
 
 		FAnimationConfig Config;
 		Config.Time = this->CurrentInteractActor->InteractTime;
-		this->UnitPlayAnimationOnce(this->CurrentInteractActor->InteractAnimation, Config, &AUnitPawn::ThenFinishInteract);
+		this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Interact, Config, &AUnitPawn::ThenFinishInteract);
 	}
 	else {
 		this->UnitPlayInteractAnimation();

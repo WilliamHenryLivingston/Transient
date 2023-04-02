@@ -46,7 +46,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	bool EquipAltHand;
 	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
-	EUnitAnimArmsMode EquippedAnimArmsMode;
+	EUnitAnimArmsState EquippedAnimArmsMode;
 
 	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
 	FString ItemName;

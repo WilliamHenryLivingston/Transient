@@ -19,7 +19,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="Interactive")
 	float InteractTime;
 	UPROPERTY(EditAnywhere, Category="Interactive")
-	EUnitAnimArmsModifier InteractAnimation;
+	EUnitAnimArmsInteractTarget InteractAnimation;
 
 	// TODO: So dumb!
 	UPROPERTY(EditAnywhere, Category="Use Trigger")

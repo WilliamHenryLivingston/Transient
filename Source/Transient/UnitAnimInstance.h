@@ -17,22 +17,24 @@ public:
 };
 
 UENUM(BlueprintType)
-enum class EUnitAnimMovementState : uint8 {
+enum class EUnitAnimLegsState : uint8 {
     None,
     Crouch,
     Jump,
     WalkFwd,
     WalkLeft,
     WalkRight,
-    WalkBwd,
-    RunFwd,
-    RunLeft,
-    RunRight,
-    RunBwd
+    WalkBwd
 };
 
 UENUM(BlueprintType)
-enum class EUnitAnimArmsMode : uint8 {
+enum class EUnitAnimLegsModifier : uint8 {
+    None,
+    Sprint
+};
+
+UENUM(BlueprintType)
+enum class EUnitAnimArmsState : uint8 {
     Empty,
     Mpz,
     Xbow,
@@ -49,8 +51,13 @@ enum class EUnitAnimArmsModifier : uint8 {
     Reload,
     Use,
     Interact,
-    CheckStatus,
-    TerminalInteract // TODO: Just "interact" with separate enum for target.
+    CheckStatus
+};
+
+UENUM(BlueprintType)
+enum class EUnitAnimArmsInteractTarget : uint8 {
+    None,
+    Terminal
 };
 
 UCLASS(Transient, Blueprintable, HideCategories=AnimInstance, BlueprintType)
@@ -59,11 +66,15 @@ class UUnitAnimInstance : public UAnimInstance {
 
 public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
-    EUnitAnimMovementState Script_MovementState;
+    EUnitAnimLegsState Script_LegsState;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
-    EUnitAnimArmsMode Script_ArmsMode;
+    EUnitAnimLegsModifier Script_LegsModifier;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
+    EUnitAnimArmsState Script_ArmsState;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
     EUnitAnimArmsModifier Script_ArmsModifier;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
+    EUnitAnimArmsInteractTarget Script_ArmsInteractTarget;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
     float Script_TimeDilation;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
