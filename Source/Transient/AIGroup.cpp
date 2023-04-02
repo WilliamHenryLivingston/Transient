@@ -29,4 +29,8 @@ void AAIGroup::AIGroupDistributeAlert(AActor* Target) {
 	for (int i = 0; i < this->Members.Num(); i++) {
 		this->Members[i]->AIGroupMemberAlert(Target);
 	}
+
+	for (int i = 0; i < this->AlertChain.Num(); i++) {
+		this->AlertChain[i]->AIGroupDistributeAlert(Target);
+	}
 }

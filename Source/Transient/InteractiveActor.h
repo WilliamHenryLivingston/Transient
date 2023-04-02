@@ -5,7 +5,9 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
+#include "AIGroup.h"
 #include "UnitAnimInstance.h"
+#include "DoorActor.h"
 
 #include "InteractiveActor.generated.h"
 
@@ -18,6 +20,17 @@ public:
 	float InteractTime;
 	UPROPERTY(EditAnywhere, Category="Interactive")
 	EUnitAnimArmsModifier InteractAnimation;
+
+	// TODO: So dumb!
+	UPROPERTY(EditAnywhere, Category="Use Trigger")
+	TArray<AAIGroup*> AlertOnUse;
+	UPROPERTY(EditAnywhere, Category="Use Trigger")
+	ADoorActor* OpenOnUse;
+
+	USceneComponent* InteractLookTargetComponent;
+
+	// Updated by user. < 0 when inactive.
+	float InteractTimer = -1.0f;
 
 public:
 	AInteractiveActor();

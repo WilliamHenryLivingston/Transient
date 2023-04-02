@@ -13,4 +13,10 @@ void AKeyLock::Tick(float DeltaTime) {
 }
 
 void AKeyLock::LockSwipeInvalid() { return; }
-void AKeyLock::LockSwipeValid() { return; }
+
+void AKeyLock::LockSwipeValid() {
+	if (this->OpenOnUse != nullptr) {
+		this->OpenOnUse->DoorSetLocked(false);
+		this->OpenOnUse->DoorSetOpen(true);
+	}
+}

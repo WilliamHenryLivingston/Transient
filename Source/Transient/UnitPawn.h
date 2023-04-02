@@ -11,6 +11,7 @@
 #include "MagazineItem.h"
 #include "WeaponItem.h"
 #include "ArmorItem.h"
+#include "InteractiveActor.h"
 #include "UnitAnimInstance.h"
 #include "UnitSlotComponent.h"
 
@@ -93,6 +94,7 @@ private:
 	
 	// Deferred action states.
 	AUsableItem* CurrentUseItem;
+	AInteractiveActor* CurrentInteractActor;
 	AMagazineItem* LoadingMagazine;
 	AActor* CurrentUseItemTarget;
 
@@ -136,6 +138,7 @@ protected:
 	UShapeComponent* ColliderComponent;
 	UAudioComponent* AudioComponent;
 	UUnitAnimInstance* Animation;
+	USceneComponent* AimRootComponent;
 
 public:
 	bool OverrideArmsState; // Used to prevent validity checks and animation on arm-based actions.
@@ -164,9 +167,10 @@ private:
 	void UnitDequipActiveItem();
 	void UnitRawSetActiveItem(AItemActor* Item);
 
-	void UnitFinishUse();
+	void ThenFinishUse();
 	void ThenPostReload();
 	void ThenMidReload();
+	void ThenFinishInteract();
 
 // Exposures.
 protected:
@@ -212,6 +216,7 @@ public:
 	void UnitSetCrouched(bool NewCrouch);
 
 	void UnitUseActiveItem(AActor* Target);
+	void UnitInteractWith(AActor* Target);
 	void UnitSetTriggerPulled(bool NewTriggerPulled);
 	virtual void UnitReload();
 

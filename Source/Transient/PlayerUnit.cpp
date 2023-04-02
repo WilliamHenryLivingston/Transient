@@ -61,15 +61,6 @@ void APlayerUnit::BeginPlay() {
 		if (Name.Equals("AimIndicator")) this->AimIndicatorComponent = Check;
 	}
 
-	TArray<USceneComponent*> SceneComponents;
-	this->GetComponents(SceneComponents, true);
-	for (int i = 0; i < SceneComponents.Num(); i++) {
-		USceneComponent* Check = SceneComponents[i];
-
-		FString Name = Check->GetName();
-		if (Name.Equals("AimRoot")) this->AimRootComponent = Check;
-	}
-
 	this->StandardCameraArmLength = this->CameraArmComponent->TargetArmLength;
 	this->StandardCameraArmZOffset = this->CameraArmComponent->TargetOffset.Z;
 	this->StandardCameraPitch = this->CameraComponent->GetRelativeRotation().Pitch;
@@ -157,11 +148,11 @@ void APlayerUnit::Tick(float DeltaTime) {
 	
 	if (this->WantsDilate && this->UnitGetItemByName(TEXT("time dilator")) != nullptr && this->UnitDrainStamina(200.0f * RawDeltaTime)) {
 		this->CurrentForcedDilation = FMath::Max(0.25f, this->CurrentForcedDilation - (RawDeltaTime * 3.0f));
-		this->CameraComponent->PostProcessBlendWeight = FMath::Min(1.0f, this->CameraComponent->PostProcessBlendWeight + (RawDeltaTime * 3.0f));
+		this->CameraComponent->PostProcessSettings.SceneFringeIntensity = FMath::Min(this->SlowEffectStrength, this->CameraComponent->PostProcessSettings.SceneFringeIntensity + (RawDeltaTime * 3.0f));
 	}
 	else {
 		this->CurrentForcedDilation = FMath::Min(1.0f, this->CurrentForcedDilation + (RawDeltaTime * 3.0f));
-		this->CameraComponent->PostProcessBlendWeight = FMath::Max(0.0f, this->CameraComponent->PostProcessBlendWeight - (RawDeltaTime * 3.0f));
+		this->CameraComponent->PostProcessSettings.SceneFringeIntensity = FMath::Max(0.0f, this->CameraComponent->PostProcessSettings.SceneFringeIntensity - (RawDeltaTime * 3.0f));
 	}
 
 	FHitResult MouseHit;
@@ -347,14 +338,8 @@ void APlayerUnit::InputInteract() {
 		return;
 	}
 
-	AInteractiveActor* AimedInteractive = Cast<AInteractiveActor>(this->CurrentAimHit);
-	if (Distance > this->UseReach) AimedInteractive = nullptr;
-
-	if (AimedInteractive != nullptr) {
-		if (this->UnitAreArmsOccupied()) return;
-
-		this->UnitPlayInteractAnimation();
-		AimedInteractive->InteractiveUse(this);
+	if (this->CurrentAimHit->IsA(AInteractiveActor::StaticClass())) {
+		this->UnitInteractWith(this->CurrentAimHit);
 		return;
 	}
 }

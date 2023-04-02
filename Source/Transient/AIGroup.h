@@ -29,6 +29,8 @@ class TRANSIENT_API AAIGroup : public ADebugViewActor {
 public:
 	UPROPERTY(EditAnywhere, Category="Group")
 	TArray<AActor*> InitialMembers;
+	UPROPERTY(EditAnywhere, Category="Group")
+	TArray<AAIGroup*> AlertChain;
 
 	TArray<IAIGroupMember*> Members;
 

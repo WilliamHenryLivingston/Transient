@@ -3,6 +3,7 @@
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
 
+#include "../TransientDebug.h"
 #include "../AIManager.h"
 #include "../AIUnit.h"
 
@@ -21,6 +22,7 @@ FAIActionTickResult CMoveToPointAction::AIActionTick(AActor* RawOwner, float Del
     if (this->Target == nullptr || !IsValid(this->Target)) return this->Finished;
 
     AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
+    Owner->UnitUpdateTorsoPitch(0.0f);
 
     if (!this->Planned) {
         this->PlanMove(Owner);
@@ -29,7 +31,11 @@ FAIActionTickResult CMoveToPointAction::AIActionTick(AActor* RawOwner, float Del
     
     Owner->UnitSetCrouched(false);
 
-    if (this->Steps.Num() == 0) return this->Finished;
+    if (this->Steps.Num() == 0) {
+        C_LOG(TEXT("pathfind fail:"));
+        C_LOG(Owner->GetName());
+        return this->Finished;
+    }
 
     FVector TargetLocation = this->Steps[0];
 

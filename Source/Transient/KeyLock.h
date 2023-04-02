@@ -3,8 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
 #include "GameFramework/Actor.h"
+
+#include "DoorActor.h"
 
 #include "KeyLock.generated.h"
 
@@ -15,6 +16,10 @@ class TRANSIENT_API AKeyLock : public AActor {
 public:
 	UPROPERTY(EditAnywhere, Category="Keycard")
 	int LockID;
+
+	// TODO: Stupid. Trigger system.
+	UPROPERTY(EditAnywhere, Category="Use Trigger")
+	ADoorActor* OpenOnUse;
 
 public:	
 	AKeyLock();

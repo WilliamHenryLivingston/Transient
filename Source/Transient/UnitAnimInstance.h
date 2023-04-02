@@ -49,7 +49,8 @@ enum class EUnitAnimArmsModifier : uint8 {
     Reload,
     Use,
     Interact,
-    CheckStatus
+    CheckStatus,
+    TerminalInteract // TODO: Just "interact" with separate enum for target.
 };
 
 UCLASS(Transient, Blueprintable, HideCategories=AnimInstance, BlueprintType)

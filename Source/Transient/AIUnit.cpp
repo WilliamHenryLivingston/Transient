@@ -20,9 +20,9 @@ void AAIUnit::BeginPlay() {
     this->ActionExecutorStack = TArray<IAIActionExecutor*>();
     this->ActionExecutorStack.Push(new CPatrolAction(&this->Patrol));
 
-    this->OverrideArmsState = false;
-    this->UnitReload();
     this->OverrideArmsState = true;
+    this->UnitReload();
+    this->OverrideArmsState = false;
 }
 
 void AAIUnit::EndPlay(EEndPlayReason::Type Reason) {

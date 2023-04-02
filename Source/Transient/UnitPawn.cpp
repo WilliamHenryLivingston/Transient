@@ -38,6 +38,7 @@ void AUnitPawn::BeginPlay() {
 		FString Name = Check->GetName();
 		if (Name.Equals("ActiveItemHost")) this->ActiveItemHostComponent = Check;
 		else if (Name.Equals("ActiveItemAltHost")) this->ActiveItemAltHostComponent = Check;
+		else if (Name.Equals("AimRoot")) this->AimRootComponent = Check;
 	}
 
 	this->ColliderComponent->SetHiddenInGame(NODEBUG_COLLIDERS);
@@ -106,6 +107,20 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	bool LowPower = this->Stamina <= 1.0f && this->Energy <= 1.0f;
 	if (LowPower) {
 		this->AnimationScale *= 4.0f;
+	}
+	
+	if (this->CurrentInteractActor != nullptr) {
+		float InteractDelta = DeltaTime;
+		if (LowPower) InteractDelta *= 0.25f;
+
+		this->CurrentInteractActor->InteractTimer += InteractDelta;
+		this->TargetTorsoPitch = UKismetMathLibrary::FindLookAtRotation(
+			this->AimRootComponent->GetComponentLocation(),
+			this->CurrentInteractActor->InteractLookTargetComponent->GetComponentLocation()
+		).Pitch;
+		this->FaceTarget = this->CurrentInteractActor->GetActorLocation();
+		this->HasFaceTarget = true;
+		this->Immobilized = true;
 	}
 
 	// Update torso pitch.
@@ -276,9 +291,37 @@ float AUnitPawn::ItemHolderGetSpreadModifier() {
 	return this->Crouching ? 0.5f : 1.0f;
 }
 
-// Internals.
-void AUnitPawn::UnitFinishUse() {
+// Callbacks.
+void AUnitPawn::ThenFinishInteract() {
+	this->CurrentInteractActor->InteractiveUse(this);
+	this->CurrentInteractActor->InteractTimer = -1.0f;
+	this->CurrentInteractActor = nullptr;
+}
+
+void AUnitPawn::ThenFinishUse() {
 	this->CurrentUseItem->ItemUse(this->CurrentUseItemTarget);
+	this->CurrentUseItem = nullptr;
+	this->CurrentUseItemTarget = nullptr;
+}
+
+void AUnitPawn::ThenMidReload() {
+	// TODO: Safety.
+	AWeaponItem* Weapon = this->UnitGetActiveWeapon();
+	if (Weapon == nullptr) {
+		this->ReloadingMoveLock = false;
+		return;
+	}
+
+	Weapon->WeaponSwapMagazines(this->LoadingMagazine);
+	this->LoadingMagazine = nullptr;
+
+	FAnimationConfig Config = Weapon->ReloadAnimation;
+	Config.Time *= (1.0f - Weapon->ReloadMagazineAttachTime);
+	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Reload, Config, &AUnitPawn::ThenPostReload);
+}
+
+void AUnitPawn::ThenPostReload() {
+	this->ReloadingMoveLock = false;
 }
 
 // Getters.
@@ -635,6 +678,31 @@ void AUnitPawn::UnitPlayInteractAnimation() {
 }
 
 // Actions.
+void AUnitPawn::UnitInteractWith(AActor* Target) {
+	float Distance = (Target->GetActorLocation() - this->GetActorLocation()).Size();
+	if (Distance > this->UseReach) return;
+	
+	AInteractiveActor* AsInteractive = Cast<AInteractiveActor>(Target);
+	if (AsInteractive == nullptr) return;
+
+	if (this->UnitAreArmsOccupied()) return;
+
+	if (AsInteractive->InteractTime > 0.0f) {
+		this->CurrentInteractActor = AsInteractive;
+		this->CurrentInteractActor->InteractTimer = 0.0f;
+
+		this->UnitDequipActiveItem();
+
+		FAnimationConfig Config;
+		Config.Time = this->CurrentInteractActor->InteractTime;
+		this->UnitPlayAnimationOnce(this->CurrentInteractActor->InteractAnimation, Config, &AUnitPawn::ThenFinishInteract);
+	}
+	else {
+		this->UnitPlayInteractAnimation();
+		AsInteractive->InteractiveUse(this);
+	}
+}
+
 void AUnitPawn::UnitSetCheckingStatus(bool NewChecking) {
 	if (NewChecking) {
 		if (this->UnitAreArmsOccupied()) return;
@@ -662,7 +730,7 @@ void AUnitPawn::UnitUseActiveItem(AActor* Target) {
 
 	this->CurrentUseItem = AsUsable;
 	this->CurrentUseItemTarget = Target;
-	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Use, AsUsable->UseAnimation, &AUnitPawn::UnitFinishUse);
+	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Use, AsUsable->UseAnimation, &AUnitPawn::ThenFinishUse);
 }
 
 void AUnitPawn::UnitImmobilize(bool Which) {
@@ -733,8 +801,10 @@ void AUnitPawn::UnitReload() {
 
 	SelectedSlot->SlotSetContent(nullptr);
 
-	this->ReloadingMoveLock = Weapon->ImmobilizeOnReload;
-	this->LoadingMagazine = SelectedMag;
+	if (!this->OverrideArmsState) {
+		this->ReloadingMoveLock = Weapon->ImmobilizeOnReload;
+		this->LoadingMagazine = SelectedMag;
+	}
 	
 	SelectedMag->AttachToComponent(
 		this->ActiveItemAltHostComponent,
@@ -753,23 +823,6 @@ void AUnitPawn::UnitReload() {
 	FAnimationConfig Config = Weapon->ReloadAnimation;
 	Config.Time *= Weapon->ReloadMagazineAttachTime;
 	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Reload, Config, &AUnitPawn::ThenMidReload);
-}
-
-void AUnitPawn::ThenMidReload() {
-	// TODO: Safety.
-	AWeaponItem* Weapon = this->UnitGetActiveWeapon();
-	if (Weapon == nullptr) return;
-
-	Weapon->WeaponSwapMagazines(this->LoadingMagazine);
-	this->LoadingMagazine = nullptr;
-
-	FAnimationConfig Config = Weapon->ReloadAnimation;
-	Config.Time *= (1.0f - Weapon->ReloadMagazineAttachTime);
-	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Reload, Config, &AUnitPawn::ThenPostReload);
-}
-
-void AUnitPawn::ThenPostReload() {
-	this->ReloadingMoveLock = false;
 }
 
 void AUnitPawn::UnitSetTriggerPulled(bool NewTriggerPulled) {

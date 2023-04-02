@@ -25,6 +25,8 @@ void ALootableInteractive::Tick(float DeltaTime) {
 }
 
 void ALootableInteractive::InteractiveUse(AActor* User) {
+	Super::InteractiveUse(User);
+
 	if (this->Animation->Script_State == ELootableAnimState::Closed) {
 		this->Animation->Script_State = ELootableAnimState::Open;
 		this->ClosedStateColliderComponent->SetCollisionProfileName(FName("NoCollision"));

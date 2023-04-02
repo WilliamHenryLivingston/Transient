@@ -28,7 +28,22 @@ FAIActionTickResult CPatrolStepAction::AIActionTick(AActor* RawOwner, float Delt
         if (this->Step.EquipItem) {
             AItemActor* TargetItem = Owner->UnitGetActiveItem();
             if (TargetItem == nullptr || !TargetItem->IsA(this->Step.EquipItemType)) {
-                return FAIActionTickResult(false, new CEquipItemAction(Owner->UnitGetItemByClass(this->Step.EquipItemType)));
+                if (this->Step.EquipItemType != nullptr) {
+                    TargetItem = Owner->UnitGetItemByClass(this->Step.EquipItemType);
+                    if (TargetItem == nullptr) {
+                        TargetItem = Owner->GetWorld()->SpawnActor<AItemActor>(
+                            this->Step.EquipItemType,
+                            Owner->GetActorLocation(),
+                            Owner->GetActorRotation(),
+                            FActorSpawnParameters()
+                        );
+                        Owner->OverrideArmsState = true;
+                        Owner->UnitTakeItem(TargetItem);
+                        Owner->OverrideArmsState = false;
+                    }
+                }
+
+                return FAIActionTickResult(false, new CEquipItemAction(TargetItem));
             }
         }
 

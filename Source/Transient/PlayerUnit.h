@@ -36,12 +36,13 @@ private:
 	float AimSpeed = 500.0f;
 	UPROPERTY(EditAnywhere, Category="Player Camera")
 	float AimMaxDistance = 500.0f;
+	UPROPERTY(EditAnywhere, Category="Player Camera")
+	float SlowEffectStrength = 50.0f;
 
 	// Child components.
 	UCameraComponent* CameraComponent;
 	USpringArmComponent* CameraArmComponent;
 	UStaticMeshComponent* AimIndicatorComponent;
-	USceneComponent* AimRootComponent;
 
 	// State.
 	FVector2D MovementInput;
