@@ -358,30 +358,16 @@ void AUnitPawn::UnitRawSetActiveItem(AItemActor* Item) {
 
 	if (this->ActiveItem == nullptr) return;
 
-	if (this->ActiveItem->EquipAltHand) {
-		this->ActiveItem->AttachToComponent(
-			this->ActiveItemAltHostComponent,
-			FAttachmentTransformRules(
-				EAttachmentRule::SnapToTarget,
-				EAttachmentRule::SnapToTarget,
-				EAttachmentRule::KeepWorld,
-				true
-			),
-			FName("None")
-		);
-	}
-	else {
-		this->ActiveItem->AttachToComponent(
-			this->ActiveItemHostComponent,
-			FAttachmentTransformRules(
-				EAttachmentRule::SnapToTarget,
-				EAttachmentRule::SnapToTarget,
-				EAttachmentRule::KeepWorld,
-				true
-			),
-			FName("None")
-		);
-	}
+	this->ActiveItem->AttachToComponent(
+		this->ActiveItem->EquipAltHand ? this->ActiveItemAltHostComponent : this->ActiveItemHostComponent,
+		FAttachmentTransformRules(
+			EAttachmentRule::SnapToTarget,
+			EAttachmentRule::SnapToTarget,
+			EAttachmentRule::KeepWorld,
+			true
+		),
+		FName("None")
+	);
 
 	this->ActiveItem->SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
 	this->ActiveItem->SetActorRelativeLocation(this->ActiveItem->EquippedOffset);
@@ -392,16 +378,7 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 	if (TargetItem == nullptr) return;
 	if (this->UnitAreArmsOccupied()) return;
 
-	if (TargetItem->Equippable) {
-		this->UnitPlayInteractAnimation();
-
-		this->UnitDequipActiveItem();
-
-		TargetItem->ItemTake(this);
-		this->UnitRawSetActiveItem(TargetItem);
-		return;
-	}
-
+	// If armor; equip.
 	AArmorItem* AsArmor = Cast<AArmorItem>(TargetItem);
 	if (AsArmor != nullptr) {
 		this->UnitPlayInteractAnimation();
@@ -426,36 +403,69 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 		return;
 	}
 
-	TArray<UUnitSlotComponent*> PlaceableSlots = this->UnitGetEmptySlotsAllowing(TargetItem->InventoryType);
-	if (PlaceableSlots.Num() == 0) {
-		PlaceableSlots = this->UnitGetSlotsAllowing(TargetItem->InventoryType);
+	// If equippable and active item has available slot; move current and equip.
+	if (TargetItem->Equippable) {
+		bool ActiveCleared = this->ActiveItem == nullptr;
+		
+		if (!ActiveCleared) {
+			UUnitSlotComponent* PreviousActiveAvailSlot = this->UnitGetEmptySlotAllowing(this->ActiveItem->InventoryType);
+			if (PreviousActiveAvailSlot != nullptr) {
+				PreviousActiveAvailSlot->SlotSetContent(this->ActiveItem);
+				this->UnitDiscoverDynamicChildComponents();
+				this->UnitRawSetActiveItem(nullptr);
+				ActiveCleared = true;
+			}
+		}
+
+		if (ActiveCleared) {
+			this->UnitPlayInteractAnimation();
+
+			TargetItem->ItemTake(this);
+			this->UnitRawSetActiveItem(TargetItem);
+			return;
+		}
 	}
 
-	if (PlaceableSlots.Num() == 0) return;
+	// If empty slot exists; put there.
+	UUnitSlotComponent* AvailSlot = this->UnitGetEmptySlotAllowing(TargetItem->InventoryType);
+	if (AvailSlot != nullptr) {
+		this->UnitPlayInteractAnimation();
 
-	this->UnitPlayInteractAnimation();
-
-	AItemActor* PreviousItem = PlaceableSlots[0]->SlotGetContent();
-	if (PreviousItem != nullptr) {
-		PreviousItem->ItemDrop(this);
-		PlaceableSlots[0]->SlotSetContent(nullptr);
+		TargetItem->ItemTake(this);
+		AvailSlot->SlotSetContent(TargetItem);
+		
+		this->UnitDiscoverDynamicChildComponents();
+		return;
 	}
 
-	TargetItem->ItemTake(this);
-	TargetItem->AttachToComponent(
-		this->RigComponent,
-		FAttachmentTransformRules(
-			EAttachmentRule::SnapToTarget,
-			EAttachmentRule::SnapToTarget,
-			EAttachmentRule::KeepWorld,
-			true
-		),
-		FName("S_Armor") // TODO: Rename slot.
-	);
-	TargetItem->SetActorRelativeLocation(TargetItem->EquippedOffset);
-	PlaceableSlots[0]->SlotSetContent(TargetItem);
+	// If equippable and no slot for current active; equip and drop current.
+	if (TargetItem->Equippable) {
+		this->UnitPlayInteractAnimation();
 
-	this->UnitDiscoverDynamicChildComponents();
+		this->ActiveItem->ItemDrop(this); // Active item known non-null.
+
+		TargetItem->ItemTake(this);
+		this->UnitRawSetActiveItem(TargetItem);
+		return;
+	}
+
+	// If non-empty slot exists; put there.
+	AvailSlot = this->UnitGetSlotAllowing(TargetItem->InventoryType);
+	if (AvailSlot != nullptr) {
+		this->UnitPlayInteractAnimation();
+
+		AvailSlot->SlotGetContent()->ItemDrop(this); // Known non-null.
+
+		TargetItem->ItemTake(this);
+		AvailSlot->SlotSetContent(TargetItem);
+
+		this->UnitDiscoverDynamicChildComponents();
+		return;
+	}
+
+	// TODO: ??? (Can't take).
+	C_LOG(this->GetName());
+	C_LOG(TEXT("take item fail:"));
 }
 
 void AUnitPawn::UnitDropActiveItem() {
@@ -544,13 +554,13 @@ void AUnitPawn::UnitDropArmor() {
 void AUnitPawn::UnitDequipActiveItem() {
 	if (this->ActiveItem == nullptr) return;
 	
-	TArray<UUnitSlotComponent*> PlaceableSlots = this->UnitGetEmptySlotsAllowing(this->ActiveItem->InventoryType);
+	UUnitSlotComponent* AvailSlot = this->UnitGetEmptySlotAllowing(this->ActiveItem->InventoryType);
 
 	AItemActor* PreviousActive = this->ActiveItem;
 	this->UnitRawSetActiveItem(nullptr);
 
-	if (PlaceableSlots.Num() > 0) {
-		PlaceableSlots[0]->SlotSetContent(PreviousActive);
+	if (AvailSlot != nullptr) {
+		AvailSlot->SlotSetContent(PreviousActive);
 	}
 	else {
 		PreviousActive->ItemDrop(this);
@@ -603,33 +613,49 @@ TArray<UUnitSlotComponent*> AUnitPawn::UnitGetEquippableSlots() {
 		if (Content != nullptr && Content->Equippable) Found.Push(Check);
 	}
 
-	// TODO: Sort.
+	Found.Sort([](const UUnitSlotComponent& A, const UUnitSlotComponent& B) {
+		return A.SlotGetContent()->InventoryType < B.SlotGetContent()->InventoryType;
+	});
 
 	return Found;
 }
 
-TArray<UUnitSlotComponent*> AUnitPawn::UnitGetEmptySlotsAllowing(EItemInventoryType Type) {
-	TArray<UUnitSlotComponent*> Found;
+UUnitSlotComponent* AUnitPawn::UnitGetEmptySlotAllowing(EItemInventoryType Type) {
+	UUnitSlotComponent* Best = nullptr;
+	int BestScore;
 
 	for (int i = 0; i < this->Slots.Num(); i++) {
 		UUnitSlotComponent* Check = this->Slots[i];
 
-		if (Check->AllowedItems.Contains(Type) && Check->SlotGetContent() == nullptr) Found.Push(Check);
+		if (!Check->AllowedItems.Contains(Type) || Check->SlotGetContent() != nullptr) continue;
+
+		int AllowedCount = Check->AllowedItems.Num();
+		if (Best == nullptr || AllowedCount < BestScore) {
+			Best = Check;
+			BestScore = AllowedCount;
+		}
 	}
 
-	return Found;
+	return Best;
 }
 
-TArray<UUnitSlotComponent*> AUnitPawn::UnitGetSlotsAllowing(EItemInventoryType Type) {
-	TArray<UUnitSlotComponent*> Found;
+UUnitSlotComponent* AUnitPawn::UnitGetSlotAllowing(EItemInventoryType Type) {
+	UUnitSlotComponent* Best = nullptr;
+	int BestScore;
 
 	for (int i = 0; i < this->Slots.Num(); i++) {
 		UUnitSlotComponent* Check = this->Slots[i];
 
-		if (Check->AllowedItems.Contains(Type)) Found.Push(Check);
+		if (!Check->AllowedItems.Contains(Type)) continue;
+
+		int AllowedCount = Check->AllowedItems.Num();
+		if (Best == nullptr || AllowedCount < BestScore) {
+			Best = Check;
+			BestScore = AllowedCount;
+		}
 	}
 
-	return Found;
+	return Best;
 }
 
 // TODO: Make template.
@@ -908,6 +934,13 @@ void AUnitPawn::UnitDie() {
 	}
 
 	this->UnitDropActiveItem();
+
+	this->GetWorld()->SpawnActor<AActor>(
+		this->RagdollType,
+		this->GetActorLocation(),
+		this->GetActorRotation(),
+		FActorSpawnParameters()
+	);
 
 	this->Destroy();
 }

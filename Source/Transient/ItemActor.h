@@ -17,6 +17,8 @@ enum class EItemInventoryType : uint8 {
 	Weapon,
 	WeaponLarge,
 	Container,
+	Pouch,
+	Arrow,
 	Magazine,
 	Misc,
 	MiscLarge

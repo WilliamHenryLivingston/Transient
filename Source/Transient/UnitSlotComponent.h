@@ -34,6 +34,6 @@ protected:
 	virtual void BeginPlay() override;
 	
 public:
-	AItemActor* SlotGetContent();
+	AItemActor* SlotGetContent() const;
 	void SlotSetContent(AItemActor* NewContent);
 };

@@ -35,7 +35,7 @@ void UUnitSlotComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
-AItemActor* UUnitSlotComponent::SlotGetContent() {
+AItemActor* UUnitSlotComponent::SlotGetContent() const {
 	return this->Content;
 }
 

@@ -68,6 +68,8 @@ private:
 	float CrouchVerticalShrink = 0.6f;
 	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
 	float CrouchVerticalTranslate = 10.0f;
+	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
+	TSubclassOf<AActor> RagdollType;
 
 	// Inventory.
 	UPROPERTY(EditAnywhere, Category="Unit Inventory")
@@ -198,8 +200,8 @@ public:
 	void UnitEquipItem(AItemActor* Target);
 	void UnitEquipFromSlot(int Index);
 	TArray<UUnitSlotComponent*> UnitGetEquippableSlots();
-	TArray<UUnitSlotComponent*> UnitGetEmptySlotsAllowing(EItemInventoryType Type);
-	TArray<UUnitSlotComponent*> UnitGetSlotsAllowing(EItemInventoryType Type);
+	UUnitSlotComponent* UnitGetEmptySlotAllowing(EItemInventoryType Type);
+	UUnitSlotComponent* UnitGetSlotAllowing(EItemInventoryType Type);
 	TArray<UUnitSlotComponent*> UnitGetSlotsContaining(EItemInventoryType Type);
 	TArray<UUnitSlotComponent*> UnitGetSlotsContainingMagazines(int AmmoTypeID);
 	

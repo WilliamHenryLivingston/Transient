@@ -59,7 +59,9 @@ FAIParentActionTickResult CAttackAction::AIParentActionTick(AActor* RawOwner, fl
     FVector OwnerHeadLocation = Owner->DetectionSourceComponent->GetComponentLocation(); // TODO.
     float Distance = (OwnerHeadLocation - TargetLocation).Size();
 
-    if ((this->Engaging || Distance < 1000.0f)) {
+    float EngageLimit = Owner->UnitGetActiveWeapon()->AIEngageDistance;
+
+    if (this->Engaging || Distance < EngageLimit) {
         Owner->UnitFaceTowards(TargetLocation);
         Owner->UnitUpdateTorsoPitch(UKismetMathLibrary::FindLookAtRotation(OwnerHeadLocation, TargetLocation).Pitch);
 
@@ -69,7 +71,7 @@ FAIParentActionTickResult CAttackAction::AIParentActionTick(AActor* RawOwner, fl
         Owner->GetWorld()->LineTraceSingleByChannel(
             FireCheckHit,
             WeaponMuzzle,
-            WeaponMuzzle + Owner->GetActorRotation().RotateVector(FVector(1000.0f, 0.0f, 0.0f)),
+            WeaponMuzzle + Owner->GetActorRotation().RotateVector(FVector(EngageLimit, 0.0f, 0.0f)),
             ECollisionChannel::ECC_Visibility,
             FCollisionQueryParams()
         );
@@ -138,7 +140,7 @@ FAIActionTickResult CAttackAction::AIActionTick(AActor* RawOwner, float DeltaTim
         Manager->AIUnclaimAllNavNodes(Owner);
 
         // ... find cover
-        TArray<AAINavNode*> CheckSet = Manager->AIGetNavNearestNodes(Owner, 10);
+        TArray<AAINavNode*> CheckSet = Manager->AIGetNavNearestNodes(Owner, 30);
 
         FVector ThreatLocation = this->Target->GetActorLocation();
 

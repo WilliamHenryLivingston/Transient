@@ -152,6 +152,7 @@ void AAIUnit::UnitTakeDamage(FDamageProfile Profile, AActor* Source) {
         }
     }
 
+    Profile.Energy *= 50.0f; // TODO: Better number.
     Super::UnitTakeDamage(Profile, Source);
 }
 
