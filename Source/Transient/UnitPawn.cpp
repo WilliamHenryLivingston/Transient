@@ -13,7 +13,7 @@ AUnitPawn::AUnitPawn() {
 void AUnitPawn::BeginPlay() {
 	Super::BeginPlay();
 
-	this->ReloadingMoveLock = false;
+	this->ArmsActionMoveLock = false;
 
 	this->JumpTimer = -1.0f; // TODO: Janky.
 	
@@ -93,8 +93,10 @@ void AUnitPawn::Tick(float DeltaTime) {
 
 	this->AudioComponent->PitchMultiplier = this->GetWorld()->GetWorldSettings()->GetEffectiveTimeDilation();
 
+	if (this->Exerted && (!this->UnitDrainStamina(this->ExertedStaminaDrain * DeltaTime))) this->Exerted = false;
+
 	// Clear child class targeting for their tick.
-	this->TargetTorsoPitch = this->TorsoPitch;
+	this->TargetTorsoPitch = this->TorsoPitch; // TODO: Should be 0?
 	this->HasFaceTarget = false;
 	this->AnimationScale = 1.0f;
 
@@ -147,19 +149,33 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 
 	// Timers and animation updates.
 	// ...Arms mode.
+	bool UseItemTorsoYaw = false;
 	if (this->ActiveItem == nullptr) {
 		this->Animation->Script_ArmsState = EUnitAnimArmsState::Empty;
 	}
 	else {
 		this->ActiveItem->SetActorScale3D(FVector(1.0f, 1.0f, 1.0f)); // TODO: What the fuck?
-
-		if (this->Immobilized) {
-			this->Animation->Script_ArmsState = EUnitAnimArmsState::Empty;
-		}
 		this->Animation->Script_ArmsState = this->ActiveItem->EquippedAnimArmsMode;
+
+		// Last check is because reload is two anim cycles.
+		if (!this->IgnoreTorsoYaw && this->ArmsAnimationTimer <= 0.5f && this->LoadingMagazine == nullptr) UseItemTorsoYaw = true;
 	}
 	if (this->ForceArmsEmptyAnimation) {
 		this->Animation->Script_ArmsState = EUnitAnimArmsState::Empty;
+	}
+
+	float TorsoYawDelta = this->LookPitchSpeed * DeltaTime;
+	if (UseItemTorsoYaw) {
+		this->Animation->Script_TorsoYaw = FMath::Min(
+			this->ActiveItem->EquippedTorsoYaw,
+			this->Animation->Script_TorsoYaw + TorsoYawDelta
+		);
+	}
+	else {
+		this->Animation->Script_TorsoYaw = FMath::Max(
+			0.0f,
+			this->Animation->Script_TorsoYaw - TorsoYawDelta
+		);
 	}
 
 	// ...Arms modifier (animation).
@@ -192,7 +208,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	}
 	else {
 		AWeaponItem* CurrentWeapon = this->UnitGetActiveWeapon();
-		if (CurrentWeapon != nullptr && CurrentWeapon->WeaponGetTriggerPulled()) {
+		if (CurrentWeapon != nullptr && CurrentWeapon->WeaponGetTriggerPulled() && !CurrentWeapon->WeaponEmpty()) {
 			this->Animation->Script_ArmsModifier = EUnitAnimArmsModifier::Fire;
 		}
 		else {
@@ -207,6 +223,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	if (ActiveJump) this->JumpTimer -= DeltaTime;
 
 	EUnitAnimLegsState LegsState = EUnitAnimLegsState::None;
+	EUnitAnimLegsModifier LegsModifier = EUnitAnimLegsModifier::None;
 
 	FVector ColliderScale = this->ColliderComponent->GetRelativeScale3D();
 	ColliderScale.Z = this->BaseColliderVerticalScale;
@@ -225,7 +242,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	this->RigComponent->SetRelativeLocation(RigLocation);
 	this->RigComponent->SetRelativeScale3D(RigScale);
 
-	if (this->HasMoveTarget && !this->Immobilized && !this->ReloadingMoveLock) {
+	if (this->HasMoveTarget && !this->Immobilized && !this->ArmsActionMoveLock) {
 		float Speed = this->MoveSpeed;
 		if (LowPower) Speed *= 0.25f;
 
@@ -245,7 +262,13 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 
 		if (abs(AngleDeg - 45.0f) < 90.0f && AngleDeg > 45.0f) LegsState = EUnitAnimLegsState::WalkBwd;
 		else if (abs(AngleDeg - (45.0f * 3.0f)) < 90.0f) LegsState = EUnitAnimLegsState::WalkLeft;
-		else if (abs(AngleDeg - (45.0f * 5.0f)) < 90.0f) LegsState = EUnitAnimLegsState::WalkFwd;
+		else if (abs(AngleDeg - (45.0f * 5.0f)) < 90.0f) {
+			LegsState = EUnitAnimLegsState::WalkFwd;
+			if (this->Exerted) {
+				MoveDelta *= this->SprintModifier;
+				LegsModifier = EUnitAnimLegsModifier::Sprint;
+			}
+		}
 		else LegsState = EUnitAnimLegsState::WalkRight;
 
 		this->SetActorLocation(CurrentLocation + MoveDelta);
@@ -255,6 +278,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	if (ActiveJump) LegsState = EUnitAnimLegsState::Jump;
 
 	this->Animation->Script_LegsState = LegsState;
+	this->Animation->Script_LegsModifier = LegsModifier;
 
 	// Facing update.
 	if (this->HasFaceTarget) {
@@ -306,15 +330,78 @@ void AUnitPawn::ThenFinishUse() {
 	this->CurrentUseItem->ItemUse(this->CurrentUseItemTarget);
 	this->CurrentUseItem = nullptr;
 	this->CurrentUseItemTarget = nullptr;
+	this->ArmsActionMoveLock = false;
+}
+
+void AUnitPawn::ThenStartReload() {
+	AWeaponItem* Weapon = this->UnitGetActiveWeapon();
+	
+	Weapon->WeaponSwapMagazines(nullptr);
+
+	// Might be scheded for destroy.
+	if (!IsValid(this->UnloadingMagazine)) this->UnloadingMagazine = nullptr;
+
+	if (this->UnloadingMagazine != nullptr) {
+		this->UnloadingMagazine->AttachToComponent(
+			this->ActiveItemAltHostComponent,
+			FAttachmentTransformRules(
+				EAttachmentRule::SnapToTarget,
+				EAttachmentRule::SnapToTarget,
+				EAttachmentRule::KeepWorld,
+				true
+			),
+			FName("None")
+		);
+
+		// Might be scheded for destroy.
+		if (!IsValid(this->UnloadingMagazine)) this->UnloadingMagazine = nullptr;
+
+		this->UnloadingMagazine->SetActorRelativeRotation(this->UnloadingMagazine->EquippedRotation);
+		this->UnloadingMagazine->SetActorRelativeLocation(this->UnloadingMagazine->EquippedOffset);
+		this->UnloadingMagazine->ItemTake(this);
+	}
+		
+	FAnimationConfig Config = Weapon->ReloadAnimation;
+	Config.Time *= Weapon->ReloadMagazineAttachTime * 0.25f;
+	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Reload, Config, &AUnitPawn::ThenEarlyReload);
+}
+
+void AUnitPawn::ThenEarlyReload() {
+	AWeaponItem* Weapon = this->UnitGetActiveWeapon();
+
+	if (this->UnloadingMagazine != nullptr) {
+		UUnitSlotComponent* AvailSlot = this->UnitGetEmptySlotAllowing(this->UnloadingMagazine->InventoryType);
+		if (AvailSlot != nullptr) {
+			this->UnloadingMagazine->ItemTake(this);
+			AvailSlot->SlotSetContent(this->UnloadingMagazine);
+		}
+		else {
+			this->UnloadingMagazine->DetachFromActor(FDetachmentTransformRules(EDetachmentRule::KeepWorld, false));
+			this->UnloadingMagazine->ItemDrop(this);
+		}
+		this->UnloadingMagazine = nullptr;
+	}
+
+	this->LoadingMagazine->AttachToComponent(
+		this->ActiveItemAltHostComponent,
+		FAttachmentTransformRules(
+			EAttachmentRule::SnapToTarget,
+			EAttachmentRule::SnapToTarget,
+			EAttachmentRule::KeepWorld,
+			true
+		),
+		FName("None")
+	);
+	this->LoadingMagazine->SetActorRelativeRotation(this->LoadingMagazine->EquippedRotation);
+	this->LoadingMagazine->SetActorRelativeLocation(this->LoadingMagazine->EquippedOffset);
+	
+	FAnimationConfig Config = Weapon->ReloadAnimation;
+	Config.Time *= Weapon->ReloadMagazineAttachTime * 0.5f;
+	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Reload, Config, &AUnitPawn::ThenMidReload);
 }
 
 void AUnitPawn::ThenMidReload() {
-	// TODO: Safety.
 	AWeaponItem* Weapon = this->UnitGetActiveWeapon();
-	if (Weapon == nullptr) {
-		this->ReloadingMoveLock = false;
-		return;
-	}
 
 	Weapon->WeaponSwapMagazines(this->LoadingMagazine);
 	this->LoadingMagazine = nullptr;
@@ -325,11 +412,12 @@ void AUnitPawn::ThenMidReload() {
 }
 
 void AUnitPawn::ThenPostReload() {
-	this->ReloadingMoveLock = false;
+	this->ArmsActionMoveLock = false;
 }
 
 // Getters.
 bool AUnitPawn::UnitIsCrouched() { return this->Crouching; }
+bool AUnitPawn::UnitIsExerted() { return this->Exerted; }
 AItemActor* AUnitPawn::UnitGetActiveItem() { return this->ActiveItem; }
 AArmorItem* AUnitPawn::UnitGetArmor() { return this->ArmorItem; }
 
@@ -760,6 +848,7 @@ void AUnitPawn::UnitUseActiveItem(AActor* Target) {
 
 	this->CurrentUseItem = AsUsable;
 	this->CurrentUseItemTarget = Target;
+	if (this->CurrentUseItem->ImmobilizeOnUse) this->ArmsActionMoveLock = true;
 	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Use, AsUsable->UseAnimation, &AUnitPawn::ThenFinishUse);
 }
 
@@ -790,6 +879,10 @@ void AUnitPawn::UnitSetCrouched(bool NewCrouch) {
 	if (this->JumpTimer > 0.0f) NewCrouch = false;
 
 	this->Crouching = NewCrouch;
+}
+
+void AUnitPawn::UnitSetExerted(bool NewExerted) {
+	this->Exerted = NewExerted;
 }
 
 void AUnitPawn::UnitJump() {
@@ -832,27 +925,14 @@ void AUnitPawn::UnitReload() {
 	SelectedSlot->SlotSetContent(nullptr);
 
 	if (!this->OverrideArmsState) {
-		this->ReloadingMoveLock = Weapon->ImmobilizeOnReload;
+		this->ArmsActionMoveLock = Weapon->ImmobilizeOnReload;
 		this->LoadingMagazine = SelectedMag;
 	}
-	
-	SelectedMag->AttachToComponent(
-		this->ActiveItemAltHostComponent,
-		FAttachmentTransformRules(
-			EAttachmentRule::SnapToTarget,
-			EAttachmentRule::SnapToTarget,
-			EAttachmentRule::KeepWorld,
-			true
-		),
-		FName("None")
-	);
-	SelectedMag->SetActorRelativeRotation(SelectedMag->EquippedRotation);
-	SelectedMag->SetActorRelativeLocation(SelectedMag->EquippedOffset);
-	Weapon->WeaponSwapMagazines(nullptr);
-	
+	this->UnloadingMagazine = Weapon->WeaponGetMagazine();
+
 	FAnimationConfig Config = Weapon->ReloadAnimation;
-	Config.Time *= Weapon->ReloadMagazineAttachTime;
-	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Reload, Config, &AUnitPawn::ThenMidReload);
+	Config.Time *= Weapon->ReloadMagazineAttachTime * 0.25f; // TODO: New var.
+	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Reload, Config, &AUnitPawn::ThenStartReload);
 }
 
 void AUnitPawn::UnitSetTriggerPulled(bool NewTriggerPulled) {

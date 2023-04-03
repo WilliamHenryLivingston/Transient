@@ -18,6 +18,8 @@ public:
 	UPROPERTY(EditAnywhere, Category="Usable")
 	bool RequiresTarget;
 	UPROPERTY(EditAnywhere, Category="Usable")
+	bool ImmobilizeOnUse;
+	UPROPERTY(EditAnywhere, Category="Usable")
 	FAnimationConfig UseAnimation;
 
 public:

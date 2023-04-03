@@ -55,7 +55,6 @@ private:
 	UWidgetComponent* ExpandedStatusUIComponent;
 
 	float CurrentForcedDilation;
-	bool WantsDilate;
 
 	float StandardCameraArmZOffset;
 	float StandardCameraArmLength;
@@ -89,8 +88,8 @@ private:
 	void InputInteract();
 	void InputForward(float AxisValue);
 	void InputRight(float AxisValue);
-	void InputStartDilate();
-	void InputStopDilate();
+	void InputStartExert();
+	void InputEndExert();
 	void InputReload();
 	void InputEquipSlotA();
 	void InputEquipSlotB();

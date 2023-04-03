@@ -46,6 +46,10 @@ FRotator AWeaponItem::WeaponGetMuzzleRotation() {
 	return this->MuzzlePosition->GetComponentRotation();
 }
 
+AMagazineItem* AWeaponItem::WeaponGetMagazine() {
+	return this->ActiveMagazine;
+}
+
 void AWeaponItem::WeaponSwapMagazines(AMagazineItem* NewMagazine) {
 	this->WeaponDisposeCurrentMagazine();
 

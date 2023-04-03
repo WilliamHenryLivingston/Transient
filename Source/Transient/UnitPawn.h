@@ -40,6 +40,10 @@ private:
 	float JumpStrength = 300.0f;
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
 	float JumpTime = 1.0f; // TODO: Replace with proper grounded check.
+	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	float SprintModifier = 2.0f;
+	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	float ExertedStaminaDrain = 100.0f;
 
 	// Stats.
 protected: // TODO: No, add methods.
@@ -98,6 +102,7 @@ private:
 	AUsableItem* CurrentUseItem;
 	AInteractiveActor* CurrentInteractActor;
 	AMagazineItem* LoadingMagazine;
+	AMagazineItem* UnloadingMagazine;
 	AActor* CurrentUseItemTarget;
 
 	// Rig state.
@@ -110,6 +115,7 @@ private:
 	void (AUnitPawn::*ArmsAnimationThen)();
 	
 	bool Crouching;
+	bool Exerted; // Sprint, time dialation, etc.
 
 	float TorsoPitch;
 	float TargetTorsoPitch;
@@ -121,7 +127,7 @@ private:
 	// Other state.
 	float StaminaRegenTimer;
 
-	bool ReloadingMoveLock;
+	bool ArmsActionMoveLock;
 
 	bool Immobilized;
 
@@ -135,6 +141,7 @@ protected:
 	bool CheckingStatus; // TODO
 
 	float AnimationScale;
+	bool IgnoreTorsoYaw;
 
 	// Child components available to child classes.
 	UShapeComponent* ColliderComponent;
@@ -171,6 +178,9 @@ private:
 
 	void ThenFinishUse();
 	void ThenPostReload();
+	// Reload animation phases:
+	void ThenStartReload();
+	void ThenEarlyReload();
 	void ThenMidReload();
 	void ThenFinishInteract();
 
@@ -186,6 +196,7 @@ public:
 	bool UnitAreArmsOccupied();
 	bool UnitIsJumping();
 	bool UnitIsCrouched();
+	bool UnitIsExerted();
 	AItemActor* UnitGetActiveItem();
 	AWeaponItem* UnitGetActiveWeapon();
 	AArmorItem* UnitGetArmor();
@@ -216,6 +227,7 @@ public:
 	void UnitImmobilize(bool Which);
 	void UnitJump();
 	void UnitSetCrouched(bool NewCrouch);
+	void UnitSetExerted(bool NewSprint);
 
 	void UnitUseActiveItem(AActor* Target);
 	void UnitInteractWith(AActor* Target);

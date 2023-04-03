@@ -31,6 +31,8 @@ public:
 
 	UPROPERTY(EditAnywhere, Category="AI Handling")
 	float AIEngageDistance = 500.0f;
+	UPROPERTY(EditAnywhere, Category="AI Handling")
+	float AIFireDistance = 1000.0f;
 
 protected:
 	bool TriggerPulled;
@@ -54,5 +56,6 @@ public:
 	FVector WeaponGetMuzzlePosition();
 	FRotator WeaponGetMuzzleRotation();
 	void WeaponSwapMagazines(AMagazineItem* NewMagazine);
+	AMagazineItem* WeaponGetMagazine();
 	virtual bool WeaponEmpty();
 };

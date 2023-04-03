@@ -35,7 +35,13 @@ void AProjectileWeapon::Tick(float DeltaTime) {
             Projectile->Source = Cast<AActor>(this->CurrentHolder);
         }
 
-        this->FireCooldownTimer = this->FireCooldownTime;
+        if (this->SemiAutomatic) {
+            this->TriggerPulled = false;
+        }
+        else {   
+            this->FireCooldownTimer = this->FireCooldownTime;
+        } 
+        
         this->ActiveMagazine->Ammo--;
         if (this->ActiveMagazine->Ammo <= 0) {
             this->ActiveMagazine->Destroy();

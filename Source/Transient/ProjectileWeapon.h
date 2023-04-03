@@ -15,6 +15,8 @@ class TRANSIENT_API AProjectileWeapon : public AWeaponItem {
 private:
 	UPROPERTY(EditAnywhere, Category="Projectile Weapon")
 	float Spread = 3.0f;
+	UPROPERTY(EditAnywhere, Category="Projectile Weapon")
+	bool SemiAutomatic;
 
 	UPROPERTY(EditAnywhere, Category="Item SFX")
 	USoundBase* ShootSound;

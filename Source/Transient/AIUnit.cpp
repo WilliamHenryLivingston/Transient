@@ -147,7 +147,7 @@ void AAIUnit::UnitTakeDamage(FDamageProfile Profile, AActor* Source) {
     if (Source != nullptr) {
         AAIManager* Manager = AAIManager::AIGetManagerInstance(this->GetWorld());
         AUnitPawn* AsUnit = Cast<AUnitPawn>(Source);
-        if (AsUnit != nullptr && Manager->AIIsFactionEnemy(AsUnit->FactionID, this->FactionID)) {
+        if (AsUnit != nullptr && AsUnit->FactionID != this->FactionID) { // Can agro onto allied factions.
             this->PendingAgroTarget = Source;
         }
     }

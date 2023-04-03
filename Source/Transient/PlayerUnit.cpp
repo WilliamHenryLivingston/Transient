@@ -21,8 +21,8 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &APlayerUnit::InputStartFire);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &APlayerUnit::InputStopFire);
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &APlayerUnit::InputInteract);
-	PlayerInputComponent->BindAction("Dilate", IE_Pressed, this, &APlayerUnit::InputStartDilate);
-	PlayerInputComponent->BindAction("Dilate", IE_Released, this, &APlayerUnit::InputStopDilate);
+	PlayerInputComponent->BindAction("Exert", IE_Pressed, this, &APlayerUnit::InputStartExert);
+	PlayerInputComponent->BindAction("Exert", IE_Released, this, &APlayerUnit::InputEndExert);
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &APlayerUnit::InputReload);
 	PlayerInputComponent->BindAction("SlotA", IE_Pressed, this, &APlayerUnit::InputEquipSlotA);
 	PlayerInputComponent->BindAction("SlotB", IE_Pressed, this, &APlayerUnit::InputEquipSlotB);
@@ -105,6 +105,7 @@ void APlayerUnit::Tick(float DeltaTime) {
 	float CameraAngleDelta = this->InventoryViewCameraPitchLerpRate * DeltaTime;
 
 	this->UnitImmobilize(this->InventoryView);
+	this->IgnoreTorsoYaw = this->InventoryView;
 
 	bool ResetAim = true;
 
@@ -146,7 +147,7 @@ void APlayerUnit::Tick(float DeltaTime) {
 	}
 	this->CameraComponent->SetRelativeRotation(CameraRotation);
 	
-	if (this->WantsDilate && this->UnitGetItemByName(TEXT("time dilator")) != nullptr && this->UnitDrainStamina(200.0f * RawDeltaTime)) {
+	if (this->UnitIsExerted() && this->UnitGetItemByName(TEXT("time dilator")) != nullptr) {
 		this->CurrentForcedDilation = FMath::Max(0.25f, this->CurrentForcedDilation - (RawDeltaTime * 3.0f));
 		this->CameraComponent->PostProcessSettings.SceneFringeIntensity = FMath::Min(this->SlowEffectStrength, this->CameraComponent->PostProcessSettings.SceneFringeIntensity + (RawDeltaTime * 3.0f));
 	}
@@ -322,6 +323,16 @@ void APlayerUnit::Tick(float DeltaTime) {
 	this->CameraArmComponent->SetWorldLocation(this->GetActorLocation() + this->AimCameraOffset);
 	
     this->UnitPostTick(DeltaTime);
+
+	bool ForceInventoryPose = (
+		this->InventoryView &&
+		this->Animation->Script_ArmsModifier != EUnitAnimArmsModifier::Reload &&
+		this->Animation->Script_ArmsModifier != EUnitAnimArmsModifier::Use &&
+		this->Animation->Script_ArmsModifier != EUnitAnimArmsModifier::Interact
+	);
+	if (ForceInventoryPose) {
+		this->Animation->Script_ArmsModifier = EUnitAnimArmsModifier::Inventory;
+	}
 }
 
 // TODO: Out of reach checks shouldn't be here.
@@ -390,12 +401,12 @@ void APlayerUnit::InputRight(float AxisValue) {
 	this->MovementInput.X = FMath::Clamp<float>(AxisValue, -1.0f, 1.0f);
 }
 
-void APlayerUnit::InputStartDilate() {
-	this->WantsDilate = true;
+void APlayerUnit::InputStartExert() {
+	this->UnitSetExerted(true);
 }
 
-void APlayerUnit::InputStopDilate() {
-	this->WantsDilate = false;
+void APlayerUnit::InputEndExert() {
+	this->UnitSetExerted(false);
 }
 
 void APlayerUnit::InputEnterInventory() {

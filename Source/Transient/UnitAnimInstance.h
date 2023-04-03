@@ -41,7 +41,8 @@ enum class EUnitAnimArmsState : uint8 {
     Watercan,
     Keycard,
     RepairTool,
-    Battery
+    Battery,
+    Mtr
 };
 
 UENUM(BlueprintType)
@@ -51,7 +52,8 @@ enum class EUnitAnimArmsModifier : uint8 {
     Reload,
     Use,
     Interact,
-    CheckStatus
+    CheckStatus,
+    Inventory
 };
 
 UENUM(BlueprintType)
@@ -79,6 +81,8 @@ public:
     float Script_TimeDilation;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
     float Script_TorsoPitch;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
+    float Script_TorsoYaw;
 
 public:
 	UUnitAnimInstance();

@@ -44,6 +44,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	bool Equippable;
 	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
+	float EquippedTorsoYaw;
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	bool EquipAltHand;
 	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
 	EUnitAnimArmsState EquippedAnimArmsMode;

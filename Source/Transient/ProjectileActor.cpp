@@ -26,11 +26,7 @@ void AProjectileActor::BeginPlay() {
 void AProjectileActor::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 	
-	if (this->Inertness > 2) {
-		this->ColliderComponent->SetSimulatePhysics(true);
-		this->ColliderComponent->SetEnableGravity(true);
-		return;
-	}
+	if (this->Inertness > 1) return;
 	if (this->Inertness > 0) this->Inertness++;
 
 	FVector Move = GetActorRotation().RotateVector(FVector(1.0f, 0.0f, 0.0f)) * this->Speed * DeltaTime;

@@ -59,9 +59,8 @@ FAIParentActionTickResult CAttackAction::AIParentActionTick(AActor* RawOwner, fl
     FVector OwnerHeadLocation = Owner->DetectionSourceComponent->GetComponentLocation(); // TODO.
     float Distance = (OwnerHeadLocation - TargetLocation).Size();
 
-    float EngageLimit = Owner->UnitGetActiveWeapon()->AIEngageDistance;
-
-    if (this->Engaging || Distance < EngageLimit) {
+    float EngageLimit = Owner->UnitGetActiveWeapon()->AIFireDistance;
+    if (this->Engaging && Distance < EngageLimit) {
         Owner->UnitFaceTowards(TargetLocation);
         Owner->UnitUpdateTorsoPitch(UKismetMathLibrary::FindLookAtRotation(OwnerHeadLocation, TargetLocation).Pitch);
 
@@ -133,7 +132,7 @@ FAIActionTickResult CAttackAction::AIActionTick(AActor* RawOwner, float DeltaTim
         this->Engaging = true;
         this->Cover = nullptr;
         Manager->AIUnclaimAllNavNodes(Owner);
-        return FAIActionTickResult(false, new CMoveToPointAction(this->Target, CurrentWeapon->AIEngageDistance / 2.0f));
+        return FAIActionTickResult(false, new CMoveToPointAction(this->Target, CurrentWeapon->AIFireDistance / 2.0f));
     }
     else if (!Assaulting && (this->Cover == nullptr || FMath::RandRange(0.0f, 1.0f) < 0.5f)) {
         this->Engaging = false;
