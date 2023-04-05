@@ -48,3 +48,11 @@ REFACTOR:
 3x boolean var anim instances lol
 packaging
 better trigger system
+
+
+IK
+alternate group steps
+if group stepping:
+    target step position behind
+else
+    target step position ahead
