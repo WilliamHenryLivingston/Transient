@@ -6,7 +6,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
-#include "InteractiveActor.h"
+#include "Environment/InteractiveActor.h"
 #include "UnitSlotColliderComponent.h"
 
 APlayerUnit::APlayerUnit() {

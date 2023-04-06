@@ -5,7 +5,6 @@
 #define DEBUG_DRAWS true
 
 #ifdef DEBUG_DRAWS
-#include "../TransientDebug.h"
 #include "DrawDebugHelpers.h"
 #endif
 
@@ -15,6 +14,8 @@ FLegIKTrackTickResult FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneCompone
     FLegIKTrackTickResult Result;
     Result.DidStep = false;
 
+    float ReachComponentDistance = this->Config.StepDistance * this->Config.RestReturnReachCoef;
+
     FVector ContactGroundWorldLocation = this->IKGroundHit(this->CurrentWorldLocation, Parent);
     FVector TickTargetWorldLocation = this->CurrentWorldLocation;
     TickTargetWorldLocation.Z = ContactGroundWorldLocation.Z + this->Config.GroundVerticalOffset;
@@ -22,8 +23,8 @@ FLegIKTrackTickResult FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneCompone
     if (this->StepPhase == EIKStepPhase::None && MayStep) {
         FVector RestWorldLocation = this->RestComponentLocation + ComponentWorldLocation;
 
-        float CurrentStepDistance = (RestWorldLocation - this->CurrentWorldLocation).Size();
-        if (CurrentStepDistance > this->Config.StepDistance) {
+        float CurrentStepDistance = (RestWorldLocation - this->CurrentWorldLocation).Size2D();
+        if (CurrentStepDistance > this->Config.StepDistance || (this->ReturnToRest && CurrentStepDistance > ReachComponentDistance)) {
             this->TargetStepWorldLocation = RestWorldLocation;
             this->TargetStepWorldLocation.Z = this->IKGroundHit(this->TargetStepWorldLocation, Parent).Z;
             this->StepPhase = EIKStepPhase::Lift;
@@ -41,7 +42,7 @@ FLegIKTrackTickResult FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneCompone
     else if (this->StepPhase == EIKStepPhase::Swing) {
         FVector PlaneDistance = this->CurrentWorldLocation - this->TargetStepWorldLocation;
         PlaneDistance.Z = 0.0f;
-        if (PlaneDistance.Size() < 20.0f) {
+        if (PlaneDistance.Size() < ReachComponentDistance) {
             this->StepPhase = EIKStepPhase::Place;
         }
         else {

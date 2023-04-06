@@ -10,8 +10,8 @@
 #include "Components/WidgetComponent.h"
 
 #include "UnitPawn.h"
-#include "MainUIWidget.h"
-#include "StatusUIWidget.h"
+#include "UI/MainUIWidget.h"
+#include "UI/StatusUIWidget.h"
 
 #include "PlayerUnit.generated.h"
 

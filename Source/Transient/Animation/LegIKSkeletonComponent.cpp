@@ -6,7 +6,7 @@ void ULegIKSkeletonComponent::BeginPlay() {
     Super::BeginPlay();
 
     this->IK = Cast<ULegIKInstance>(this->GetAnimInstance());
-    this->IK->LegIKInstanceInit(this->InstanceConfig, this->TracksConfig);
+    this->IK->LegIKInstanceInit(this, this->InstanceConfig, this->TracksConfig);
 }
 
 void ULegIKSkeletonComponent::TickComponent(float DeltaTime, ELevelTick Type, FActorComponentTickFunction* TickSelf) {

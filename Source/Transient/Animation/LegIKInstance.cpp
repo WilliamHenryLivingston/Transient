@@ -2,7 +2,7 @@
 
 #include "LegIKInstance.h"
 
-void ULegIKInstance::LegIKInstanceInit(FLegIKInstanceConfig InitConfig, FLegIKTrackConfig TracksConfig) {
+void ULegIKInstance::LegIKInstanceInit(USceneComponent* Parent, FLegIKInstanceConfig InitConfig, FLegIKTrackConfig TracksConfig) {
     this->Config = InitConfig;
 
     for (int i = 0; i < this->Config.LegCount; i++) {
@@ -38,21 +38,42 @@ void ULegIKInstance::LegIKInstanceInit(FLegIKInstanceConfig InitConfig, FLegIKTr
             0.0f
         ));
     }
+
+    for (int i = 0; i < this->Tracks.Num(); i++) {
+        this->Tracks[i].CurrentWorldLocation = Parent->GetComponentLocation() + this->RestComponentLocations[i];
+    }
  }
 
 void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent) {
     FVector CurrentWorldLocation = Parent->GetComponentLocation();
-    FVector MoveWorldDelta = CurrentWorldLocation - this->LastWorldLocation;
+    FVector TickMoveDelta = CurrentWorldLocation - this->LastWorldLocation;
     this->LastWorldLocation = CurrentWorldLocation;
+
+    int LocationSamples = 5;
+    if (this->LastMoveDeltas.Num() < LocationSamples) {
+        this->LastMoveDeltas.Push(CurrentWorldLocation);
+        this->LastMoveDeltaIndex = this->LastMoveDeltas.Num() - 1;
+    }
+    else {
+        this->LastMoveDeltaIndex = (this->LastMoveDeltaIndex + 1) % LocationSamples;
+        this->LastMoveDeltas[this->LastMoveDeltaIndex] = TickMoveDelta;
+    }
+
+    FVector MoveWorldDelta;
+    for (int i = 0; i < this->LastMoveDeltas.Num(); i++) {
+        MoveWorldDelta += this->LastMoveDeltas[i] / LocationSamples;
+    }
     MoveWorldDelta.Z = 0;
 
     for (int i = 0; i < this->Config.LegCount; i++) {
+        this->Tracks[i].ReturnToRest = false;
         this->Tracks[i].RestComponentLocation = this->RestComponentLocations[i];
     }
 
     // Find nearest rest position to direction of travel. That group becomes the
     // leading group and it's rest positions are adjusted accordingly.
-    if (!MoveWorldDelta.IsZero()) {
+    bool Moving = !MoveWorldDelta.IsZero();
+    if (Moving) {
         FVector MoveNormalizedDelta = MoveWorldDelta.GetSafeNormal();
         FVector RestRelativeMoveComponentDelta = MoveNormalizedDelta * this->Config.LegRestComponentLocationOffset;
 
@@ -68,21 +89,14 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
 
         bool GroupAClosest = this->Config.LegGroupA.Contains(ClosestIndex);
 
-        // TODO: Better vals.
-        FVector LeadGroupComponentOffset = FVector();//MoveNormalizedDelta * this->Tracks[0].Config.StepDistance;
-        FVector FollowGroupsComponentOffset = FVector();
-
         for (int i = 0; i < this->Config.LegCount; i++) {
-            bool IsLeading = GroupAClosest == this->Config.LegGroupA.Contains(i);
-            this->Tracks[i].RestComponentLocation += (
-                IsLeading ? LeadGroupComponentOffset : FollowGroupsComponentOffset
-            );
+            this->Tracks[i].RestComponentLocation += (MoveWorldDelta * this->Config.TravelDirectionComponentOffset);
         }
     }
 
     // TODO: Improve this.
-    bool CanGroupAStep = this->GroupAStepNext;
-    bool CanGroupBStep = !this->GroupAStepNext;
+    bool CanGroupAStep = true;
+    bool CanGroupBStep = true;
     for (int i = 0; i < this->Config.LegCount; i++) {
         if (this->Tracks[i].StepPhase != EIKStepPhase::None) {
             if (this->Config.LegGroupA.Contains(i)) CanGroupAStep = false;
@@ -90,16 +104,29 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
         }
     }
 
+    if (!Moving && CanGroupAStep && CanGroupBStep) {
+        for (int i = 0; i < this->Config.LegCount; i++) {
+            this->Tracks[i].ReturnToRest = true;
+        }
+    }
+
     // Tick tracks.
     TArray<FVector> NewIKTargets;
+    bool DidAnyStep = false;
     for (int i = 0; i < this->Config.LegCount; i++) {
-        bool MayStep = this->Config.LegGroupA.Contains(i) ? CanGroupAStep : CanGroupBStep;
+        bool MayStep = (
+            this->Config.LegGroupA.Contains(i) ?
+                CanGroupAStep && this->GroupAStepNext
+                :
+                CanGroupBStep && !this->GroupAStepNext
+        );
 
         FLegIKTrackTickResult Result = this->Tracks[i].LegIKTrackTick(DeltaTime, Parent, MayStep);
         NewIKTargets.Push(Result.NewTarget);
 
-        if (Result.DidStep) this->GroupAStepNext = !this->GroupAStepNext;
+        if (Result.DidStep) DidAnyStep = true;
     }
+    if (DidAnyStep) this->GroupAStepNext = !this->GroupAStepNext;
 
     // Ensure torso Z offset constraints.
     // Careful! We're dealing with a negative offset here so signs are inverted.

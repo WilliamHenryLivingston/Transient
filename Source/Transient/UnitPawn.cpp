@@ -1,10 +1,12 @@
+// Copyright: R. Saxifrage, 2023. All rights reserved.
+
 #include "UnitPawn.h"
 
 #include "Components/BoxComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
-#include "TransientDebug.h"
-#include "ProjectileWeapon.h"
+#include "Debug.h"
+#include "Items/ProjectileWeapon.h"
 
 AUnitPawn::AUnitPawn() {
 	this->PrimaryActorTick.bCanEverTick = true;
@@ -41,7 +43,6 @@ void AUnitPawn::BeginPlay() {
 		else if (Name.Equals("AimRoot")) this->AimRootComponent = Check;
 	}
 
-	this->ColliderComponent->SetHiddenInGame(NODEBUG_COLLIDERS);
 	this->BaseColliderVerticalScale = this->ColliderComponent->GetRelativeScale3D().Z;
 	this->BaseRigScale = this->RigComponent->GetRelativeScale3D();
 	this->BaseRigVerticalOffset = this->RigComponent->GetRelativeLocation().Z;
@@ -556,8 +557,7 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 	}
 
 	// TODO: ??? (Can't take).
-	C_LOG(this->GetName());
-	C_LOG(TEXT("take item fail:"));
+	ERR_LOG(this, "take item fail:");
 }
 
 void AUnitPawn::UnitDropActiveItem() {

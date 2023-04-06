@@ -21,6 +21,8 @@ public:
     float StepDistance;
     UPROPERTY(EditAnywhere)
     float StepSwingVerticalOffset;
+    UPROPERTY(EditAnywhere)
+    float RestReturnReachCoef;
 };
 
 enum class EIKStepPhase : uint8 {
@@ -49,9 +51,11 @@ public:
     // TODO: Slightly awkward members.
     FVector RestComponentLocation;
     EIKStepPhase StepPhase;
+    FVector CurrentWorldLocation;
+
+    bool ReturnToRest;
 
 private:
-    FVector CurrentWorldLocation;
     FVector CurrentComponentLocation;
     FVector TargetStepWorldLocation;
 

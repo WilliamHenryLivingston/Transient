@@ -38,6 +38,8 @@ public:
 	float TorsoLerpSpeed;
 	UPROPERTY(EditAnywhere)
 	TArray<int> LegGroupA;
+	UPROPERTY(EditAnywhere)
+	float TravelDirectionComponentOffset;
 };
 
 UCLASS()
@@ -55,9 +57,12 @@ private:
 	TArray<FVector> RestComponentLocations;
 
 	FVector LastWorldLocation;
+	TArray<FVector> LastMoveDeltas;
+	int LastMoveDeltaIndex;
+
 	bool GroupAStepNext;
 
 public:
-	void LegIKInstanceInit(FLegIKInstanceConfig InitConfig, FLegIKTrackConfig TracksConfig);
+	void LegIKInstanceInit(USceneComponent* Parent, FLegIKInstanceConfig InitConfig, FLegIKTrackConfig TracksConfig);
 	void LegIKInstanceTick(float DeltaTime, USceneComponent* Parent);	
 };

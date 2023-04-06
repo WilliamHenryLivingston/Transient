@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 
-#include "ItemActor.h"
+#include "Items/ItemActor.h"
 #include "UnitSlotColliderComponent.h"
 
 #include "UnitSlotComponent.generated.h"
