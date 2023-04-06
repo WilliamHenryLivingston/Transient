@@ -46,10 +46,11 @@ void ULegIKInstance::LegIKInstanceInit(USceneComponent* Parent, FLegIKInstanceCo
 
 void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent) {
     FVector CurrentWorldLocation = Parent->GetComponentLocation();
+    FRotator CurrentRotation = Parent->GetComponentRotation();
     FVector TickMoveDelta = CurrentWorldLocation - this->LastWorldLocation;
     this->LastWorldLocation = CurrentWorldLocation;
 
-    int LocationSamples = 5;
+    int LocationSamples = 2;
     if (this->LastMoveDeltas.Num() < LocationSamples) {
         this->LastMoveDeltas.Push(CurrentWorldLocation);
         this->LastMoveDeltaIndex = this->LastMoveDeltas.Num() - 1;
@@ -67,7 +68,7 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
 
     for (int i = 0; i < this->Config.LegCount; i++) {
         this->Tracks[i].ReturnToRest = false;
-        this->Tracks[i].RestComponentLocation = this->RestComponentLocations[i];
+        this->Tracks[i].RestComponentLocation = CurrentRotation.RotateVector(this->RestComponentLocations[i]);
     }
 
     // Find nearest rest position to direction of travel. That group becomes the

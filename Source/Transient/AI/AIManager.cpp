@@ -11,6 +11,10 @@ AAIManager::AAIManager() {
 void AAIManager::BeginPlay() {
 	Super::BeginPlay();
 
+	if (this->DebugSlowMo) {
+		this->GetWorld()->GetWorldSettings()->SetTimeDilation(0.25f);
+	}
+
 	TArray<AActor*> FoundNodes;
 	UGameplayStatics::GetAllActorsOfClass(this->GetWorld(), AAINavNode::StaticClass(), FoundNodes);
 

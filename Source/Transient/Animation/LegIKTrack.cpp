@@ -10,6 +10,7 @@
 
 FLegIKTrackTickResult FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneComponent* Parent, bool MayStep) {
     FVector ComponentWorldLocation = Parent->GetComponentLocation();
+    FRotator ComponentRotation = Parent->GetComponentRotation();
 
     FLegIKTrackTickResult Result;
     Result.DidStep = false;
@@ -63,7 +64,7 @@ FLegIKTrackTickResult FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneCompone
     );
     Result.NewTarget = this->CurrentComponentLocation = FMath::VInterpTo(
         this->CurrentComponentLocation,
-        this->CurrentWorldLocation - ComponentWorldLocation,
+        ComponentRotation.UnrotateVector(this->CurrentWorldLocation - ComponentWorldLocation),
         DeltaTime, this->Config.LerpRate
     );
 
@@ -80,16 +81,6 @@ FLegIKTrackTickResult FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneCompone
         this->RestComponentLocation + ComponentWorldLocation,
         3.0f, 5, FColor::Orange, false, 0.2f, 100
     );
-    DrawDebugSphere(
-        Parent->GetWorld(),
-        TickTargetWorldLocation,
-        3.0f, 5, FColor::Green, false, 0.2f, 100
-    );
-    DrawDebugSphere(
-        Parent->GetWorld(),
-        this->CurrentWorldLocation,
-        3.0f, 5, FColor::Red, false, 0.2f, 100
-    );
     #endif
 
     return Result;
@@ -105,19 +96,6 @@ FVector FLegIKTrack::IKGroundHit(FVector Below, USceneComponent* Parent) { // Wo
         ECollisionChannel::ECC_Visibility,
         FCollisionQueryParams()
     );
-
-    #ifdef DEBUG_DRAWS
-    DrawDebugLine(
-        Parent->GetWorld(),
-        Below, HitResult.Location,
-        FColor::Blue, false, 0.2f, 100, 1.0f
-    );
-    DrawDebugLine(
-        Parent->GetWorld(),
-        Below, RayEnd,
-        FColor::Yellow, false, 0.2f, 100, 1.0f
-    );
-    #endif
 
     return HitResult.Location;
 }
