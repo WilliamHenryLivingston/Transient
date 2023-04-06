@@ -63,7 +63,7 @@ struct FLegIKTrackGroup {
 
 public:
 	// TODO: Field only exists to avoid *another* struct (TArray limitation).
-	TArray<FVector> CurrentComponentLocations;
+	TArray<FVector> CurrentWorldLocations;
 	TArray<FVector> BaseComponentLocations;
 	TArray<FLegIKTrack> Tracks;
 };

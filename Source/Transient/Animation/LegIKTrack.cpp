@@ -2,7 +2,7 @@
 
 #include "LegIKTrack.h"
 
-#define DEBUG_DRAWS true
+//#define DEBUG_DRAWS true
 
 #ifdef DEBUG_DRAWS
 #include "DrawDebugHelpers.h"
@@ -19,8 +19,8 @@ FVector FLegIKTrack::LegIKTrackWorldLocation() {
     return this->CurrentWorldLocation;
 }
 
-bool FLegIKTrack::LegIKTrackIsStepping() {
-    return this->StepPhase != ELegIKStepPhase::None && this->StepPhase != ELegIKStepPhase::Place;
+ELegIKStepPhase FLegIKTrack::LegIKTrackGetStepPhase() {
+    return this->StepPhase;
 }
 
 void FLegIKTrack::LegIKTrackStepTo(FVector WorldOffset, USceneComponent* Parent) {
@@ -38,7 +38,8 @@ FVector FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneComponent* Parent) {
 
     if (this->StepPhase == ELegIKStepPhase::Lift) {
         float LiftedZ = TickTargetWorldLocation.Z + this->Config.StepSwingVerticalOffset;
-        if (FMath::Abs(this->CurrentWorldLocation.Z - LiftedZ) < 2.0f) {
+
+        if (FMath::Abs(this->CurrentWorldLocation.Z - LiftedZ) < 5.0f) {
             TickTargetWorldLocation.Z += this->Config.StepSwingVerticalOffset;
             this->StepPhase = ELegIKStepPhase::Swing;
         }
@@ -54,6 +55,7 @@ FVector FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneComponent* Parent) {
     else if (this->StepPhase == ELegIKStepPhase::Swing) {
         FVector PlaneWorldDistance = this->CurrentWorldLocation - this->StepWorldLocation;
         PlaneWorldDistance.Z = 0.0f;
+
         if (PlaneWorldDistance.Size() < this->Config.StepReachWorldRadius) {
             this->StepPhase = ELegIKStepPhase::Place;
         }
@@ -63,7 +65,7 @@ FVector FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneComponent* Parent) {
             TickTargetWorldLocation.Z += this->Config.StepSwingVerticalOffset;
         }
     }
-    else if (this->StepPhase == ELegIKStepPhase::Place) { // Place.
+    else if (this->StepPhase == ELegIKStepPhase::Place) {
         float WorldDistance = FMath::Abs(this->CurrentWorldLocation.Z - TickTargetWorldLocation.Z);
 
         if (WorldDistance < this->Config.StepReachWorldRadius) {

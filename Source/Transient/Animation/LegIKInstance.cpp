@@ -2,6 +2,8 @@
 
 #include "LegIKInstance.h"
 
+//#define DEBUG_DRAWS true
+
 void ULegIKInstance::LegIKInstanceInit(
     USceneComponent* Parent,
     FLegIKInstanceConfig InitConfig, FLegIKTrackConfig TracksConfig
@@ -68,25 +70,29 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
     bool CriticalDeltaChange = (MoveWorldDelta - this->LastMoveDelta).Size() > 4.0f; // TODO: Conf.
     this->LastMoveDelta = MoveWorldDelta;
     
-    if (CriticalDeltaChange) {
-        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, MoveWorldDelta.ToString());
-    }
+    #ifdef DEBUG_DRAWS
+    if (CriticalDeltaChange) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, MoveWorldDelta.ToString());
+    #endif
 
     FLegIKTrackGroup* CriticalImpactedGroup = nullptr;
-    bool Stepping = false;
+    bool ConsiderStep = true;
+    TArray<bool> GroupsStillPlacing;
     for (int i = 0; i < this->TrackGroups.Num(); i++) {
         FLegIKTrackGroup* Group = &this->TrackGroups[i];
 
+        bool StillPlacing = false;
         for (int j = 0; j < Group->Tracks.Num(); j++) {
-            if (Group->Tracks[j].LegIKTrackIsStepping()) {
-                Stepping = true;
-                CriticalImpactedGroup = Group;
-                break;
-            }
+            ELegIKStepPhase CheckPhase = Group->Tracks[j].LegIKTrackGetStepPhase();
+            if (CheckPhase == ELegIKStepPhase::None) continue;
+
+            CriticalImpactedGroup = Group;
+            if (CheckPhase == ELegIKStepPhase::Place) StillPlacing = true;
+            else ConsiderStep = false;
         }
+        GroupsStillPlacing.Push(StillPlacing);
     }
 
-    if (!Stepping || CriticalDeltaChange) {
+    if (ConsiderStep || CriticalDeltaChange) {
         // Compute current base positions and offset tolerance given current travel and
         // find group that needs to step most.
         float CurrentOffsetTolerance = this->Config.RestingOffsetTolerance;
@@ -100,15 +106,23 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
         for (int i = 0; i < this->TrackGroups.Num(); i++) {
             FLegIKTrackGroup* Group = &this->TrackGroups[i];
 
-            Group->CurrentComponentLocations = TArray<FVector>();
+            Group->CurrentWorldLocations = TArray<FVector>();
             for (int j = 0; j < Group->Tracks.Num(); j++) { 
-                FVector NewComponentLocation = (
+                FVector NewWorldLocation = (
                     ParentWorldLocation +
                     ParentRotation.RotateVector(Group->BaseComponentLocations[j]) +
                     MoveRetargetDelta
                 );
+                
+                #ifdef DEBUG_DRAWS
+                DrawDebugSphere(
+                    Parent->GetWorld(),
+                    NewWorldLocation,
+                    5.0f, 5, FColor::Green, false, 0.2f, 100
+                );
+                #endif
 
-                Group->CurrentComponentLocations.Push(NewComponentLocation);
+                Group->CurrentWorldLocations.Push(NewWorldLocation);
             }
         }
 
@@ -117,11 +131,13 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
         else {
             float MaxOffset = CurrentOffsetTolerance;
             for (int i = 0; i < this->TrackGroups.Num(); i++) {
+                if (GroupsStillPlacing[i]) continue;
+
                 FLegIKTrackGroup* CheckGroup = &this->TrackGroups[i];
 
                 float CheckOffset = FMath::Abs((
                     CheckGroup->Tracks[0].LegIKTrackWorldLocation() -
-                    CheckGroup->CurrentComponentLocations[0]
+                    CheckGroup->CurrentWorldLocations[0]
                 ).Size());
 
                 if (CheckOffset > MaxOffset) {
@@ -134,7 +150,10 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
         // Perform step.
         if (StepGroup != nullptr) {
             for (int i = 0; i < StepGroup->Tracks.Num(); i++) {
-                StepGroup->Tracks[i].LegIKTrackStepTo(StepGroup->CurrentComponentLocations[i], Parent);
+                StepGroup->Tracks[i].LegIKTrackStepTo(
+                    StepGroup->CurrentWorldLocations[i],
+                    Parent
+                );
             }
         }
     }

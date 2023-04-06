@@ -47,7 +47,7 @@ public:
     FLegIKTrack();
     FLegIKTrack(FVector InitialWorldLocation, FLegIKTrackConfig Config);
     FVector LegIKTrackWorldLocation();
-    bool LegIKTrackIsStepping();
+    ELegIKStepPhase LegIKTrackGetStepPhase();
     void LegIKTrackStepTo(FVector WorldOffset, USceneComponent* Parent);
     FVector LegIKTrackTick(float DeltaTime, USceneComponent* Parent);
 
