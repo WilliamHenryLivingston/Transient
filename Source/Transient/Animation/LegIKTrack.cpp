@@ -8,92 +8,103 @@
 #include "DrawDebugHelpers.h"
 #endif
 
-FLegIKTrackTickResult FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneComponent* Parent, bool MayStep) {
-    FVector ComponentWorldLocation = Parent->GetComponentLocation();
-    FRotator ComponentRotation = Parent->GetComponentRotation();
+FLegIKTrack::FLegIKTrack() { }
 
-    FLegIKTrackTickResult Result;
-    Result.DidStep = false;
+FLegIKTrack::FLegIKTrack(FVector InitialWorldLocation, FLegIKTrackConfig Config) {
+    this->CurrentWorldLocation = InitialWorldLocation;
+    this->Config = Config;   
+}
 
-    float ReachComponentDistance = this->Config.StepDistance * this->Config.RestReturnReachCoef;
+FVector FLegIKTrack::LegIKTrackWorldLocation() {
+    return this->CurrentWorldLocation;
+}
 
-    FVector ContactGroundWorldLocation = this->IKGroundHit(this->CurrentWorldLocation, Parent);
+bool FLegIKTrack::LegIKTrackIsStepping() {
+    return this->StepPhase != ELegIKStepPhase::None && this->StepPhase != ELegIKStepPhase::Place;
+}
+
+void FLegIKTrack::LegIKTrackStepTo(FVector WorldOffset, USceneComponent* Parent) {
+    this->StepWorldLocation = WorldOffset;
+    this->StepWorldLocation.Z = this->GroundHit(this->StepWorldLocation, Parent).Z;
+    this->StepPhase = ELegIKStepPhase::Lift;
+}
+
+FVector FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneComponent* Parent) {
     FVector TickTargetWorldLocation = this->CurrentWorldLocation;
-    TickTargetWorldLocation.Z = ContactGroundWorldLocation.Z + this->Config.GroundVerticalOffset;
+    TickTargetWorldLocation.Z = (
+        this->GroundHit(this->CurrentWorldLocation, Parent).Z +
+        this->Config.GroundVerticalOffset
+    );
 
-    if (this->StepPhase == EIKStepPhase::None && MayStep) {
-        FVector RestWorldLocation = this->RestComponentLocation + ComponentWorldLocation;
-
-        float CurrentStepDistance = (RestWorldLocation - this->CurrentWorldLocation).Size2D();
-        if (CurrentStepDistance > this->Config.StepDistance || (this->ReturnToRest && CurrentStepDistance > ReachComponentDistance)) {
-            this->TargetStepWorldLocation = RestWorldLocation;
-            this->TargetStepWorldLocation.Z = this->IKGroundHit(this->TargetStepWorldLocation, Parent).Z;
-            this->StepPhase = EIKStepPhase::Lift;
-        }
-    }
-    else if (this->StepPhase == EIKStepPhase::Lift) {
+    if (this->StepPhase == ELegIKStepPhase::Lift) {
         float LiftedZ = TickTargetWorldLocation.Z + this->Config.StepSwingVerticalOffset;
-        if (FMath::Abs(this->CurrentWorldLocation.Z - LiftedZ) < 5.0f) {
-            this->StepPhase = EIKStepPhase::Swing;
+        if (FMath::Abs(this->CurrentWorldLocation.Z - LiftedZ) < 2.0f) {
+            TickTargetWorldLocation.Z += this->Config.StepSwingVerticalOffset;
+            this->StepPhase = ELegIKStepPhase::Swing;
         }
         else {
+            FVector PartialStepWorldDelta = (
+                this->StepWorldLocation - this->CurrentWorldLocation
+            ) * 0.25f;
+            TickTargetWorldLocation.Z += this->Config.StepSwingVerticalOffset;
+            TickTargetWorldLocation.X += PartialStepWorldDelta.X;
+            TickTargetWorldLocation.Y += PartialStepWorldDelta.Y;
+        }
+    }
+    else if (this->StepPhase == ELegIKStepPhase::Swing) {
+        FVector PlaneWorldDistance = this->CurrentWorldLocation - this->StepWorldLocation;
+        PlaneWorldDistance.Z = 0.0f;
+        if (PlaneWorldDistance.Size() < this->Config.StepReachWorldRadius) {
+            this->StepPhase = ELegIKStepPhase::Place;
+        }
+        else {
+            TickTargetWorldLocation.X = this->StepWorldLocation.X;
+            TickTargetWorldLocation.Y = this->StepWorldLocation.Y;
             TickTargetWorldLocation.Z += this->Config.StepSwingVerticalOffset;
         }
     }
-    else if (this->StepPhase == EIKStepPhase::Swing) {
-        FVector PlaneDistance = this->CurrentWorldLocation - this->TargetStepWorldLocation;
-        PlaneDistance.Z = 0.0f;
-        if (PlaneDistance.Size() < ReachComponentDistance) {
-            this->StepPhase = EIKStepPhase::Place;
+    else if (this->StepPhase == ELegIKStepPhase::Place) { // Place.
+        float WorldDistance = FMath::Abs(this->CurrentWorldLocation.Z - TickTargetWorldLocation.Z);
+
+        if (WorldDistance < this->Config.StepReachWorldRadius) {
+            this->StepPhase = ELegIKStepPhase::None;
         }
-        else {
-            TickTargetWorldLocation.X = this->TargetStepWorldLocation.X;
-            TickTargetWorldLocation.Y = this->TargetStepWorldLocation.Y;
-            TickTargetWorldLocation.Z += this->Config.StepSwingVerticalOffset;
-        }
-    }
-    else if (this->StepPhase == EIKStepPhase::Place && FMath::Abs(this->CurrentWorldLocation.Z - TickTargetWorldLocation.Z) < 20.0f) { // Place.
-        this->StepPhase = EIKStepPhase::None;
-        Result.DidStep = true;
     }
 
     this->CurrentWorldLocation = FMath::VInterpTo(
         this->CurrentWorldLocation,
         TickTargetWorldLocation,
-        DeltaTime, this->Config.LerpRate
-    );
-    Result.NewTarget = this->CurrentComponentLocation = FMath::VInterpTo(
-        this->CurrentComponentLocation,
-        ComponentRotation.UnrotateVector(this->CurrentWorldLocation - ComponentWorldLocation),
-        DeltaTime, this->Config.LerpRate
+        DeltaTime,
+        // Not sure why this is needed, but behavior is wrong otherwise when global time != 1.
+        this->Config.LerpRate / DeltaTime
     );
 
     #ifdef DEBUG_DRAWS
     DrawDebugSphere(
         Parent->GetWorld(),
-        this->TargetStepWorldLocation,
+        this->StepWorldLocation,
         5.0f, 5,
-        this->StepPhase != EIKStepPhase::None ? FColor::Yellow : FColor::Black,
+        this->StepPhase != ELegIKStepPhase::None ? FColor::Yellow : FColor::Black,
         false, 0.2f, 100
     );
     DrawDebugSphere(
         Parent->GetWorld(),
-        this->RestComponentLocation + ComponentWorldLocation,
+        this->CurrentWorldLocation,
         3.0f, 5, FColor::Orange, false, 0.2f, 100
     );
     #endif
 
-    return Result;
+    return this->CurrentWorldLocation;
 }
 
-FVector FLegIKTrack::IKGroundHit(FVector Below, USceneComponent* Parent) { // World space.
+FVector FLegIKTrack::GroundHit(FVector Below, USceneComponent* Parent) {
     FVector RayEnd = Below - FVector(0.0f, 0.0f, this->Config.GroundCastDistance);
 
     FHitResult HitResult;
     Parent->GetWorld()->LineTraceSingleByChannel(
         HitResult,
         Below, RayEnd,
-        ECollisionChannel::ECC_Visibility,
+        ECollisionChannel::ECC_GameTraceChannel3,
         FCollisionQueryParams()
     );
 

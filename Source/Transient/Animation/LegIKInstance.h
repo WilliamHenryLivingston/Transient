@@ -16,6 +16,15 @@ enum class ELegIKPlacementStrategy : uint8 {
 };
 
 USTRUCT()
+struct FLegIKTrackGroupConfig {
+	GENERATED_BODY()
+
+public:
+    UPROPERTY(EditAnywhere)
+	TArray<int> Members;
+};
+
+USTRUCT()
 struct FLegIKInstanceConfig {
 	GENERATED_BODY()
 
@@ -23,23 +32,40 @@ public:
 	UPROPERTY(EditAnywhere)
 	int LegCount;
 	UPROPERTY(EditAnywhere)
-	ELegIKPlacementStrategy PlacementStrategy;
+	TArray<FLegIKTrackGroupConfig> LegGroups;
 	UPROPERTY(EditAnywhere)
-	float LegRestComponentLocationOffset;
+	ELegIKPlacementStrategy LegPlacementStrategy;
 	UPROPERTY(EditAnywhere)
-	float TorsoMaxOffset;
+	float LegBaseComponentOffset;
 	UPROPERTY(EditAnywhere)
-	float TorsoMinOffset;
+	float BodyMaxOffset;
 	UPROPERTY(EditAnywhere)
-	float TorsoRestOffset;
+	float BodyMinOffset;
 	UPROPERTY(EditAnywhere)
-	FVector CenterOffset;
+	float BodyRestOffset;
 	UPROPERTY(EditAnywhere)
-	float TorsoLerpSpeed;
+	FVector BodyCenterOffset;
 	UPROPERTY(EditAnywhere)
-	TArray<int> LegGroupA;
+	float BodyLerpRate;
 	UPROPERTY(EditAnywhere)
-	float TravelDirectionComponentOffset;
+	float MoveTargetingCoef;
+	UPROPERTY(EditAnywhere)
+	float MovingOffsetTolerance;
+	UPROPERTY(EditAnywhere)
+	float RestingOffsetTolerance;
+	UPROPERTY(EditAnywhere)
+	float DeltaChangeTolerance;
+};
+
+USTRUCT()
+struct FLegIKTrackGroup {
+	GENERATED_BODY()
+
+public:
+	// TODO: Field only exists to avoid *another* struct (TArray limitation).
+	TArray<FVector> CurrentComponentLocations;
+	TArray<FVector> BaseComponentLocations;
+	TArray<FLegIKTrack> Tracks;
 };
 
 UCLASS()
@@ -53,14 +79,10 @@ protected:
 private:
 	FLegIKInstanceConfig Config;
 
-	TArray<FLegIKTrack> Tracks;
-	TArray<FVector> RestComponentLocations;
+	TArray<FLegIKTrackGroup> TrackGroups;
 
 	FVector LastWorldLocation;
-	TArray<FVector> LastMoveDeltas;
-	int LastMoveDeltaIndex;
-
-	bool GroupAStepNext;
+	FVector LastMoveDelta;
 
 public:
 	void LegIKInstanceInit(USceneComponent* Parent, FLegIKInstanceConfig InitConfig, FLegIKTrackConfig TracksConfig);

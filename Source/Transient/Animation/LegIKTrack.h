@@ -16,29 +16,18 @@ public:
     UPROPERTY(EditAnywhere)
     float GroundCastDistance;
     UPROPERTY(EditAnywhere)
-    float LerpRate;
-    UPROPERTY(EditAnywhere)
-    float StepDistance;
-    UPROPERTY(EditAnywhere)
     float StepSwingVerticalOffset;
     UPROPERTY(EditAnywhere)
-    float RestReturnReachCoef;
+    float StepReachWorldRadius;
+    UPROPERTY(EditAnywhere)
+    float LerpRate;
 };
 
-enum class EIKStepPhase : uint8 {
+enum class ELegIKStepPhase : uint8 {
     None,
 	Lift,
 	Swing,
     Place
-};
-
-USTRUCT()
-struct FLegIKTrackTickResult {
-    GENERATED_BODY()
-
-public:
-    FVector NewTarget;
-    bool DidStep;
 };
 
 USTRUCT()
@@ -48,20 +37,20 @@ struct FLegIKTrack {
 public:
     FLegIKTrackConfig Config;
 
-    // TODO: Slightly awkward members.
-    FVector RestComponentLocation;
-    EIKStepPhase StepPhase;
+private:
     FVector CurrentWorldLocation;
 
-    bool ReturnToRest;
-
-private:
-    FVector CurrentComponentLocation;
-    FVector TargetStepWorldLocation;
+    ELegIKStepPhase StepPhase;
+    FVector StepWorldLocation;
 
 public:
-    FLegIKTrackTickResult LegIKTrackTick(float DeltaTime, USceneComponent* Parent, bool MayStep);
+    FLegIKTrack();
+    FLegIKTrack(FVector InitialWorldLocation, FLegIKTrackConfig Config);
+    FVector LegIKTrackWorldLocation();
+    bool LegIKTrackIsStepping();
+    void LegIKTrackStepTo(FVector WorldOffset, USceneComponent* Parent);
+    FVector LegIKTrackTick(float DeltaTime, USceneComponent* Parent);
 
 private:
-    FVector IKGroundHit(FVector Below, USceneComponent* Parent);
+    FVector GroundHit(FVector Below, USceneComponent* Parent);
 };

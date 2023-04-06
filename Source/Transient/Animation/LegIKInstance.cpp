@@ -2,133 +2,161 @@
 
 #include "LegIKInstance.h"
 
-void ULegIKInstance::LegIKInstanceInit(USceneComponent* Parent, FLegIKInstanceConfig InitConfig, FLegIKTrackConfig TracksConfig) {
+void ULegIKInstance::LegIKInstanceInit(
+    USceneComponent* Parent,
+    FLegIKInstanceConfig InitConfig, FLegIKTrackConfig TracksConfig
+) {
+    this->LastWorldLocation = Parent->GetComponentLocation();
     this->Config = InitConfig;
 
-    for (int i = 0; i < this->Config.LegCount; i++) {
-        FLegIKTrack Track;
-        Track.Config = TracksConfig;
-        Track.StepPhase = EIKStepPhase::None;
-        this->Tracks.Push(Track);
-    }
-
-    if (this->Config.PlacementStrategy == ELegIKPlacementStrategy::Circle) {
+    // Compute base placements.
+    TArray<FVector> BaseComponentLocations;
+    if (this->Config.LegPlacementStrategy == ELegIKPlacementStrategy::Circle) {
         float DegreeOffset = 360.0f / this->Config.LegCount;
 
         FRotator Rotator;
-        FVector OffsetVector(0.0f, this->Config.LegRestComponentLocationOffset, 0.0f);
+        FVector OffsetVector = FVector(0.0f, this->Config.LegBaseComponentOffset, 0.0f);
 
         Rotator.Yaw += DegreeOffset / 2.0f;
 
         for (int i = 0; i < this->Config.LegCount; i++) {
             FVector RestComponentLocation = Rotator.RotateVector(OffsetVector);
-            this->RestComponentLocations.Push(this->Config.CenterOffset + RestComponentLocation);
+            BaseComponentLocations.Push(this->Config.BodyCenterOffset + RestComponentLocation);
             Rotator.Yaw += DegreeOffset;
         }
     }
-    else if (this->Config.PlacementStrategy == ELegIKPlacementStrategy::Biped) {
-        this->RestComponentLocations.Push(this->Config.CenterOffset + FVector(
-            0.0f,
-            this->Config.LegRestComponentLocationOffset,
-            0.0f
-        ));
-        this->RestComponentLocations.Push(this->Config.CenterOffset + FVector(
-            0.0f,
-            -this->Config.LegRestComponentLocationOffset,
-            0.0f
+    else if (this->Config.LegPlacementStrategy == ELegIKPlacementStrategy::Biped) {
+        FVector SideOffset = FVector(0.0f, this->Config.LegBaseComponentOffset, 0.0f);
+
+        BaseComponentLocations.Push(this->Config.BodyCenterOffset + SideOffset);
+        BaseComponentLocations.Push(this->Config.BodyCenterOffset + (SideOffset * -1.0f));
+    }
+
+    // Create tracks.
+    TArray<FLegIKTrack> Tracks;
+    FVector ParentWorldLocation = Parent->GetComponentLocation();
+    for (int i = 0; i < this->Config.LegCount; i++) {
+        Tracks.Push(FLegIKTrack(
+            ParentWorldLocation + BaseComponentLocations[i],
+            TracksConfig
         ));
     }
 
-    for (int i = 0; i < this->Tracks.Num(); i++) {
-        this->Tracks[i].CurrentWorldLocation = Parent->GetComponentLocation() + this->RestComponentLocations[i];
+    // Create track groups.
+    for (int i = 0; i < this->Config.LegGroups.Num(); i++) {
+        FLegIKTrackGroupConfig GroupConfig = this->Config.LegGroups[i];
+        FLegIKTrackGroup Group;
+
+        for (int j = 0; j < GroupConfig.Members.Num(); j++) {
+            int LegIndex = GroupConfig.Members[j];
+
+            Group.Tracks.Push(Tracks[LegIndex]);
+            Group.BaseComponentLocations.Push(BaseComponentLocations[LegIndex]);
+        }
+
+        this->TrackGroups.Push(Group);
     }
  }
 
 void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent) {
-    FVector CurrentWorldLocation = Parent->GetComponentLocation();
-    FRotator CurrentRotation = Parent->GetComponentRotation();
-    FVector TickMoveDelta = CurrentWorldLocation - this->LastWorldLocation;
-    this->LastWorldLocation = CurrentWorldLocation;
+    FVector ParentWorldLocation = Parent->GetComponentLocation();
+    FRotator ParentRotation = Parent->GetComponentRotation();
 
-    int LocationSamples = 2;
-    if (this->LastMoveDeltas.Num() < LocationSamples) {
-        this->LastMoveDeltas.Push(CurrentWorldLocation);
-        this->LastMoveDeltaIndex = this->LastMoveDeltas.Num() - 1;
-    }
-    else {
-        this->LastMoveDeltaIndex = (this->LastMoveDeltaIndex + 1) % LocationSamples;
-        this->LastMoveDeltas[this->LastMoveDeltaIndex] = TickMoveDelta;
+    FVector MoveWorldDelta = ParentWorldLocation - this->LastWorldLocation;
+    this->LastWorldLocation = ParentWorldLocation;
+
+    bool CriticalDeltaChange = (MoveWorldDelta - this->LastMoveDelta).Size() > 4.0f; // TODO: Conf.
+    this->LastMoveDelta = MoveWorldDelta;
+    
+    if (CriticalDeltaChange) {
+        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, MoveWorldDelta.ToString());
     }
 
-    FVector MoveWorldDelta;
-    for (int i = 0; i < this->LastMoveDeltas.Num(); i++) {
-        MoveWorldDelta += this->LastMoveDeltas[i] / LocationSamples;
+    FLegIKTrackGroup* CriticalImpactedGroup = nullptr;
+    bool Stepping = false;
+    for (int i = 0; i < this->TrackGroups.Num(); i++) {
+        FLegIKTrackGroup* Group = &this->TrackGroups[i];
+
+        for (int j = 0; j < Group->Tracks.Num(); j++) {
+            if (Group->Tracks[j].LegIKTrackIsStepping()) {
+                Stepping = true;
+                CriticalImpactedGroup = Group;
+                break;
+            }
+        }
     }
-    MoveWorldDelta.Z = 0;
 
-    for (int i = 0; i < this->Config.LegCount; i++) {
-        this->Tracks[i].ReturnToRest = false;
-        this->Tracks[i].RestComponentLocation = CurrentRotation.RotateVector(this->RestComponentLocations[i]);
-    }
+    if (!Stepping || CriticalDeltaChange) {
+        // Compute current base positions and offset tolerance given current travel and
+        // find group that needs to step most.
+        float CurrentOffsetTolerance = this->Config.RestingOffsetTolerance;
+        FVector MoveRetargetDelta;
+        if (!MoveWorldDelta.IsZero()) {
+            CurrentOffsetTolerance = this->Config.MovingOffsetTolerance;
+            MoveRetargetDelta += MoveWorldDelta * this->Config.MoveTargetingCoef;
+            MoveRetargetDelta /= FMath::Sqrt(MoveRetargetDelta.Size());
+        }
 
-    // Find nearest rest position to direction of travel. That group becomes the
-    // leading group and it's rest positions are adjusted accordingly.
-    bool Moving = !MoveWorldDelta.IsZero();
-    if (Moving) {
-        FVector MoveNormalizedDelta = MoveWorldDelta.GetSafeNormal();
-        FVector RestRelativeMoveComponentDelta = MoveNormalizedDelta * this->Config.LegRestComponentLocationOffset;
+        for (int i = 0; i < this->TrackGroups.Num(); i++) {
+            FLegIKTrackGroup* Group = &this->TrackGroups[i];
 
-        int ClosestIndex = -1;
-        float ClosestDistance = 0.0f;
-        for (int i = 0; i < this->Config.LegCount; i++) {
-            float CheckDistance = (this->RestComponentLocations[i] - RestRelativeMoveComponentDelta).Size();
-            if (ClosestIndex < 0 || CheckDistance < ClosestDistance) {
-                ClosestIndex = i;
-                ClosestDistance = CheckDistance;
+            Group->CurrentComponentLocations = TArray<FVector>();
+            for (int j = 0; j < Group->Tracks.Num(); j++) { 
+                FVector NewComponentLocation = (
+                    ParentWorldLocation +
+                    ParentRotation.RotateVector(Group->BaseComponentLocations[j]) +
+                    MoveRetargetDelta
+                );
+
+                Group->CurrentComponentLocations.Push(NewComponentLocation);
             }
         }
 
-        bool GroupAClosest = this->Config.LegGroupA.Contains(ClosestIndex);
+        FLegIKTrackGroup* StepGroup = nullptr;
+        if (CriticalDeltaChange) StepGroup = CriticalImpactedGroup;
+        else {
+            float MaxOffset = CurrentOffsetTolerance;
+            for (int i = 0; i < this->TrackGroups.Num(); i++) {
+                FLegIKTrackGroup* CheckGroup = &this->TrackGroups[i];
 
-        for (int i = 0; i < this->Config.LegCount; i++) {
-            this->Tracks[i].RestComponentLocation += (MoveWorldDelta * this->Config.TravelDirectionComponentOffset);
+                float CheckOffset = FMath::Abs((
+                    CheckGroup->Tracks[0].LegIKTrackWorldLocation() -
+                    CheckGroup->CurrentComponentLocations[0]
+                ).Size());
+
+                if (CheckOffset > MaxOffset) {
+                    MaxOffset = CheckOffset;
+                    StepGroup = CheckGroup;
+                }
+            }
         }
-    }
 
-    // TODO: Improve this.
-    bool CanGroupAStep = true;
-    bool CanGroupBStep = true;
-    for (int i = 0; i < this->Config.LegCount; i++) {
-        if (this->Tracks[i].StepPhase != EIKStepPhase::None) {
-            if (this->Config.LegGroupA.Contains(i)) CanGroupAStep = false;
-            else CanGroupBStep = false;
-        }
-    }
-
-    if (!Moving && CanGroupAStep && CanGroupBStep) {
-        for (int i = 0; i < this->Config.LegCount; i++) {
-            this->Tracks[i].ReturnToRest = true;
+        // Perform step.
+        if (StepGroup != nullptr) {
+            for (int i = 0; i < StepGroup->Tracks.Num(); i++) {
+                StepGroup->Tracks[i].LegIKTrackStepTo(StepGroup->CurrentComponentLocations[i], Parent);
+            }
         }
     }
 
     // Tick tracks.
     TArray<FVector> NewIKTargets;
     bool DidAnyStep = false;
-    for (int i = 0; i < this->Config.LegCount; i++) {
-        bool MayStep = (
-            this->Config.LegGroupA.Contains(i) ?
-                CanGroupAStep && this->GroupAStepNext
-                :
-                CanGroupBStep && !this->GroupAStepNext
-        );
+    for (int i = 0; i < this->TrackGroups.Num(); i++) {
+        FLegIKTrackGroup* Group = &this->TrackGroups[i];
 
-        FLegIKTrackTickResult Result = this->Tracks[i].LegIKTrackTick(DeltaTime, Parent, MayStep);
-        NewIKTargets.Push(Result.NewTarget);
+        for (int j = 0; j < Group->Tracks.Num(); j++) {
+            FVector TargetWorldLocation = Group->Tracks[j].LegIKTrackTick(DeltaTime, Parent);
+            FVector TargetComponentLocation = (
+                ParentRotation.UnrotateVector(TargetWorldLocation - ParentWorldLocation)
+            );
 
-        if (Result.DidStep) DidAnyStep = true;
+            NewIKTargets.Push(TargetComponentLocation);
+        }
     }
-    if (DidAnyStep) this->GroupAStepNext = !this->GroupAStepNext;
+    this->Script_IKTargets = NewIKTargets;
 
+    /*
     // Ensure torso Z offset constraints.
     // Careful! We're dealing with a negative offset here so signs are inverted.
     float ZComponentMax = NewIKTargets[0].Z;
@@ -159,6 +187,6 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
         }
     }
 
-    this->Script_IKTargets = NewIKTargets;
     Parent->GetOwner()->SetActorLocation(ActorWorldLocation);
+    */
 }
