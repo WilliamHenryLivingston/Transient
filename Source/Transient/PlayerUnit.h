@@ -53,6 +53,7 @@ private:
 	UStatusUIWidget* StatusUI;
 	UStatusUIWidget* ExpandedStatusUI;
 	UWidgetComponent* ExpandedStatusUIComponent;
+	UUnitSlotComponent* BackSlot;
 
 	float CurrentForcedDilation;
 
@@ -106,4 +107,5 @@ private:
 	void InputEndAim();
 	void InputStartCheckStatus();
 	void InputEndCheckStatus();
+	void InputDropBackSlot();
 };

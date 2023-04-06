@@ -18,6 +18,7 @@ public:
 	float Time = 1.0f;
 };
 
+// TODO: Simplify to IK, Jump.
 UENUM(BlueprintType)
 enum class EUnitAnimLegsState : uint8 {
     None,

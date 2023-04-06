@@ -19,7 +19,7 @@ void AUnitPawn::BeginPlay() {
 
 	this->JumpTimer = -1.0f; // TODO: Janky.
 	
-	this->RigComponent = this->FindComponentByClass<USkeletalMeshComponent>();
+	this->RigComponent = this->FindComponentByClass<ULegIKSkeletonComponent>();
 	this->Animation = Cast<UUnitAnimInstance>(this->RigComponent->GetAnimInstance());
 	this->AudioComponent = this->FindComponentByClass<UAudioComponent>();
 
@@ -218,6 +218,15 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	}
 
 	// Movement update.
+	float LegIKLerp = 1.0f;
+	float LegIKMoveCoef = 1.0f;
+	float LegIKBodyOffset = 1.0f;
+	float LegIKStepCoef = 1.0f;
+
+	if (this->Crouching || this->Immobilized) {
+		LegIKStepCoef *= 0.333f;
+	}
+
 	FVector CurrentLocation = this->GetActorLocation();	
 
 	bool ActiveJump = this->JumpTimer > 0.0f;
@@ -236,8 +245,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		ColliderScale.Z *= this->CrouchVerticalShrink;
 		RigLocation.Z += this->CrouchVerticalTranslate;
 		RigScale.Z *= this->BaseColliderVerticalScale / ColliderScale.Z;
-		
-		this->HasMoveTarget = false;
+		LegIKBodyOffset = this->CrouchVerticalShrink;
 	}
 	this->ColliderComponent->SetRelativeScale3D(ColliderScale);
 	this->RigComponent->SetRelativeLocation(RigLocation);
@@ -252,28 +260,47 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		FVector MoveDelta = (this->MoveTarget - CurrentLocation).GetSafeNormal() * Speed * DeltaTime;
 		MoveDelta.Z = 0;
 
-		// Check whether strafing.
 		float Angle = acos(MoveDelta.Dot(ActorForward) / (MoveDelta.Length() * ActorForward.Length()));
-		if (Angle > this->StrafeConeAngle) MoveDelta *= StrafeModifier;
 
 		float AngleDeg = FMath::RadiansToDegrees(atan2(
 			(ActorForward.X * MoveDelta.X) + (ActorForward.Y * MoveDelta.Y),
 			(ActorForward.X * MoveDelta.Y) + (ActorForward.Y * MoveDelta.X)
 		)) + 180.0f;
 
-		if (abs(AngleDeg - 45.0f) < 90.0f && AngleDeg > 45.0f) LegsState = EUnitAnimLegsState::WalkBwd;
-		else if (abs(AngleDeg - (45.0f * 3.0f)) < 90.0f) LegsState = EUnitAnimLegsState::WalkLeft;
+		if (this->Crouching) {
+			MoveDelta *= 0.5;
+			LegIKMoveCoef *= 0.5f;
+		}
+
+		if (abs(AngleDeg - 45.0f) < 90.0f && AngleDeg > 45.0f) {
+			LegsState = EUnitAnimLegsState::WalkBwd;
+			MoveDelta *= StrafeModifier;
+		}
+		else if (abs(AngleDeg - (45.0f * 3.0f)) < 90.0f) {
+			LegsState = EUnitAnimLegsState::WalkLeft;
+			LegIKMoveCoef *= 0.5f;
+			MoveDelta *= StrafeModifier;
+		}
 		else if (abs(AngleDeg - (45.0f * 5.0f)) < 90.0f) {
 			LegsState = EUnitAnimLegsState::WalkFwd;
-			if (this->Exerted) {
+
+			if (this->Exerted && !this->Crouching) {
 				MoveDelta *= this->SprintModifier;
 				LegsModifier = EUnitAnimLegsModifier::Sprint;
+				LegIKLerp = 1.5f;
 			}
 		}
-		else LegsState = EUnitAnimLegsState::WalkRight;
+		else {
+			LegsState = EUnitAnimLegsState::WalkRight;
+			LegIKMoveCoef *= 0.5f;
+			MoveDelta *= StrafeModifier;
+		}
 
 		this->SetActorLocation(CurrentLocation + MoveDelta);
 	}
+	this->RigComponent->LegIKSetDynamics(
+		LegIKLerp, LegIKMoveCoef, LegIKBodyOffset, LegIKStepCoef
+	);
 
 	// Jump animation has highest priority.
 	if (ActiveJump) LegsState = EUnitAnimLegsState::Jump;
@@ -492,6 +519,8 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 			),
 			FName("S_Armor")
 		);
+		this->ArmorItem->SetActorRelativeLocation(this->ArmorItem->EquippedOffset);
+		this->ArmorItem->SetActorRelativeRotation(this->ArmorItem->EquippedRotation);
 		this->UnitDiscoverDynamicChildComponents();
 		return;
 	}

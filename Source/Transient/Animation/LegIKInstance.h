@@ -38,15 +38,15 @@ public:
 	UPROPERTY(EditAnywhere)
 	float LegBaseComponentOffset;
 	UPROPERTY(EditAnywhere)
-	float BodyMaxOffset;
+	float BodyMaxOffset; // TODO: rm?
 	UPROPERTY(EditAnywhere)
-	float BodyMinOffset;
+	float BodyMinOffset;  // TODO: rm?
 	UPROPERTY(EditAnywhere)
-	float BodyRestOffset;
+	float BodyRestOffset; // TODO: Rename to BodyBaseOffset.
 	UPROPERTY(EditAnywhere)
 	FVector BodyCenterOffset;
 	UPROPERTY(EditAnywhere)
-	float BodyLerpRate;
+	float BodyLerpRate; // TODO: rm?
 	UPROPERTY(EditAnywhere)
 	float MoveTargetingCoef;
 	UPROPERTY(EditAnywhere)
@@ -84,7 +84,15 @@ private:
 	FVector LastWorldLocation;
 	FVector LastMoveDelta;
 
+	// TODO: Struct.
+	float DynamicMoveTargetingCoef;
+	float DynamicBodyBaseOffsetCoef;
+
 public:
 	void LegIKInstanceInit(USceneComponent* Parent, FLegIKInstanceConfig InitConfig, FLegIKTrackConfig TracksConfig);
-	void LegIKInstanceTick(float DeltaTime, USceneComponent* Parent);	
+	void LegIKInstanceTick(float DeltaTime, USceneComponent* Parent);
+	void LegIKInstanceSetDynamics(
+		float DynamicLerpRate, float DynamicMoveTargetingCoef,
+		float DynamicBodyBaseOffsetCoef, float DynamicStepVerticalCoef
+	);	
 };

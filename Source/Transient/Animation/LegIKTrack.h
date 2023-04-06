@@ -37,6 +37,9 @@ struct FLegIKTrack {
 public:
     FLegIKTrackConfig Config;
 
+    float DynamicLerpRateCoef;
+	float DynamicStepVerticalCoef;
+
 private:
     FVector CurrentWorldLocation;
 

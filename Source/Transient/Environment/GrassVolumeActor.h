@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "Components/BoxComponent.h"
 
+#include "GrassVolumePartition.h"
+
 #include "GrassVolumeActor.generated.h"
 
 UCLASS()
@@ -18,15 +20,14 @@ private:
 	UPROPERTY(EditAnywhere, Category="Grass Volume")
 	int NumBlades;
 	UPROPERTY(EditAnywhere, Category="Grass Volume")
+	int NumSpacePartitions;
+	UPROPERTY(EditAnywhere, Category="Grass Volume")
 	UStaticMesh* BladeMesh;
 
-	TArray<UStaticMeshComponent*> Blades;
-	TArray<AActor*> TrackedActors;
-	TArray<float> Yaws;
+	TArray<UGrassVolumePartition*> Partitions;
 
 public:
 	AGrassVolumeActor();
-	virtual void Tick(float DeltaTime) override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -34,9 +35,4 @@ protected:
 private:
 	UFUNCTION(CallInEditor, Category="Grass Volume")
 	void GenerateBlades();
-
-	UFUNCTION()
-	void OnPawnEnter(UPrimitiveComponent* Into, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherIdx, bool FromSweep, const FHitResult &Sweep);
-	UFUNCTION()
-	void OnPawnLeave(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 };

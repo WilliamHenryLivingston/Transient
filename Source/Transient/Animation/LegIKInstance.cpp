@@ -11,6 +11,9 @@ void ULegIKInstance::LegIKInstanceInit(
     this->LastWorldLocation = Parent->GetComponentLocation();
     this->Config = InitConfig;
 
+    this->DynamicMoveTargetingCoef = 1.0f;
+    this->DynamicBodyBaseOffsetCoef = 1.0f;
+
     // Compute base placements.
     TArray<FVector> BaseComponentLocations;
     if (this->Config.LegPlacementStrategy == ELegIKPlacementStrategy::Circle) {
@@ -22,16 +25,15 @@ void ULegIKInstance::LegIKInstanceInit(
         Rotator.Yaw += DegreeOffset / 2.0f;
 
         for (int i = 0; i < this->Config.LegCount; i++) {
-            FVector RestComponentLocation = Rotator.RotateVector(OffsetVector);
-            BaseComponentLocations.Push(this->Config.BodyCenterOffset + RestComponentLocation);
+            BaseComponentLocations.Push(Rotator.RotateVector(OffsetVector));
             Rotator.Yaw += DegreeOffset;
         }
     }
     else if (this->Config.LegPlacementStrategy == ELegIKPlacementStrategy::Biped) {
         FVector SideOffset = FVector(0.0f, this->Config.LegBaseComponentOffset, 0.0f);
 
-        BaseComponentLocations.Push(this->Config.BodyCenterOffset + SideOffset);
-        BaseComponentLocations.Push(this->Config.BodyCenterOffset + (SideOffset * -1.0f));
+        BaseComponentLocations.Push(SideOffset);
+        BaseComponentLocations.Push(SideOffset * -1.0f);
     }
 
     // Create tracks.
@@ -58,7 +60,25 @@ void ULegIKInstance::LegIKInstanceInit(
 
         this->TrackGroups.Push(Group);
     }
- }
+}
+
+void ULegIKInstance::LegIKInstanceSetDynamics(
+    float NewLerpRate, float NewMoveTargetingCoef,
+    float NewDynamicBodyBaseOffsetCoef,
+    float NewDynamicStepVerticalCoef
+) {
+    this->DynamicMoveTargetingCoef = NewMoveTargetingCoef;
+    this->DynamicBodyBaseOffsetCoef = NewDynamicBodyBaseOffsetCoef;
+
+    for (int i = 0; i < this->TrackGroups.Num(); i++) {
+        FLegIKTrackGroup* Group = &this->TrackGroups[i];
+
+        for (int j = 0; j < Group->Tracks.Num(); j++) {
+            Group->Tracks[j].DynamicLerpRateCoef = NewLerpRate;
+            Group->Tracks[j].DynamicStepVerticalCoef = NewDynamicStepVerticalCoef;
+        }
+    }
+}
 
 void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent) {
     FVector ParentWorldLocation = Parent->GetComponentLocation();
@@ -67,7 +87,8 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
     FVector MoveWorldDelta = ParentWorldLocation - this->LastWorldLocation;
     this->LastWorldLocation = ParentWorldLocation;
 
-    bool CriticalDeltaChange = (MoveWorldDelta - this->LastMoveDelta).Size() > 4.0f; // TODO: Conf.
+    float AccelerationSize = (this->LastMoveDelta - MoveWorldDelta).Size2D();
+    bool CriticalDeltaChange = AccelerationSize > this->Config.DeltaChangeTolerance;
     this->LastMoveDelta = MoveWorldDelta;
     
     #ifdef DEBUG_DRAWS
@@ -99,7 +120,11 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
         FVector MoveRetargetDelta;
         if (!MoveWorldDelta.IsZero()) {
             CurrentOffsetTolerance = this->Config.MovingOffsetTolerance;
-            MoveRetargetDelta += MoveWorldDelta * this->Config.MoveTargetingCoef;
+            MoveRetargetDelta += (
+                MoveWorldDelta *
+                this->DynamicMoveTargetingCoef *
+                this->Config.MoveTargetingCoef
+            );
             MoveRetargetDelta /= FMath::Sqrt(MoveRetargetDelta.Size());
         }
 
@@ -111,9 +136,27 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
                 FVector NewWorldLocation = (
                     ParentWorldLocation +
                     ParentRotation.RotateVector(Group->BaseComponentLocations[j]) +
-                    MoveRetargetDelta
+                    MoveRetargetDelta +
+                    FVector(0.0f, 0.0f, 20.0f)
                 );
-                
+
+                // TODO: Not here...
+                bool BipedCrouch = (
+                    this->DynamicBodyBaseOffsetCoef < 1.0f &&
+                    this->Config.LegPlacementStrategy == ELegIKPlacementStrategy::Biped
+                );
+                if (BipedCrouch) {
+                    FVector OffsetVector = (
+                        FVector(this->Config.LegBaseComponentOffset, 0.0f, 0.0f) +
+                        ParentRotation.RotateVector(FVector(
+                            0.0f, this->Config.LegBaseComponentOffset * 0.25f, 0.0f
+                        ))
+                    );
+            
+                    if (i == 0) NewWorldLocation += OffsetVector;
+                    else NewWorldLocation -= OffsetVector;
+                }
+ 
                 #ifdef DEBUG_DRAWS
                 DrawDebugSphere(
                     Parent->GetWorld(),
@@ -173,11 +216,15 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
             NewIKTargets.Push(TargetComponentLocation);
         }
     }
+
+    FVector LastRootTarget;
+    if (this->Script_IKTargets.Num() > 0) {
+        LastRootTarget = this->Script_IKTargets[this->Script_IKTargets.Num() - 1];
+    }
     this->Script_IKTargets = NewIKTargets;
 
-    /*
-    // Ensure torso Z offset constraints.
-    // Careful! We're dealing with a negative offset here so signs are inverted.
+    // Body manipulation; compute root bone target (last target element).
+    // TODO: Finish (adjust for foot Z placements).
     float ZComponentMax = NewIKTargets[0].Z;
     float ZComponentMin = NewIKTargets[0].Z;
     for (int i = 1; i < this->Config.LegCount; i++) {
@@ -186,26 +233,18 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
         if (CheckZ < ZComponentMin) ZComponentMin = CheckZ;
     }
 
-    FVector ActorWorldLocation = Parent->GetOwner()->GetActorLocation();
+    FVector TickRootTarget = FVector(
+        0.0f, 0.0f,
+        (this->Config.BodyRestOffset - ZComponentMin) * this->DynamicBodyBaseOffsetCoef
+    );
 
-    float TorsoDelta = this->Config.TorsoLerpSpeed * DeltaTime;
-    float RestOffsetPadding = 6.0f; // TODO.
+    FVector InterpedRootTarget = FMath::VInterpTo(
+        LastRootTarget,
+        TickRootTarget,
+        DeltaTime,
+        // Not sure why this is needed, but behavior is wrong otherwise when global time != 1.
+        this->Config.BodyLerpRate / DeltaTime
+    );
 
-    if (ZComponentMax > -this->Config.TorsoMinOffset) {
-        ActorWorldLocation.Z += TorsoDelta;
-    }
-    else if (ZComponentMin < -this->Config.TorsoMaxOffset) {
-        ActorWorldLocation.Z -= TorsoDelta;
-    }
-    else if (FMath::Abs(FMath::Abs(ZComponentMax) - FMath::Abs(ZComponentMin)) < RestOffsetPadding) {
-        if (ZComponentMax > -(this->Config.TorsoRestOffset - RestOffsetPadding)) {
-            ActorWorldLocation.Z += TorsoDelta;
-        }
-        else if (ZComponentMin < -(this->Config.TorsoRestOffset + RestOffsetPadding)) {
-            ActorWorldLocation.Z -= TorsoDelta;
-        }
-    }
-
-    Parent->GetOwner()->SetActorLocation(ActorWorldLocation);
-    */
+    this->Script_IKTargets.Push(InterpedRootTarget);
 }

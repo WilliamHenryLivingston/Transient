@@ -27,4 +27,10 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+
+public:
+	void LegIKSetDynamics(
+		float LerpRate, float DynamicMoveTargetingCoef,
+		float DynamicBodyBaseOffsetCoef, float DynamicStepVerticalCoef
+	);
 };

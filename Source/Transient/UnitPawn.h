@@ -13,6 +13,7 @@
 #include "Items/ArmorItem.h"
 #include "Environment/InteractiveActor.h"
 #include "Animation/UnitAnimInstance.h"
+#include "Animation/LegIKSkeletonComponent.h"
 #include "UnitSlotComponent.h"
 
 #include "UnitPawn.generated.h"
@@ -35,7 +36,7 @@ private:
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
 	float StrafeModifier = 0.5f;
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
-	float StrafeConeAngle = 0.9f;
+	float StrafeConeAngle = 0.9f; // TODO: Remove.
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
 	float JumpStrength = 300.0f;
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
@@ -85,7 +86,6 @@ private:
 	TArray<UUnitSlotComponent*> Slots;
 
 	// Internal child components.
-	USkeletalMeshComponent* RigComponent;
 	USceneComponent* ActiveItemHostComponent;
 	USceneComponent* ActiveItemAltHostComponent;
 
@@ -144,6 +144,7 @@ protected:
 	bool IgnoreTorsoYaw;
 
 	// Child components available to child classes.
+	ULegIKSkeletonComponent* RigComponent;
 	UShapeComponent* ColliderComponent;
 	UAudioComponent* AudioComponent;
 	UUnitAnimInstance* Animation;

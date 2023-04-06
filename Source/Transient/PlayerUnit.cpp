@@ -39,6 +39,7 @@ void APlayerUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Aim", IE_Released, this, &APlayerUnit::InputEndAim);
 	PlayerInputComponent->BindAction("CheckStatus", IE_Pressed, this, &APlayerUnit::InputStartCheckStatus);
 	PlayerInputComponent->BindAction("CheckStatus", IE_Released, this, &APlayerUnit::InputEndCheckStatus);
+	PlayerInputComponent->BindAction("DropBack", IE_Pressed, this, &APlayerUnit::InputDropBackSlot);
 }
 
 void APlayerUnit::BeginPlay() {
@@ -59,6 +60,7 @@ void APlayerUnit::BeginPlay() {
 
 		FString Name = Check->GetName();
 		if (Name.Equals("AimIndicator")) this->AimIndicatorComponent = Check;
+		else if (Name.Equals("BackSlot")) this->BackSlot = Cast<UUnitSlotComponent>(Check);
 	}
 
 	this->StandardCameraArmLength = this->CameraArmComponent->TargetArmLength;
@@ -424,4 +426,8 @@ void APlayerUnit::InputStartCheckStatus() {
 
 void APlayerUnit::InputEndCheckStatus() {
 	this->UnitSetCheckingStatus(false);
+}
+
+void APlayerUnit::InputDropBackSlot() {
+	this->UnitDropItem(this->BackSlot->SlotGetContent());
 }
