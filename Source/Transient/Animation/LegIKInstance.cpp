@@ -4,6 +4,8 @@
 
 //#define DEBUG_DRAWS true
 
+// fixed step lengths rather than delta time based.
+
 void ULegIKInstance::LegIKInstanceInit(
     USceneComponent* Parent,
     FLegIKInstanceConfig InitConfig, FLegIKTrackConfig TracksConfig
@@ -146,12 +148,7 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
                     this->Config.LegPlacementStrategy == ELegIKPlacementStrategy::Biped
                 );
                 if (BipedCrouch) {
-                    FVector OffsetVector = (
-                        FVector(this->Config.LegBaseComponentOffset, 0.0f, 0.0f) +
-                        ParentRotation.RotateVector(FVector(
-                            0.0f, this->Config.LegBaseComponentOffset * 0.25f, 0.0f
-                        ))
-                    );
+                    FVector OffsetVector = FVector(this->Config.LegBaseComponentOffset, 0.0f, 0.0f);
             
                     if (i == 0) NewWorldLocation += OffsetVector;
                     else NewWorldLocation -= OffsetVector;

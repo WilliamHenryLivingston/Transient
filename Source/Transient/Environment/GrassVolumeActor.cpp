@@ -2,8 +2,6 @@
 
 #include "GrassVolumeActor.h"
 
-#include "Kismet/KismetMathLibrary.h"
-
 AGrassVolumeActor::AGrassVolumeActor() {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -15,6 +13,12 @@ void AGrassVolumeActor::BeginPlay() {
 }
 
 void AGrassVolumeActor::GenerateBlades() {
+	TArray<UStaticMeshComponent*> PrevBlades;
+	this->GetComponents(PrevBlades, true);
+	for (int i = 0; i < PrevBlades.Num(); i++) {
+		PrevBlades[i]->DestroyComponent();
+	}
+
 	this->GetComponents(this->Partitions, true);
 	for (int i = 0; i < this->Partitions.Num(); i++) {
 		this->Partitions[i]->DestroyComponent();
@@ -26,42 +30,42 @@ void AGrassVolumeActor::GenerateBlades() {
 
 	float PartitionXSize = Area.X / this->NumSpacePartitions;
 	float PartitionYSize = Area.Y / this->NumSpacePartitions;
+	int BladesPer = this->NumBlades / this->NumSpacePartitions;
+
 	for (int x = 0; x < this->NumSpacePartitions; x++) {
 		for (int y = 0; y < this->NumSpacePartitions; y++) {
-			FVector PartitionLocation = FVector(PartitionXSize * x, PartitionYSize * y, Location.Z);
-
 			UGrassVolumePartition* Partition = NewObject<UGrassVolumePartition>(this);
+			this->AddInstanceComponent(Partition);
 			Partition->RegisterComponent();
-			Partition->AttachToComponent(
-				this->RootComponent,
-				FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true),
-				FName("None")
-			);
-			Partition
-			this->InventoryLookCollider->SetSphereRadius(0.0f);
-			this->InventoryLookCollider->SetCollisionProfileName(FName("EquipHost"));
-			this->InventoryLookCollider->ParentSlot = this;
+
+			float PartitionX = Location.X - Area.X + (PartitionXSize * (x + 0.5f) * 2);
+			float PartitionY = Location.Y - Area.Y + (PartitionYSize * (y + 0.5f) * 2);
+			Partition->SetRelativeLocation(FVector(PartitionX, PartitionY, Location.Z));
+			Partition->SetBoxExtent(FVector(PartitionXSize, PartitionYSize, Area.Z), false);
+
+			for (int i = 0; i < BladesPer; i++) {
+				UStaticMeshComponent* Blade = NewObject<UStaticMeshComponent>(this);
+				if (Blade == nullptr) return;
+
+				this->AddInstanceComponent(Blade);
+				Blade->RegisterComponent();
+				Blade->AttachToComponent(this->BoundsComponent, FAttachmentTransformRules::SnapToTargetIncludingScale);
+				Blade->SetStaticMesh(this->BladeMesh);
+				Blade->SetCollisionProfileName(FName("NoCollision"));
+				Blade->SetCastShadow(false);
+				Blade->AttachToComponent(Partition, FAttachmentTransformRules::SnapToTargetIncludingScale, FName("None"));
+
+				Blade->SetRelativeRotation(FRotator(0.0f, FMath::RandRange(0.0f, 360.0f), 0.0f));
+				Blade->SetRelativeLocation(FVector(
+					FMath::RandRange(-PartitionXSize, PartitionXSize),
+					FMath::RandRange(-PartitionYSize, PartitionYSize),
+					0.0f
+				));
+			}
 		}
 	}
 
 	for (int i = 0; i < this->NumBlades; i++) {
-		UStaticMeshComponent* Blade = NewObject<UStaticMeshComponent>(this);
-		if (Blade == nullptr) return;
-
-		this->AddInstanceComponent(Blade);
-		Blade->RegisterComponent();
-		Blade->AttachToComponent(this->BoundsComponent, FAttachmentTransformRules::SnapToTargetIncludingScale);
-		Blade->SetStaticMesh(this->BladeMesh);
-		Blade->SetCollisionProfileName(FName("NoCollision"));
-		Blade->SetCastShadow(false);
-
-		Blade->SetRelativeRotation(FRotator(0.0f, FMath::RandRange(0.0f, 360.0f), 0.0f));
-		Blade->SetRelativeLocation(FVector(
-			FMath::RandRange(-Area.X, Area.X),
-			FMath::RandRange(-Area.Y, Area.Y),
-			0.0f
-		));
-
-		this->Blades.Push(Blade);
+		
 	}
 }

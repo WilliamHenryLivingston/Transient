@@ -84,8 +84,7 @@ FVector FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneComponent* Parent) {
         this->CurrentWorldLocation,
         TickTargetWorldLocation,
         DeltaTime,
-        // Not sure why this is needed, but behavior is wrong otherwise when global time != 1.
-        (this->Config.LerpRate * this->DynamicLerpRateCoef) / DeltaTime
+        this->Config.LerpRate * this->DynamicLerpRateCoef
     );
 
     #ifdef DEBUG_DRAWS

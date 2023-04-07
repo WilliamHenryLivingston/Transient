@@ -12,12 +12,15 @@ class TRANSIENT_API UGrassVolumePartition : public UBoxComponent {
 	GENERATED_BODY()
 
 public:
-	TArray<UStaticMeshComponent*> Blades;
+	TArray<USceneComponent*> Blades;
 	TArray<AActor*> TrackedActors;
 
 	TArray<float> Yaws;
 
+	bool FullyInert;
+
 public:
+	UGrassVolumePartition();
 	virtual void TickComponent(float DeltaTime, ELevelTick Type, FActorComponentTickFunction* TickSelf) override;
 
 protected:

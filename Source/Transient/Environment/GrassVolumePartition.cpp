@@ -2,13 +2,22 @@
 
 #include "GrassVolumePartition.h"
 
+#include "Kismet/KismetMathLibrary.h"
+
+UGrassVolumePartition::UGrassVolumePartition() {
+	PrimaryComponentTick.bCanEverTick = true;
+}
+
 void UGrassVolumePartition::BeginPlay() {
-	this->GetComponents(this->Blades, true);
+	this->GetChildrenComponents(false, this->Blades);
+
+	this->FullyInert = true;
 
 	for (int i = 0; i < this->Blades.Num(); i++) {
 		this->Yaws.Push(this->Blades[i]->GetRelativeRotation().Yaw);
 	}
 
+	this->SetCollisionProfileName(FName("Grass"));
 	this->OnComponentBeginOverlap.AddDynamic(this, &UGrassVolumePartition::OnPawnEnter);
 	this->OnComponentEndOverlap.AddDynamic(this, &UGrassVolumePartition::OnPawnLeave);
 }
@@ -16,8 +25,11 @@ void UGrassVolumePartition::BeginPlay() {
 void UGrassVolumePartition::TickComponent(
     float DeltaTime, ELevelTick Type, FActorComponentTickFunction* TickSelf
 ) {
-		for (int i = 0; i < this->Blades.Num(); i++) {
-		UStaticMeshComponent* Blade = this->Blades[i];
+	if (this->TrackedActors.Num() == 0 && this->FullyInert) return;
+
+	this->FullyInert = true;
+	for (int i = 0; i < this->Blades.Num(); i++) {
+		USceneComponent* Blade = this->Blades[i];
 		FVector BladeLocation = Blade->GetComponentLocation();
 
 		AActor* NearbyActor = nullptr;
@@ -41,6 +53,7 @@ void UGrassVolumePartition::TickComponent(
 		}
 
 		Blade->SetRelativeRotation(FMath::RInterpTo(Blade->GetRelativeRotation(), Target, DeltaTime, ISpeed));
+		if (!Blade->GetRelativeRotation().Equals(Target, 10.0f)) this->FullyInert = false;
 	}
 }
 
