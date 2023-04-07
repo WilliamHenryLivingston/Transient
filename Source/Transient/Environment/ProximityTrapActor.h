@@ -6,7 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Components/SphereComponent.h"
 
-#include "../ProjectileActor.h"
+#include "../Damagable.h"
 #include "../UnitPawn.h"
 
 #include "ProximityTrapActor.generated.h"

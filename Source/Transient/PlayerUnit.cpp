@@ -1,3 +1,5 @@
+// Copyright: R. Saxifrage, 2023. All rights reserved.
+
 #include "PlayerUnit.h"
 
 #include "Engine/EngineTypes.h"

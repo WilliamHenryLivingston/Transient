@@ -146,7 +146,7 @@ void AAIUnit::UnitReload() {
     Super::UnitReload();
 }
 
-void AAIUnit::UnitTakeDamage(FDamageProfile Profile, AActor* Source) {
+void AAIUnit::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
     if (Source != nullptr) {
         AUnitPawn* AsUnit = Cast<AUnitPawn>(Source);
         if (AsUnit != nullptr && AsUnit->FactionID != this->FactionID) { // Can agro onto allied factions.
@@ -155,7 +155,7 @@ void AAIUnit::UnitTakeDamage(FDamageProfile Profile, AActor* Source) {
     }
 
     Profile.Energy *= 50.0f; // TODO: Better number.
-    Super::UnitTakeDamage(Profile, Source);
+    Super::DamagableTakeDamage(Profile, Source);
 }
 
 AActor* AAIUnit::AICheckDetection() {

@@ -40,10 +40,10 @@ void AProjectileActor::OnCollideUnchecked(
 	bool FromSweep, const FHitResult &Sweep
 ) {
 	if (this->Inertness > 0) return;
-	AUnitPawn* HitUnit = Cast<AUnitPawn>(OtherActor);
+	IDamagable* Victim = Cast<IDamagable>(OtherActor);
 
-	if (HitUnit != nullptr) {
-		HitUnit->UnitTakeDamage(this->DamageProfile, this->Source);
+	if (Victim != nullptr) {
+		Victim->DamagableTakeDamage(this->DamageProfile, this->Source);
 	
 		this->Destroy();
 	}

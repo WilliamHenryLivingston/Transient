@@ -47,9 +47,13 @@ FAIActionTickResult CMoveToPointAction::AIActionTick(AActor* RawOwner, float Del
     OwnerLocation.Z = 0;
     TargetLocation.Z = 0;
 
-    bool Reached = (TargetLocation - OwnerLocation).Size() < this->ReachDistance;
+    float Distance = (TargetLocation - OwnerLocation).Size();
+
+    bool Reached = Distance < this->ReachDistance;
     if (Reached) {
-        if (this->Steps.Num() == 1) return this->Finished;
+        if (this->Steps.Num() == 1) {
+            return this->Finished;
+        }
 
         this->Steps.RemoveAt(0);
     }

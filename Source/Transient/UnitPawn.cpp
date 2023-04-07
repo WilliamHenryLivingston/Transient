@@ -4,6 +4,7 @@
 
 #include "Components/BoxComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "Debug.h"
 #include "Items/ProjectileWeapon.h"
@@ -218,13 +219,19 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	}
 
 	// Movement update.
-	float LegIKLerp = 1.0f;
-	float LegIKMoveCoef = 1.0f;
-	float LegIKBodyOffset = 1.0f;
-	float LegIKStepCoef = 1.0f;
+	FLegIKDynamics LegIK;
 
 	if (this->Crouching || this->Immobilized) {
-		LegIKStepCoef *= 0.333f;
+		LegIK.StepDistanceCoef *= 0.333f;
+	}
+	if (LowPower) {
+		LegIK.StepDistanceCoef *= 0.25f;
+		LegIK.LerpRateCoef *= 0.65f;
+	}
+	float TimeDilation = UGameplayStatics::GetGlobalTimeDilation(this->GetWorld());
+	if (TimeDilation != 1.0f) {
+		LegIK.LerpRateCoef *= 1.0f / TimeDilation;
+		LegIK.StepDistanceCoef *= 1.0f / TimeDilation;
 	}
 
 	FVector CurrentLocation = this->GetActorLocation();	
@@ -245,7 +252,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		ColliderScale.Z *= this->CrouchVerticalShrink;
 		RigLocation.Z += this->CrouchVerticalTranslate;
 		RigScale.Z *= this->BaseColliderVerticalScale / ColliderScale.Z;
-		LegIKBodyOffset = this->CrouchVerticalShrink;
+		LegIK.BodyBaseCoef *= this->CrouchVerticalShrink;
 	}
 	this->ColliderComponent->SetRelativeScale3D(ColliderScale);
 	this->RigComponent->SetRelativeLocation(RigLocation);
@@ -267,40 +274,41 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 			(ActorForward.X * MoveDelta.Y) + (ActorForward.Y * MoveDelta.X)
 		)) + 180.0f;
 
-		if (this->Crouching) {
+		if (this->Crouching || this->Slow) {
 			MoveDelta *= 0.5;
-			LegIKMoveCoef *= 0.5f;
+			LegIK.StepDistanceCoef *= 0.5f;
 		}
 
 		if (abs(AngleDeg - 45.0f) < 90.0f && AngleDeg > 45.0f) {
 			LegsState = EUnitAnimLegsState::WalkBwd;
+			LegIK.StepDistanceCoef *= 0.5f;
 			MoveDelta *= StrafeModifier;
 		}
 		else if (abs(AngleDeg - (45.0f * 3.0f)) < 90.0f) {
 			LegsState = EUnitAnimLegsState::WalkLeft;
-			LegIKMoveCoef *= 0.5f;
+			LegIK.StepDistanceCoef *= 0.5f;
 			MoveDelta *= StrafeModifier;
 		}
 		else if (abs(AngleDeg - (45.0f * 5.0f)) < 90.0f) {
 			LegsState = EUnitAnimLegsState::WalkFwd;
 
+			if (this->Crouching) LegIK.StepDistanceCoef *= 1.75f;
+
 			if (this->Exerted && !this->Crouching) {
 				MoveDelta *= this->SprintModifier;
 				LegsModifier = EUnitAnimLegsModifier::Sprint;
-				LegIKLerp = 1.5f;
+				LegIK.LerpRateCoef *= 1.55f;
 			}
 		}
 		else {
 			LegsState = EUnitAnimLegsState::WalkRight;
-			LegIKMoveCoef *= 0.5f;
+			LegIK.StepDistanceCoef *= 0.5f;
 			MoveDelta *= StrafeModifier;
 		}
 
 		this->SetActorLocation(CurrentLocation + MoveDelta);
 	}
-	this->RigComponent->LegIKSetDynamics(
-		LegIKLerp, LegIKMoveCoef, LegIKBodyOffset, LegIKStepCoef
-	);
+	this->RigComponent->LegIKSetDynamics(LegIK);
 
 	// Jump animation has highest priority.
 	if (ActiveJump) LegsState = EUnitAnimLegsState::Jump;
@@ -466,6 +474,10 @@ bool AUnitPawn::UnitAreArmsOccupied() {
 
 bool AUnitPawn::UnitIsJumping() {
 	return this->JumpTimer > 0.0f;
+}
+
+bool AUnitPawn::UnitIsMoving() {
+	return this->HasMoveTarget;
 }
 
 bool AUnitPawn::UnitHasFaceTarget() {
@@ -888,6 +900,10 @@ void AUnitPawn::UnitImmobilize(bool Which) {
 	}
 }
 
+void AUnitPawn::UnitSetSlow(bool Which) {
+	this->Slow = Which;
+}
+
 void AUnitPawn::UnitMoveTowards(FVector Target) {
 	if (this->JumpTimer > 0.0f) return; // No air control.
 
@@ -997,7 +1013,7 @@ void AUnitPawn::UnitHealDamage(FDamageProfile Healing) {
 	this->Energy = FMath::Min(this->MaxEnergy, this->Energy + Healing.Energy);
 }
 
-void AUnitPawn::UnitTakeDamage(FDamageProfile Profile, AActor* Source) {
+void AUnitPawn::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
 	float Kinetic = Profile.Kinetic;
 
 	//	Absorb damage with armor.

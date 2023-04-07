@@ -15,11 +15,14 @@
 #include "Animation/UnitAnimInstance.h"
 #include "Animation/LegIKSkeletonComponent.h"
 #include "UnitSlotComponent.h"
+#include "Damagable.h"
 
 #include "UnitPawn.generated.h"
 
+// TODO: Shrink significantly.
+
 UCLASS()
-class TRANSIENT_API AUnitPawn : public APawn, public IItemHolder {
+class TRANSIENT_API AUnitPawn : public APawn, public IItemHolder, public IDamagable {
 	GENERATED_BODY()
 
 // Variables.
@@ -130,6 +133,7 @@ private:
 	bool ArmsActionMoveLock;
 
 	bool Immobilized;
+	bool Slow;
 
 protected:
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
@@ -157,7 +161,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
 	int FactionID = 1;
 
-// AActor methods.
+// AActor.
 public:
 	AUnitPawn();
 	virtual void Tick(float DeltaTime) override;
@@ -165,12 +169,16 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-// IItemHolder methods.
+// IItemHolder.
 public:
 	virtual FVector ItemHolderGetLocation() override;
 	virtual FRotator ItemHolderGetRotation() override;
 	virtual void ItemHolderPlaySound(USoundBase* Sound) override;
 	virtual float ItemHolderGetSpreadModifier() override;
+
+// IDamagable.
+public:
+	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Source) override;
 
 // Internals.
 private:
@@ -197,6 +205,7 @@ public:
 	bool UnitAreArmsOccupied();
 	bool UnitIsJumping();
 	bool UnitIsCrouched();
+	bool UnitIsMoving();
 	bool UnitIsExerted();
 	AItemActor* UnitGetActiveItem();
 	AWeaponItem* UnitGetActiveWeapon();
@@ -226,6 +235,7 @@ public:
 	void UnitFaceTowards(FVector Target);
 	bool UnitHasFaceTarget();
 	void UnitImmobilize(bool Which);
+	void UnitSetSlow(bool Which);
 	void UnitJump();
 	void UnitSetCrouched(bool NewCrouch);
 	void UnitSetExerted(bool NewSprint);
@@ -240,7 +250,6 @@ public:
 	void UnitPlayInteractAnimation();
 
 	// External impacts.
-	virtual void UnitTakeDamage(FDamageProfile Profile, AActor* Source);
 	void UnitHealDamage(FDamageProfile Healing);
 	void UnitTakeItem(AItemActor* TargetItem);
 	void UnitDie();

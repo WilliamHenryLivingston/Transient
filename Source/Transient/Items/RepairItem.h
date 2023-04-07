@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 
-#include "../ProjectileActor.h"
+#include "../Damagable.h"
 #include "UsableItem.h"
 
 #include "RepairItem.generated.h"

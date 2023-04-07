@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
-#include "../ProjectileActor.h"
 #include "../Animation/UnitAnimInstance.h"
 #include "ItemActor.h"
 #include "MagazineItem.h"

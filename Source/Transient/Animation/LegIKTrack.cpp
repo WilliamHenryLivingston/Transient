@@ -10,21 +10,13 @@
 
 FLegIKTrack::FLegIKTrack() { }
 
-FLegIKTrack::FLegIKTrack(FVector InitialWorldLocation, FLegIKTrackConfig Config) {
+FLegIKTrack::FLegIKTrack(FVector InitialWorldLocation, FLegIKProfile InitProfile) {
     this->CurrentWorldLocation = InitialWorldLocation;
-    this->Config = Config;
-
-    this->DynamicLerpRateCoef = 1.0f;
-    this->DynamicStepVerticalCoef = 1.0f;
+    this->Profile = InitProfile;
 }
 
-FVector FLegIKTrack::LegIKTrackWorldLocation() {
-    return this->CurrentWorldLocation;
-}
-
-ELegIKStepPhase FLegIKTrack::LegIKTrackGetStepPhase() {
-    return this->StepPhase;
-}
+FVector FLegIKTrack::LegIKTrackWorldLocation() { return this->CurrentWorldLocation; }
+ELegIKStepPhase FLegIKTrack::LegIKTrackGetStepPhase() { return this->StepPhase; }
 
 void FLegIKTrack::LegIKTrackStepTo(FVector WorldOffset, USceneComponent* Parent) {
     this->StepWorldLocation = WorldOffset;
@@ -32,29 +24,26 @@ void FLegIKTrack::LegIKTrackStepTo(FVector WorldOffset, USceneComponent* Parent)
     this->StepPhase = ELegIKStepPhase::Lift;
 }
 
-FVector FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneComponent* Parent) {
+FVector FLegIKTrack::LegIKTrackTick(
+    float DeltaTime, USceneComponent* Parent, FLegIKDynamics Dynamics
+) {
     FVector TickTargetWorldLocation = this->CurrentWorldLocation;
-    TickTargetWorldLocation.Z = (
-        this->GroundHit(this->CurrentWorldLocation, Parent).Z +
-        this->Config.GroundVerticalOffset
-    );
+    TickTargetWorldLocation.Z = this->GroundHit(this->CurrentWorldLocation, Parent).Z;
 
-    float EffectiveStepOffset = (
-        this->Config.StepSwingVerticalOffset * this->DynamicStepVerticalCoef
-    );
+    float StepVerticalOffset = this->Profile.StepVerticalOffset * Dynamics.StepVerticalCoef;
 
     if (this->StepPhase == ELegIKStepPhase::Lift) {
-        float LiftedZ = TickTargetWorldLocation.Z + EffectiveStepOffset;
+        float LiftedZ = TickTargetWorldLocation.Z + StepVerticalOffset;
 
         if (FMath::Abs(this->CurrentWorldLocation.Z - LiftedZ) < 5.0f) {
-            TickTargetWorldLocation.Z += EffectiveStepOffset;
+            TickTargetWorldLocation.Z += StepVerticalOffset;
             this->StepPhase = ELegIKStepPhase::Swing;
         }
         else {
             FVector PartialStepWorldDelta = (
-                this->StepWorldLocation - this->CurrentWorldLocation
-            ) * 0.25f;
-            TickTargetWorldLocation.Z += EffectiveStepOffset;
+                (this->StepWorldLocation - this->CurrentWorldLocation) * 0.25f
+            );
+            TickTargetWorldLocation.Z += StepVerticalOffset;
             TickTargetWorldLocation.X += PartialStepWorldDelta.X;
             TickTargetWorldLocation.Y += PartialStepWorldDelta.Y;
         }
@@ -63,19 +52,19 @@ FVector FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneComponent* Parent) {
         FVector PlaneWorldDistance = this->CurrentWorldLocation - this->StepWorldLocation;
         PlaneWorldDistance.Z = 0.0f;
 
-        if (PlaneWorldDistance.Size() < this->Config.StepReachWorldRadius) {
+        if (PlaneWorldDistance.Size() < this->Profile.StepReachWorldRadius) {
             this->StepPhase = ELegIKStepPhase::Place;
         }
         else {
             TickTargetWorldLocation.X = this->StepWorldLocation.X;
             TickTargetWorldLocation.Y = this->StepWorldLocation.Y;
-            TickTargetWorldLocation.Z += EffectiveStepOffset;
+            TickTargetWorldLocation.Z += StepVerticalOffset;
         }
     }
     else if (this->StepPhase == ELegIKStepPhase::Place) {
         float WorldDistance = FMath::Abs(this->CurrentWorldLocation.Z - TickTargetWorldLocation.Z);
 
-        if (WorldDistance < this->Config.StepReachWorldRadius) {
+        if (WorldDistance < this->Profile.StepReachWorldRadius) {
             this->StepPhase = ELegIKStepPhase::None;
         }
     }
@@ -84,7 +73,7 @@ FVector FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneComponent* Parent) {
         this->CurrentWorldLocation,
         TickTargetWorldLocation,
         DeltaTime,
-        this->Config.LerpRate * this->DynamicLerpRateCoef
+        this->Profile.LerpRate * Dynamics.LerpRateCoef
     );
 
     #ifdef DEBUG_DRAWS
@@ -106,7 +95,7 @@ FVector FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneComponent* Parent) {
 }
 
 FVector FLegIKTrack::GroundHit(FVector Below, USceneComponent* Parent) {
-    FVector RayEnd = Below - FVector(0.0f, 0.0f, this->Config.GroundCastDistance);
+    FVector RayEnd = Below - FVector(0.0f, 0.0f, this->Profile.GroundCastDistance);
 
     FCollisionQueryParams Params;
     Params.AddIgnoredActor(Parent->GetOwner());

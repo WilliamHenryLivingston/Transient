@@ -30,7 +30,7 @@ void AProximityTrapActor::Tick(float DeltaTime) {
 		this->VisibleComponent->SetRelativeLocation(Location);
 
 		if (this->ActivationTimer <= 0.0f && this->ActiveTarget != nullptr && IsValid(this->ActiveTarget)) {
-			this->ActiveTarget->UnitTakeDamage(this->Damage, nullptr);
+			this->ActiveTarget->DamagableTakeDamage(this->Damage, nullptr);
 			
 			this->Destroy();
 		}

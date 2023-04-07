@@ -2,11 +2,21 @@
 
 #include "LegIKSkeletonComponent.h"
 
+#include "../Debug.h"
+#include "LegIKProfiles.h"
+
 void ULegIKSkeletonComponent::BeginPlay() {
     Super::BeginPlay();
 
     this->IK = Cast<ULegIKInstance>(this->GetAnimInstance());
-    this->IK->LegIKInstanceInit(this, this->InstanceConfig, this->TracksConfig);
+
+    if (this->ProfileType == ELegIKProfileType::Biped) {
+        this->IK->LegIKInstanceInit(this, FBipedLegIKProfile());
+    }
+    else {
+        this->IK = nullptr;
+        ERR_LOG(this->GetOwner(), "invalid IK profile!");
+    }
 }
 
 void ULegIKSkeletonComponent::TickComponent(
@@ -17,12 +27,6 @@ void ULegIKSkeletonComponent::TickComponent(
     if (this->IK != nullptr) this->IK->LegIKInstanceTick(DeltaTime, this);
 }
 
-void ULegIKSkeletonComponent::LegIKSetDynamics(
-    float LerpRate, float DynamicMoveTargetingCoef, float DynamicBodyBaseOffsetCoef,
-    float DynamicStepVerticalCoef
-) {
-    this->IK->LegIKInstanceSetDynamics(
-        LerpRate, DynamicMoveTargetingCoef, DynamicBodyBaseOffsetCoef,
-        DynamicStepVerticalCoef
-    );
+void ULegIKSkeletonComponent::LegIKSetDynamics(FLegIKDynamics Dynamics) {
+    if (this->IK != nullptr) this->IK->LegIKInstanceSetDynamics(Dynamics);
 }

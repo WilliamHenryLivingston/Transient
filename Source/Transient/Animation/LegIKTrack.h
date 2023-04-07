@@ -4,24 +4,9 @@
 
 #include "CoreMinimal.h"
 
+#include "LegIKProfiles.h"
+
 #include "LegIKTrack.generated.h"
-
-USTRUCT()
-struct FLegIKTrackConfig {
-    GENERATED_BODY()
-
-public:
-    UPROPERTY(EditAnywhere)
-    float GroundVerticalOffset;
-    UPROPERTY(EditAnywhere)
-    float GroundCastDistance;
-    UPROPERTY(EditAnywhere)
-    float StepSwingVerticalOffset;
-    UPROPERTY(EditAnywhere)
-    float StepReachWorldRadius;
-    UPROPERTY(EditAnywhere)
-    float LerpRate;
-};
 
 enum class ELegIKStepPhase : uint8 {
     None,
@@ -35,10 +20,7 @@ struct FLegIKTrack {
     GENERATED_BODY()
 
 public:
-    FLegIKTrackConfig Config;
-
-    float DynamicLerpRateCoef;
-	float DynamicStepVerticalCoef;
+    FLegIKProfile Profile;
 
 private:
     FVector CurrentWorldLocation;
@@ -48,12 +30,23 @@ private:
 
 public:
     FLegIKTrack();
-    FLegIKTrack(FVector InitialWorldLocation, FLegIKTrackConfig Config);
+    FLegIKTrack(FVector InitialWorldLocation, FLegIKProfile Profile);
     FVector LegIKTrackWorldLocation();
     ELegIKStepPhase LegIKTrackGetStepPhase();
     void LegIKTrackStepTo(FVector WorldOffset, USceneComponent* Parent);
-    FVector LegIKTrackTick(float DeltaTime, USceneComponent* Parent);
+    FVector LegIKTrackTick(float DeltaTime, USceneComponent* Parent, FLegIKDynamics Dynamics);
 
 private:
     FVector GroundHit(FVector Below, USceneComponent* Parent);
+};
+
+USTRUCT()
+struct FLegIKTrackGroup {
+	GENERATED_BODY()
+
+public:
+	// Field only exists to avoid *another* struct (TArrays don't nest).
+	TArray<FVector> CurrentWorldLocations;
+	TArray<FVector> BaseComponentLocations;
+	TArray<FLegIKTrack> Tracks;
 };

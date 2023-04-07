@@ -10,15 +10,18 @@
 
 #include "LegIKSkeletonComponent.generated.h"
 
+UENUM()
+enum class ELegIKProfileType : uint8 {
+	Biped
+};
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class TRANSIENT_API ULegIKSkeletonComponent : public USkeletalMeshComponent {
 	GENERATED_BODY()
 
 private:
 	UPROPERTY(EditAnywhere, Category="Skeleton IK")
-	FLegIKInstanceConfig InstanceConfig;
-	UPROPERTY(EditAnywhere, Category="Skeleton IK")
-	FLegIKTrackConfig TracksConfig;
+	ELegIKProfileType ProfileType;
 
 	ULegIKInstance* IK;
 
@@ -29,8 +32,5 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	void LegIKSetDynamics(
-		float LerpRate, float DynamicMoveTargetingCoef,
-		float DynamicBodyBaseOffsetCoef, float DynamicStepVerticalCoef
-	);
+	void LegIKSetDynamics(FLegIKDynamics Dynamics);
 };

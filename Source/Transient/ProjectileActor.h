@@ -6,19 +6,11 @@
 #include "GameFramework/Actor.h"
 #include "Components/BoxComponent.h"
 
+#include "Damagable.h"
+
 #include "ProjectileActor.generated.h"
 
 // TODO: Move.
-USTRUCT()
-struct FDamageProfile {
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	float Kinetic;
-	UPROPERTY(EditAnywhere)
-	float Energy;
-};
-
 UCLASS()
 class TRANSIENT_API AProjectileActor : public AActor {
 	GENERATED_BODY()
