@@ -26,46 +26,53 @@ void AGrassVolumeActor::GenerateBlades() {
 	this->Partitions = TArray<UGrassVolumePartition*>();
 
 	FVector Location = this->BoundsComponent->GetComponentLocation();
-	FVector Area = this->BoundsComponent->GetScaledBoxExtent();
 
-	float PartitionXSize = Area.X / this->NumSpacePartitions;
-	float PartitionYSize = Area.Y / this->NumSpacePartitions;
-	int BladesPer = this->NumBlades / this->NumSpacePartitions;
+	float PartitionSize = this->AreaSize / this->NumSpacePartitions;
+	float HalfAreaSize = this->AreaSize / 2.0f;
+	float Padding = 30.0f;
 
+	TArray<UGrassVolumePartition*> CreatedPartitions;
 	for (int x = 0; x < this->NumSpacePartitions; x++) {
 		for (int y = 0; y < this->NumSpacePartitions; y++) {
 			UGrassVolumePartition* Partition = NewObject<UGrassVolumePartition>(this);
 			this->AddInstanceComponent(Partition);
 			Partition->RegisterComponent();
 
-			float PartitionX = Location.X - Area.X + (PartitionXSize * (x + 0.5f) * 2);
-			float PartitionY = Location.Y - Area.Y + (PartitionYSize * (y + 0.5f) * 2);
+			float PartitionX = Location.X - this->AreaSize + Padding + (PartitionSize * (x + 0.5f) * 2);
+			float PartitionY = Location.Y - this->AreaSize + Padding + (PartitionSize * (y + 0.5f) * 2);
 			Partition->SetRelativeLocation(FVector(PartitionX, PartitionY, Location.Z));
-			Partition->SetBoxExtent(FVector(PartitionXSize, PartitionYSize, Area.Z), false);
+			Partition->SetBoxExtent(FVector(PartitionSize + (Padding * 2.0f), PartitionSize + (Padding * 2.0f), 30.0f), false);
+			Partition->SetVisibility(false);
 
-			for (int i = 0; i < BladesPer; i++) {
-				UStaticMeshComponent* Blade = NewObject<UStaticMeshComponent>(this);
-				if (Blade == nullptr) return;
-
-				this->AddInstanceComponent(Blade);
-				Blade->RegisterComponent();
-				Blade->AttachToComponent(this->BoundsComponent, FAttachmentTransformRules::SnapToTargetIncludingScale);
-				Blade->SetStaticMesh(this->BladeMesh);
-				Blade->SetCollisionProfileName(FName("NoCollision"));
-				Blade->SetCastShadow(false);
-				Blade->AttachToComponent(Partition, FAttachmentTransformRules::SnapToTargetIncludingScale, FName("None"));
-
-				Blade->SetRelativeRotation(FRotator(0.0f, FMath::RandRange(0.0f, 360.0f), 0.0f));
-				Blade->SetRelativeLocation(FVector(
-					FMath::RandRange(-PartitionXSize, PartitionXSize),
-					FMath::RandRange(-PartitionYSize, PartitionYSize),
-					0.0f
-				));
-			}
+			CreatedPartitions.Push(Partition);
 		}
 	}
-
+	
 	for (int i = 0; i < this->NumBlades; i++) {
-		
+		UStaticMeshComponent* Blade = NewObject<UStaticMeshComponent>(this);
+		if (Blade == nullptr) return;
+
+		this->AddInstanceComponent(Blade);
+		Blade->RegisterComponent();
+		Blade->AttachToComponent(this->BoundsComponent, FAttachmentTransformRules::SnapToTargetIncludingScale);
+		Blade->SetStaticMesh(this->BladeMesh);
+		Blade->SetCollisionProfileName(FName("NoCollision"));
+		Blade->SetCastShadow(false);
+
+		float Angle = FMath::RandRange(0.0f, 360.0f);
+		float Radius = FMath::RandRange(0.0f, 1.0f) * HalfAreaSize;
+		FVector BladeLocation = FRotator(0.0f, Angle, 0.0f).RotateVector(FVector(Radius, 0.0f, 0.0f));
+		Blade->SetRelativeLocation(BladeLocation * 2.0f); // ???.
+		Blade->SetRelativeRotation(FRotator(0.0f, FMath::RandRange(0.0f, 360.0f), 0.0f));
+		Blade->SetRelativeScale3D(FVector(1.0f, 1.0f, FMath::RandRange(this->HeightScaleMin, this->HeightScaleMax)));
+
+		int XIndex = (BladeLocation.X + HalfAreaSize) / PartitionSize;
+		int YIndex = (BladeLocation.Y + HalfAreaSize) / PartitionSize;
+		UGrassVolumePartition* ParentPartition = CreatedPartitions[(XIndex * this->NumSpacePartitions) + YIndex];
+		Blade->AttachToComponent(
+			ParentPartition,
+			FAttachmentTransformRules::KeepWorldTransform,
+			FName("None")
+		);
 	}
 }

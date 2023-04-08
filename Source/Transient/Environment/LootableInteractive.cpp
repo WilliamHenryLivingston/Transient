@@ -31,8 +31,4 @@ void ALootableInteractive::InteractiveUse(AActor* User) {
 		this->Animation->Script_Flag = true;
 		this->ClosedStateColliderComponent->SetCollisionProfileName(FName("NoCollision"));
 	}
-	else {
-		this->Animation->Script_Flag = false;
-		this->ClosedStateColliderComponent->SetCollisionProfileName(FName("LootableClosed"));
-	}
 }

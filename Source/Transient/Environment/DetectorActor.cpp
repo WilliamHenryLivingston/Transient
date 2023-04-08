@@ -99,7 +99,7 @@ void ADetectorActor::Tick(float DeltaTime) {
 	if (AsUnit != nullptr && AsUnit->UnitIsMoving()) {
 		AAIManager* Manager = AAIManager::AIGetManagerInstance(this->GetWorld());
 
-		if (Manager->AIIsFactionEnemy(this->FactionID, AsUnit->FactionID)) {
+		if (Manager->AIShouldDetect(this->FactionID, this->Detection, AsUnit)) {
 			this->Target = AsUnit;
 
 			if (this->Group != nullptr) this->Group->AIGroupDistributeAlert(this->Target);

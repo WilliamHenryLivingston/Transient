@@ -23,8 +23,18 @@ private:
 	int NumSpacePartitions;
 	UPROPERTY(EditAnywhere, Category="Grass Volume")
 	UStaticMesh* BladeMesh;
+	UPROPERTY(EditAnywhere, Category="Grass Volume")
+	float AreaSize = 200.0f;
+	UPROPERTY(EditAnywhere, Category="Grass Volume")
+	float HeightScaleMin = 1.0f;
+	UPROPERTY(EditAnywhere, Category="Grass Volume")
+	float HeightScaleMax = 1.0f;
 
 	TArray<UGrassVolumePartition*> Partitions;
+
+public:
+	UPROPERTY(EditAnywhere, Category="Grass Volume")
+	float CrushAlpha = 1.0f;
 
 public:
 	AGrassVolumeActor();

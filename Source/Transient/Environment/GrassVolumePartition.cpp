@@ -4,6 +4,8 @@
 
 #include "Kismet/KismetMathLibrary.h"
 
+#include "GrassVolumeActor.h"
+
 UGrassVolumePartition::UGrassVolumePartition() {
 	PrimaryComponentTick.bCanEverTick = true;
 }
@@ -18,8 +20,8 @@ void UGrassVolumePartition::BeginPlay() {
 	}
 
 	this->SetCollisionProfileName(FName("Grass"));
-	this->OnComponentBeginOverlap.AddDynamic(this, &UGrassVolumePartition::OnPawnEnter);
-	this->OnComponentEndOverlap.AddDynamic(this, &UGrassVolumePartition::OnPawnLeave);
+	this->OnComponentBeginOverlap.AddDynamic(this, &UGrassVolumePartition::OnActorEnter);
+	this->OnComponentEndOverlap.AddDynamic(this, &UGrassVolumePartition::OnActorLeave);
 }
 
 void UGrassVolumePartition::TickComponent(
@@ -27,10 +29,13 @@ void UGrassVolumePartition::TickComponent(
 ) {
 	if (this->TrackedActors.Num() == 0 && this->FullyInert) return;
 
+	AGrassVolumeActor* ParentVolume = Cast<AGrassVolumeActor>(this->GetOwner());
+
 	this->FullyInert = true;
 	for (int i = 0; i < this->Blades.Num(); i++) {
 		USceneComponent* Blade = this->Blades[i];
 		FVector BladeLocation = Blade->GetComponentLocation();
+		FRotator BladeRotation = Blade->GetRelativeRotation();
 
 		AActor* NearbyActor = nullptr;
 		float NearbyDist = 150.0f;
@@ -45,19 +50,24 @@ void UGrassVolumePartition::TickComponent(
 			}
 		}
 
-		FRotator Target = FRotator(0.0f, this->Yaws[i], 0.0f);
+		FRotator BaseRotation = FRotator(0.0f, this->Yaws[i], 0.0f);
+		FRotator Target = BaseRotation;
 		float ISpeed = 2.0f;
 		if (NearbyActor != nullptr) {
 			ISpeed = 20.0f;
 			Target = UKismetMathLibrary::FindLookAtRotation(BladeLocation, NearbyActor->GetActorLocation());
+		
+			if (ParentVolume->CrushAlpha < 1.0f) {
+				Target = FMath::Lerp(BaseRotation, Target, ParentVolume->CrushAlpha);
+			}
 		}
 
-		Blade->SetRelativeRotation(FMath::RInterpTo(Blade->GetRelativeRotation(), Target, DeltaTime, ISpeed));
+		Blade->SetRelativeRotation(FMath::RInterpTo(BladeRotation, Target, DeltaTime, ISpeed));
 		if (!Blade->GetRelativeRotation().Equals(Target, 10.0f)) this->FullyInert = false;
 	}
 }
 
-void UGrassVolumePartition::OnPawnEnter(
+void UGrassVolumePartition::OnActorEnter(
 	UPrimitiveComponent* Into,
 	AActor* OtherActor, UPrimitiveComponent* OtherComp,
 	int32 OtherIdx,
@@ -68,7 +78,7 @@ void UGrassVolumePartition::OnPawnEnter(
 	this->TrackedActors.Push(OtherActor);
 }
 
-void UGrassVolumePartition::OnPawnLeave(
+void UGrassVolumePartition::OnActorLeave(
 	UPrimitiveComponent* Into,
 	AActor* OtherActor, UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex

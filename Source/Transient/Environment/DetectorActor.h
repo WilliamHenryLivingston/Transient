@@ -17,6 +17,8 @@ class TRANSIENT_API ADetectorActor : public AActor, public IAIGroupMember, publi
 	
 private:
 	UPROPERTY(EditAnywhere)
+	int Detection;
+	UPROPERTY(EditAnywhere)
 	float DetectionDistance = 500.0f;
 	UPROPERTY(EditAnywhere)
 	float ScanSpeed = 15.0f;

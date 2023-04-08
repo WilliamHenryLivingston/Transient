@@ -55,7 +55,9 @@ public:
 	FString WorldCollisionProfile;
 	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
 	FString ItemName;
-
+	
+	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
+	int EquippedConcealment;
 
 protected:
 	IItemHolder* CurrentHolder;

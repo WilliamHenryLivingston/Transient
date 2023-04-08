@@ -167,11 +167,6 @@ AActor* AAIUnit::AICheckDetection() {
         FRotator CastRotation = this->GetActorRotation();
         CastRotation.Yaw += 15.0f * (i - 2);
 
-        FHitResult DetectionRayHit;
-
-        FCollisionQueryParams DetectionRayParams;
-        DetectionRayParams.AddIgnoredActor(this);
-
         #ifdef DEBUG_DRAWS
         DrawDebugLine(
             this->GetWorld(), 
@@ -185,6 +180,11 @@ AActor* AAIUnit::AICheckDetection() {
         );
         #endif
 
+        FHitResult DetectionRayHit;
+
+        FCollisionQueryParams DetectionRayParams;
+        DetectionRayParams.AddIgnoredActor(this);
+
         this->GetWorld()->LineTraceSingleByChannel(
             DetectionRayHit,
             HeadLocation,
@@ -195,9 +195,9 @@ AActor* AAIUnit::AICheckDetection() {
         AActor* AnyHitActor = DetectionRayHit.GetActor();
         if (AnyHitActor == nullptr) continue;
 
-        AUnitPawn* AsPawn = Cast<AUnitPawn>(AnyHitActor);
-        if (AsPawn != nullptr && Manager->AIIsFactionEnemy(AsPawn->FactionID, this->FactionID)) {
-            return AsPawn;
+        AUnitPawn* AsUnit = Cast<AUnitPawn>(AnyHitActor);
+        if (AsUnit != nullptr && Manager->AIShouldDetect(this->FactionID, this->Detection, AsUnit)) {
+            return AsUnit;
         }
     }
 

@@ -33,6 +33,8 @@ private:
 	float DetectionDistance = 60.0f;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	TArray<FAIPatrolStep> Patrol;
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
+	int Detection;
 
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	AActor* PendingAgroTarget;

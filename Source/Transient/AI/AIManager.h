@@ -60,4 +60,5 @@ public:
 	void AIUnclaimAllNavNodes(AActor* Claimer);
 	TArray<AAINavNode*> AIGetNavNearestNodes(AActor* From, int Count);
 	bool AIIsFactionEnemy(int MyFaction, int OtherFaction);
+	bool AIShouldDetect(int FactionID, int Detection, AActor* Target);
 };

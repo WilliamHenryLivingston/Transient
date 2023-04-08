@@ -3,25 +3,20 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/BoxComponent.h"
 
-#include "GrassVolumePartition.generated.h"
+#include "GameFramework/Actor.h"
+
+#include "ConcealmentActor.generated.h"
 
 UCLASS()
-class TRANSIENT_API UGrassVolumePartition : public UBoxComponent {
+class TRANSIENT_API AConcealmentActor : public AActor {
 	GENERATED_BODY()
 
 public:
-	TArray<USceneComponent*> Blades;
-	TArray<AActor*> TrackedActors;
-
-	TArray<float> Yaws;
-
-	bool FullyInert;
-
-public:
-	UGrassVolumePartition();
-	virtual void TickComponent(float DeltaTime, ELevelTick Type, FActorComponentTickFunction* TickSelf) override;
+	UPROPERTY(EditAnywhere)
+	int Score = 1;
+	UPROPERTY(EditAnywhere)
+	int ScoreCrouched = 2;
 
 protected:
 	virtual void BeginPlay() override;

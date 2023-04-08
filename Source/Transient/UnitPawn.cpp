@@ -298,16 +298,14 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		}
 		else if (abs(AngleDeg - (45.0f * 5.0f)) < 90.0f) {
 			LegsState = EUnitAnimLegsState::WalkFwd;
-			LegIK.LerpRateCoef *= 1.1f;
-			LegIK.StepDistanceCoef *= 1.1f;
 
 			if (this->Crouching) LegIK.StepDistanceCoef *= 1.5f;
 
 			if (this->Exerted && !this->Crouching) {
 				MoveDelta *= this->SprintModifier;
 				LegsModifier = EUnitAnimLegsModifier::Sprint;
-				LegIK.LerpRateCoef *= 1.3f;
-				LegIK.StepDistanceCoef *= 1.5f;
+				LegIK.LerpRateCoef *= 1.1f;
+				LegIK.StepDistanceCoef *= 1.1f;
 			}
 		}
 		else {
@@ -466,6 +464,47 @@ bool AUnitPawn::UnitIsCrouched() { return this->Crouching; }
 bool AUnitPawn::UnitIsExerted() { return this->Exerted; }
 AItemActor* AUnitPawn::UnitGetActiveItem() { return this->ActiveItem; }
 AArmorItem* AUnitPawn::UnitGetArmor() { return this->ArmorItem; }
+
+int AUnitPawn::UnitGetConcealmentScore() {
+	int Best = 0;
+	if (this->ActiveItem != nullptr) Best = this->ActiveItem->EquippedConcealment;
+
+	for (int i = 0; i < this->ActiveConcealments.Num(); i++) {
+		int Check = (
+			this->UnitIsCrouched() ?
+				this->ActiveConcealments[i].ScoreCrouched
+				:
+				this->ActiveConcealments[i].Score
+		);
+
+		if (Check > Best) Best = Check;
+	}
+
+	return Best;
+}
+
+void AUnitPawn::UnitAddConcealment(AActor* Source, int Score, int ScoreCrouched) {
+	FUnitConcealment Entry;
+	Entry.Source = Source;
+	Entry.Score = Score;
+	Entry.ScoreCrouched = ScoreCrouched;
+
+	this->ActiveConcealments.Push(Entry);
+}
+
+void AUnitPawn::UnitRemoveConcealment(AActor* Source) {
+	int RemoveIndex = -1;
+	for (int i = 0; i < this->ActiveConcealments.Num(); i++) {
+		FUnitConcealment* Check = &this->ActiveConcealments[i];
+
+		if (Check->Source == Source) {
+			RemoveIndex = i;
+			break;
+		}
+	}
+
+	if (RemoveIndex >= 0) this->ActiveConcealments.RemoveAt(RemoveIndex);
+}
 
 AWeaponItem* AUnitPawn::UnitGetActiveWeapon() {
 	if (this->ActiveItem == nullptr) return nullptr;

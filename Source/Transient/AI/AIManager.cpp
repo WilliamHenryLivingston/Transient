@@ -4,6 +4,8 @@
 
 #include "Kismet/GameplayStatics.h"
 
+#include "../UnitPawn.h"
+
 AAIManager::AAIManager() {
 	PrimaryActorTick.bCanEverTick = true;
 }
@@ -96,6 +98,16 @@ bool AAIManager::AIIsFactionEnemy(int MyFaction, int OtherFaction) {
 		);
 		if (Allied) return false;
 	}
+
+	return true;
+}
+
+bool AAIManager::AIShouldDetect(int FactionID, int Detection, AActor* RawTarget) {
+	AUnitPawn* Target = Cast<AUnitPawn>(RawTarget);
+
+	if (Target == nullptr) return false;
+	if (!this->AIIsFactionEnemy(FactionID, Target->FactionID)) return false;
+	if (Target->UnitGetConcealmentScore() > Detection) return false;
 
 	return true;
 }

@@ -19,7 +19,17 @@
 
 #include "UnitPawn.generated.h"
 
-// TODO: Shrink significantly.
+// TODO: Shrink significantly, lots of biped specific stuff in here.
+
+USTRUCT() // TODO: Move.
+struct FUnitConcealment {
+	GENERATED_BODY()
+
+public:
+	AActor* Source;
+	int Score;
+	int ScoreCrouched;
+};
 
 UCLASS()
 class TRANSIENT_API AUnitPawn : public APawn, public IItemHolder, public IDamagable {
@@ -135,6 +145,8 @@ private:
 	bool Immobilized;
 	bool Slow;
 
+	TArray<FUnitConcealment> ActiveConcealments;
+
 protected:
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
 	float TakeReach = 300.0f; // TODO: Private later.
@@ -207,6 +219,7 @@ public:
 	bool UnitIsCrouched();
 	bool UnitIsMoving();
 	bool UnitIsExerted();
+	int UnitGetConcealmentScore();
 	AItemActor* UnitGetActiveItem();
 	AWeaponItem* UnitGetActiveWeapon();
 	AArmorItem* UnitGetArmor();
@@ -253,4 +266,7 @@ public:
 	void UnitHealDamage(FDamageProfile Healing);
 	void UnitTakeItem(AItemActor* TargetItem);
 	void UnitDie();
+
+	void UnitAddConcealment(AActor* Source, int Score, int ScoreCrouched);
+	void UnitRemoveConcealment(AActor* Source);
 };
