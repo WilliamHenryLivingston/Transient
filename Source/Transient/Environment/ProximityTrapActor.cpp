@@ -37,6 +37,15 @@ void AProximityTrapActor::Tick(float DeltaTime) {
 	}
 }
 
+void AProximityTrapActor::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
+	this->KineticHealth -= Profile.Kinetic;
+
+	if (this->KineticHealth <= 0.0f) {
+		// TODO: Detonate (rework hit logic).
+		this->Destroy();
+	}
+}
+
 void AProximityTrapActor::OnUnitEnterUnchecked(
 	UPrimitiveComponent* Into,
 	AActor* OtherActor, UPrimitiveComponent* OtherComp,

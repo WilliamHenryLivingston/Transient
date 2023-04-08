@@ -111,6 +111,11 @@ void APlayerUnit::Tick(float DeltaTime) {
 	this->UnitImmobilize(this->InventoryView);
 	this->IgnoreTorsoYaw = this->InventoryView;
 
+	AItemActor* CurrentEquippedItem = this->UnitGetActiveItem();
+	if (this->InventoryView && CurrentEquippedItem != nullptr && CurrentEquippedItem->EquipStateOnly) {
+		this->UnitDropActiveItem();
+	}
+
 	bool ResetAim = true;
 
 	if (this->InventoryView) {

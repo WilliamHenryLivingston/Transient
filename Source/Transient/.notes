@@ -49,10 +49,24 @@ REFACTOR:
 packaging
 better trigger system
 
-
 IK
 alternate group steps
 if group stepping:
     target step position behind
 else
     target step position ahead
+
+MORE STUFF:
+* grass LOS enemies, push taller grass less
+  * grass circle
+  * different types of grass
+* disguise items
+    * resticted areas
+* lootable shouln't reopen
+* group agro config
+  * conf go to cover to assault
+  * conf cover position distance max
+  * conf remaining group size before assault
+* conf stamina burn rate (and for devices + time dilation factor)
+  * sprint speed upgradable
+* alert tower

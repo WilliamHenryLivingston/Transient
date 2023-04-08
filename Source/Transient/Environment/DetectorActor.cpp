@@ -17,10 +17,30 @@ void ADetectorActor::BeginPlay() {
 	this->Animation = Cast<URotationAnimInstance>(
 		this->FindComponentByClass<USkeletalMeshComponent>()->GetAnimInstance()
 	);
+
+	this->Disabled = false;
+
+	TArray<USceneComponent*> SceneComponents;
+	this->GetComponents(SceneComponents, true);
+	for (int i = 0; i < SceneComponents.Num(); i++) {
+		USceneComponent* Check = SceneComponents[i];
+
+		FString Name = Check->GetName();
+		if (Name.Contains("ActiveOnly")) this->ActiveOnlyComponents.Push(Check);
+	}
 }
 
 void ADetectorActor::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
+
+	if (this->Disabled) {
+		for (int i = 0; i < this->ActiveOnlyComponents.Num(); i++) {
+			this->ActiveOnlyComponents[i]->SetVisibility(false);
+		}
+
+		this->Animation->Script_Rotation = FRotator(0.0f, 0.0f, -60.0f);
+		return;
+	}
 
 	FVector Location = this->GetActorLocation();
 	FRotator Rotation = this->GetActorRotation();
@@ -96,13 +116,14 @@ void ADetectorActor::AIGroupMemberJoin(AAIGroup* NewGroup) {
 void ADetectorActor::AIGroupMemberAlert(AActor* AgroTarget) { return; }
 
 void ADetectorActor::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
-	if (this->Group != nullptr) {
-		this->Group->AIGroupDistributeAlert(Source);
-	}
-	this->Target = Source;
-
 	this->EnergyHealth -= Profile.Energy;
 	if (this->EnergyHealth <= 0.0f) {
-		this->Destroy(); // TODO: Better.
+		this->Disabled = true;
+	}
+	else {
+		if (this->Group != nullptr) {
+			this->Group->AIGroupDistributeAlert(Source);
+		}
+		this->Target = Source;
 	}
 }

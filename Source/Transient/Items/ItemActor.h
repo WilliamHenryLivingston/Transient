@@ -44,22 +44,23 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	bool Equippable;
 	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
+	bool EquipStateOnly;
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	float EquippedTorsoYaw;
 	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	bool EquipAltHand;
 	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
 	EUnitAnimArmsState EquippedAnimArmsMode;
-
+	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
+	FString WorldCollisionProfile;
 	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
 	FString ItemName;
 
-	UPROPERTY(EditDefaultsOnly, Category="Item")
-	UStaticMeshComponent* VisibleComponent;
 
 protected:
 	IItemHolder* CurrentHolder;
-
-private:
+	UPROPERTY(EditDefaultsOnly, Category="Item")
+	UStaticMeshComponent* VisibleComponent;
 	UPROPERTY(EditDefaultsOnly, Category="Item")
 	UBoxComponent* ColliderComponent;
 

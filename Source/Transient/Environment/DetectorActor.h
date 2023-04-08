@@ -33,9 +33,12 @@ private:
 	UPROPERTY(EditAnywhere)
 	int FactionID;
 
-
 	float CurrentAngle;
 	bool CurrentDirection;
+
+	bool Disabled;
+
+	TArray<USceneComponent*> ActiveOnlyComponents;
 
 	AActor* Target;
 	

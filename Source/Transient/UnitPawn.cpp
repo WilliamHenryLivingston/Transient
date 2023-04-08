@@ -7,6 +7,7 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "Debug.h"
+#include "PlayerUnit.h"
 #include "Items/ProjectileWeapon.h"
 
 AUnitPawn::AUnitPawn() {
@@ -230,8 +231,14 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	}
 	float TimeDilation = UGameplayStatics::GetGlobalTimeDilation(this->GetWorld());
 	if (TimeDilation != 1.0f) {
-		LegIK.LerpRateCoef *= 1.0f / TimeDilation;
-		LegIK.StepDistanceCoef *= 1.0f / TimeDilation;
+		if (this->IsA(APlayerUnit::StaticClass())) {
+			LegIK.LerpRateCoef *= 1.0f / TimeDilation;
+			LegIK.StepDistanceCoef *= 1.0f / TimeDilation;
+		}
+		else {
+			LegIK.LerpRateCoef *= 0.5f / TimeDilation;
+			LegIK.StepDistanceCoef *= 0.5f / TimeDilation;
+		}
 	}
 
 	FVector CurrentLocation = this->GetActorLocation();	
@@ -291,13 +298,16 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		}
 		else if (abs(AngleDeg - (45.0f * 5.0f)) < 90.0f) {
 			LegsState = EUnitAnimLegsState::WalkFwd;
+			LegIK.LerpRateCoef *= 1.1f;
+			LegIK.StepDistanceCoef *= 1.1f;
 
-			if (this->Crouching) LegIK.StepDistanceCoef *= 1.75f;
+			if (this->Crouching) LegIK.StepDistanceCoef *= 1.5f;
 
 			if (this->Exerted && !this->Crouching) {
 				MoveDelta *= this->SprintModifier;
 				LegsModifier = EUnitAnimLegsModifier::Sprint;
-				LegIK.LerpRateCoef *= 1.55f;
+				LegIK.LerpRateCoef *= 1.3f;
+				LegIK.StepDistanceCoef *= 1.5f;
 			}
 		}
 		else {

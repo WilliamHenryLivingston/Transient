@@ -46,7 +46,11 @@ void AItemActor::ItemDrop(IItemHolder* Target) {
 
 	this->SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
 
-	this->ColliderComponent->SetCollisionProfileName(FName("Item"), true);
+	FName WorldProfile = FName("Item");
+	if (this->WorldCollisionProfile.Len() > 0) {
+		WorldProfile = FName(*this->WorldCollisionProfile);
+	}
+	this->ColliderComponent->SetCollisionProfileName(WorldProfile, true);
 	this->ColliderComponent->SetSimulatePhysics(true);
 }
 

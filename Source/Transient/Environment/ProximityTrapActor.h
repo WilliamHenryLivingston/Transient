@@ -12,7 +12,7 @@
 #include "ProximityTrapActor.generated.h"
 
 UCLASS()
-class TRANSIENT_API AProximityTrapActor : public AActor {
+class TRANSIENT_API AProximityTrapActor : public AActor, public IDamagable {
 	GENERATED_BODY()
 	
 private:
@@ -20,6 +20,8 @@ private:
 	FDamageProfile Damage;
 	UPROPERTY(EditAnywhere, Category="Proximity Trap")
 	float ActivationTime;
+	UPROPERTY(EditAnywhere, Category="Proximity Trap")
+	int KineticHealth = 100.0f;
 	UPROPERTY(EditAnywhere, Category="Proximity Trap")
 	int FactionID;
 	UPROPERTY(EditAnywhere, Category="Activate Animation")
@@ -38,6 +40,9 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+
+public:
+	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Source) override;
 
 private:
 	UFUNCTION()
