@@ -24,6 +24,10 @@ void AItemActor::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 }
 
+void AItemActor::ItemStartUse() { }
+
+void AItemActor::ItemUse(AActor* Target) { }
+
 void AItemActor::ItemTake(IItemHolder* Target) {
 	this->CurrentHolder = Target;
 

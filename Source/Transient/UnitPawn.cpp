@@ -77,7 +77,7 @@ void AUnitPawn::UnitDiscoverDynamicChildComponents() {
 	this->GetComponents(SlotComponents, true);
 
 	TArray<AActor*> Attached;
-	this->GetAttachedActors(Attached, false);
+	this->GetAttachedActors(Attached, true);
 
 	for (int i = 0; i < Attached.Num(); i++) {
 		AActor* Check = Attached[i];
@@ -605,6 +605,7 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 
 			TargetItem->ItemTake(this);
 			this->UnitRawSetActiveItem(TargetItem);
+			this->UnitDiscoverDynamicChildComponents();
 			return;
 		}
 	}
@@ -616,7 +617,6 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 
 		TargetItem->ItemTake(this);
 		AvailSlot->SlotSetContent(TargetItem);
-		
 		this->UnitDiscoverDynamicChildComponents();
 		return;
 	}
@@ -629,6 +629,7 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 
 		TargetItem->ItemTake(this);
 		this->UnitRawSetActiveItem(TargetItem);
+		this->UnitDiscoverDynamicChildComponents();
 		return;
 	}
 
@@ -658,6 +659,7 @@ void AUnitPawn::UnitDropActiveItem() {
 
 	this->ActiveItem->ItemDrop(this);
 	this->UnitRawSetActiveItem(nullptr);
+	this->UnitDiscoverDynamicChildComponents();
 }
 
 void AUnitPawn::UnitDropItem(AItemActor* Target) {
@@ -746,6 +748,7 @@ void AUnitPawn::UnitDequipActiveItem() {
 	}
 	else {
 		PreviousActive->ItemDrop(this);
+		this->UnitDiscoverDynamicChildComponents();
 	}
 }
 
@@ -924,22 +927,22 @@ void AUnitPawn::UnitSetCheckingStatus(bool NewChecking) {
 void AUnitPawn::UnitUseActiveItem(AActor* Target) {
 	if (this->UnitAreArmsOccupied()) return;
 
-	AUsableItem* AsUsable = Cast<AUsableItem>(this->ActiveItem);
-	if (AsUsable == nullptr) return;
+	if (!this->ActiveItem->Usable) return;
 
 	bool InvalidTarget = (
-		AsUsable->RequiresTarget && (
+		this->ActiveItem->RequiresTarget && (
 			Target == nullptr ||
-			!Target->IsA(AsUsable->TargetType) ||
+			!Target->IsA(this->ActiveItem->TargetType) ||
 			(Target->GetActorLocation() - this->GetActorLocation()).Size() > this->UseReach
 		)
 	);
 	if (InvalidTarget) return;
 
-	this->CurrentUseItem = AsUsable;
+	this->CurrentUseItem = this->ActiveItem;
+	this->CurrentUseItem->ItemStartUse();
 	this->CurrentUseItemTarget = Target;
 	if (this->CurrentUseItem->ImmobilizeOnUse) this->ArmsActionMoveLock = true;
-	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Use, AsUsable->UseAnimation, &AUnitPawn::ThenFinishUse);
+	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Use, this->ActiveItem->UseAnimation, &AUnitPawn::ThenFinishUse);
 }
 
 void AUnitPawn::UnitImmobilize(bool Which) {

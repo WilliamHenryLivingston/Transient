@@ -4,7 +4,10 @@
 
 #include "Kismet/KismetMathLibrary.h"
 
+#include "../Items/ItemActor.h"
 #include "GrassVolumeActor.h"
+
+//#define DEBUG_DRAWS true
 
 UGrassVolumePartition::UGrassVolumePartition() {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -22,11 +25,18 @@ void UGrassVolumePartition::BeginPlay() {
 	this->SetCollisionProfileName(FName("Grass"));
 	this->OnComponentBeginOverlap.AddDynamic(this, &UGrassVolumePartition::OnActorEnter);
 	this->OnComponentEndOverlap.AddDynamic(this, &UGrassVolumePartition::OnActorLeave);
+
+	this->GetOverlappingActors(this->TrackedActors, AItemActor::StaticClass());
 }
 
 void UGrassVolumePartition::TickComponent(
     float DeltaTime, ELevelTick Type, FActorComponentTickFunction* TickSelf
 ) {
+	#ifdef DEBUG_DRAWS
+	this->SetVisibility(this->TrackedActors.Num() > 0);
+	this->SetHiddenInGame(this->TrackedActors.Num() == 0);
+	#endif
+
 	if (this->TrackedActors.Num() == 0 && this->FullyInert) return;
 
 	AGrassVolumeActor* ParentVolume = Cast<AGrassVolumeActor>(this->GetOwner());
@@ -41,7 +51,11 @@ void UGrassVolumePartition::TickComponent(
 		float NearbyDist = 150.0f;
 		for (int j = 0; j < this->TrackedActors.Num(); j++) {
 			AActor* Check = this->TrackedActors[j];
-			if (!IsValid(Check)) continue; // TODO: Better.
+			if (!IsValid(Check)) {
+				this->TrackedActors.RemoveAt(j);
+				j--;
+				continue;
+			}
 
 			float Dist = (Check->GetActorLocation() - BladeLocation).Size();
 			if (Dist < NearbyDist) {

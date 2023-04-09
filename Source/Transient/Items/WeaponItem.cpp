@@ -25,6 +25,8 @@ void AWeaponItem::BeginPlay() {
 		if (Name.Equals("MuzzlePosition")) this->MuzzlePosition = Check;
 		else if (Name.Equals("ActiveMagazineHost")) this->ActiveMagazineHost = Check;
 	}
+
+	this->GetComponents(this->AttachmentSlots, true);
 }
 
 void AWeaponItem::Tick(float DeltaTime) {
@@ -71,6 +73,15 @@ void AWeaponItem::WeaponSwapMagazines(AMagazineItem* NewMagazine) {
 	);
 }
 
+bool AWeaponItem::WeaponHasItemEquipped(AItemActor* Item) {
+	for (int i = 0; i < this->AttachmentSlots.Num(); i++) {
+		AItemActor* Check = this->AttachmentSlots[i]->SlotGetContent();
+		if (Check == Item) return true;
+	}
+
+	return false;
+}
+
 void AWeaponItem::WeaponDisposeCurrentMagazine() {
 	if (this->ActiveMagazine == nullptr) return;
 
@@ -84,5 +95,6 @@ void AWeaponItem::WeaponDisposeCurrentMagazine() {
 	this->ActiveMagazine = nullptr;
 }
 
-// Stubs.
-bool AWeaponItem::WeaponEmpty() { return false; }
+bool AWeaponItem::WeaponEmpty() {
+	return this->ActiveMagazine == nullptr || this->ActiveMagazine->Ammo == 0;
+}

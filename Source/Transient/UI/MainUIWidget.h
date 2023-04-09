@@ -16,4 +16,6 @@ class TRANSIENT_API UMainUIWidget : public UUserWidget {
 public:
 	UPROPERTY(BlueprintReadWrite)
 	FString Script_CurrentItemDescriptor;
+	UPROPERTY(BlueprintReadWrite)
+	FString Script_CurrentItemExtra;
 };

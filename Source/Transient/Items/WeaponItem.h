@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 
 #include "../Animation/UnitAnimInstance.h"
+#include "../UnitSlotComponent.h"
 #include "ItemActor.h"
 #include "MagazineItem.h"
 
@@ -24,6 +25,8 @@ public:
 	bool ImmobilizeOnReload;
 	UPROPERTY(EditAnywhere, Category="Base Weapon")
 	float ReloadMagazineAttachTime = 0.5f;
+	UPROPERTY(EditAnywhere, Category="Base Weapon")
+	FRotator LaserCorrection;
 
 	UPROPERTY(EditAnywhere, Category="Item SFX")
 	USoundBase* ReloadSound;
@@ -32,6 +35,8 @@ public:
 	float AIEngageDistance = 500.0f;
 	UPROPERTY(EditAnywhere, Category="AI Handling")
 	float AIFireDistance = 1000.0f;
+
+	TArray<UUnitSlotComponent*> AttachmentSlots; // Only used to check if attachments present.
 
 protected:
 	bool TriggerPulled;
@@ -56,5 +61,6 @@ public:
 	FRotator WeaponGetMuzzleRotation();
 	void WeaponSwapMagazines(AMagazineItem* NewMagazine);
 	AMagazineItem* WeaponGetMagazine();
-	virtual bool WeaponEmpty();
+	bool WeaponEmpty();
+	bool WeaponHasItemEquipped(AItemActor* Item);
 };

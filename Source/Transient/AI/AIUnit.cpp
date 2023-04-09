@@ -154,7 +154,7 @@ void AAIUnit::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
         }
     }
 
-    Profile.Energy *= 50.0f; // TODO: Better number.
+    Profile.Energy *= 3.0f; // TODO: Better number.
     Super::DamagableTakeDamage(Profile, Source);
 }
 

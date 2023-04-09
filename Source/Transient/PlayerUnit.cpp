@@ -191,13 +191,14 @@ void APlayerUnit::Tick(float DeltaTime) {
 	}
 
 	this->MainUI->Script_CurrentItemDescriptor = TEXT("");
+	this->MainUI->Script_CurrentItemExtra = TEXT("");
 	this->ForceArmsEmptyAnimation = this->InventoryView;
 	if (this->InventoryView) {
 		this->UnitUpdateTorsoPitch(0.0f);
 
 		bool DropCurrent = this->DropInventoryFocused;
 		this->DropInventoryFocused = false;
-		bool EquipCurrent = this->EquipInventoryFocused;
+		bool ActionCurrent = this->EquipInventoryFocused;
 		this->EquipInventoryFocused = false;
 
 		FRotator CurrentRotation = this->GetActorRotation();
@@ -246,17 +247,46 @@ void APlayerUnit::Tick(float DeltaTime) {
 			if (TargetedItem != nullptr) {
 				this->MainUI->Script_CurrentItemDescriptor = TargetedItem->ItemGetDescriptorString();
 
+				AItemActor* CurrentItem = this->UnitGetActiveItem();
+				bool WouldEquip = TargetedItem->Equippable && TargetedItem != CurrentItem;
+				UUnitSlotComponent* NextSlot = this->UnitGetEmptySlotAllowing(TargetedItem->InventoryType);
+				bool WouldMove = NextSlot != nullptr;
+				
+				this->MainUI->Script_CurrentItemExtra = TEXT("[rmb] drop");
+				if (WouldEquip) {
+					this->MainUI->Script_CurrentItemExtra += TEXT(" / [lmb] equip");
+				}
+				else if (WouldMove) {
+					this->MainUI->Script_CurrentItemExtra += TEXT(" / [lmb] swap slot");
+				}
+
 				if (DropCurrent) {
 					this->OverrideArmsState = true;
 					this->UnitDropItem(TargetedItem);
 					this->OverrideArmsState = false;
 					this->UnitPlayInteractAnimation();
 				}
-				else if (EquipCurrent) {
+				else if (ActionCurrent) {
 					this->OverrideArmsState = true;
-					this->UnitEquipItem(TargetedItem);
+					bool DidSomething = false;
+					
+					if (WouldEquip) {
+						this->UnitEquipItem(TargetedItem);
+						DidSomething = true;
+					}
+					else if (WouldMove) {
+						if (AsSlotCollider != nullptr) {
+							Cast<UUnitSlotComponent>(AsSlotCollider->ParentSlot)->SlotSetContent(nullptr);
+							NextSlot->SlotSetContent(TargetedItem);
+							DidSomething = true;
+						}
+						else if (TargetedItem == CurrentItem) {
+							this->UnitDequipActiveItem();
+							DidSomething = true;
+						}
+					}
 					this->OverrideArmsState = false;
-					this->UnitPlayInteractAnimation();
+					if (DidSomething) this->UnitPlayInteractAnimation();
 				}
 			}
 		}
@@ -312,16 +342,24 @@ void APlayerUnit::Tick(float DeltaTime) {
 		MouseSX /= SSizeX;
 		MouseSY /= SSizeY;
 
-		if (MouseSX < this->AimPadding && this->AimCameraOffset.Y > -this->AimMaxDistance) {
+		float CurrentAimMax = this->AimMaxDistance;
+
+		// TODO: no lol.
+		AItemActor* Scope = this->UnitGetItemByName(FString("tac-x field optic"));
+		AWeaponItem* Weapon = this->UnitGetActiveWeapon();
+		if (Scope != nullptr && Weapon != nullptr && Weapon->WeaponHasItemEquipped(Scope)) {
+			CurrentAimMax *= 1.5;
+		}
+		if (MouseSX < this->AimPadding && this->AimCameraOffset.Y > -CurrentAimMax) {
 			this->AimCameraOffset.Y -= AimDelta;
 		}
-		if (MouseSX > (1.0f - this->AimPadding) && this->AimCameraOffset.Y < this->AimMaxDistance) {
+		if (MouseSX > (1.0f - this->AimPadding) && this->AimCameraOffset.Y < CurrentAimMax) {
 			this->AimCameraOffset.Y += AimDelta; 
 		}
-		if (MouseSY < this->AimPadding && this->AimCameraOffset.X < this->AimMaxDistance) {
+		if (MouseSY < this->AimPadding && this->AimCameraOffset.X < CurrentAimMax) {
 			this->AimCameraOffset.X += AimDelta;
 		}
-		if (MouseSY > (1.0f - this->AimPadding) && this->AimCameraOffset.X > -this->AimMaxDistance) {
+		if (MouseSY > (1.0f - this->AimPadding) && this->AimCameraOffset.X > -CurrentAimMax) {
 			this->AimCameraOffset.X -= AimDelta; 
 		}
 	}

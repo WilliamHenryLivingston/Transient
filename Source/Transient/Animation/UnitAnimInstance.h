@@ -46,7 +46,8 @@ enum class EUnitAnimArmsState : uint8 {
     RepairTool,
     Battery,
     Mtr,
-    Crate
+    Crate,
+    Beam
 };
 
 UENUM(BlueprintType)

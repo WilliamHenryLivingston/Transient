@@ -2,6 +2,8 @@
 
 #include "ProjectileWeapon.h"
 
+#include "../UnitPawn.h"
+
 void AProjectileWeapon::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
@@ -10,10 +12,7 @@ void AProjectileWeapon::Tick(float DeltaTime) {
         return;
     }
 
-    // Sanity check.
-    if (this->CurrentHolder == nullptr) {
-        this->TriggerPulled = false;
-    }
+    if (this->CurrentHolder == nullptr) this->TriggerPulled = false;
 
     if (this->TriggerPulled && this->ActiveMagazine != nullptr && this->ActiveMagazine->Ammo > 0) {
         FVector WorldMuzzle = this->WeaponGetMuzzlePosition();
@@ -33,8 +32,17 @@ void AProjectileWeapon::Tick(float DeltaTime) {
             SpreadRotation,
             FActorSpawnParameters()
         );
-        if (Projectile != nullptr) {
-            Projectile->Source = Cast<AActor>(this->CurrentHolder);
+
+        AUnitPawn* UnitHolder = Cast<AUnitPawn>(this->CurrentHolder);
+        // TODO: no lol.
+        AItemActor* Suppressor = UnitHolder->UnitGetItemByName(FString("mtr suppressor"));
+        bool Suppressed = (
+            Suppressor != nullptr &&
+            this->WeaponHasItemEquipped(Suppressor) &&
+            UnitHolder->UnitGetConcealmentScore() > 0
+        );
+        if (Projectile != nullptr && !Suppressed) {
+            Projectile->Source = UnitHolder;
         }
 
         if (this->SemiAutomatic) {
@@ -54,8 +62,4 @@ void AProjectileWeapon::Tick(float DeltaTime) {
 
         this->CurrentHolder->ItemHolderPlaySound(this->EmptySound);
     }
-}
-
-bool AProjectileWeapon::WeaponEmpty() {
-	return this->ActiveMagazine == nullptr || this->ActiveMagazine->Ammo == 0;
 }

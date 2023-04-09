@@ -4,12 +4,12 @@
 
 #include "CoreMinimal.h"
 
-#include "UsableItem.h"
+#include "ItemActor.h"
 
 #include "KeycardItem.generated.h"
 
 UCLASS()
-class TRANSIENT_API AKeycardItem : public AUsableItem {
+class TRANSIENT_API AKeycardItem : public AItemActor {
 	GENERATED_BODY()
 
 public:

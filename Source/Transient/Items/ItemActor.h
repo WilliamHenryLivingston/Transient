@@ -21,7 +21,10 @@ enum class EItemInventoryType : uint8 {
 	Arrow,
 	Magazine,
 	Misc,
-	MiscLarge
+	MiscLarge,
+	MuzzleAttachment,
+	MainRailAttachment,
+	SecondaryRailAttachment
 };
 
 UCLASS()
@@ -59,6 +62,17 @@ public:
 	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
 	int EquippedConcealment;
 
+	UPROPERTY(EditAnywhere, Category="Item Usability")
+	bool Usable;
+	UPROPERTY(EditAnywhere, Category="Item Usability")
+	TSubclassOf<AActor> TargetType;
+	UPROPERTY(EditAnywhere, Category="Item Usability")
+	bool RequiresTarget;
+	UPROPERTY(EditAnywhere, Category="Item Usability")
+	bool ImmobilizeOnUse;
+	UPROPERTY(EditAnywhere, Category="Item Usability")
+	FAnimationConfig UseAnimation;
+
 protected:
 	IItemHolder* CurrentHolder;
 	UPROPERTY(EditDefaultsOnly, Category="Item")
@@ -77,4 +91,6 @@ public:
 	virtual FString ItemGetDescriptorString();
 	virtual void ItemTake(IItemHolder* Target);
 	virtual void ItemDrop(IItemHolder* Target);
+	virtual void ItemStartUse();
+	virtual void ItemUse(AActor* Target);
 };

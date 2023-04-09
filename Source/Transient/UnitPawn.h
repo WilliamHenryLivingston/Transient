@@ -7,7 +7,6 @@
 #include "Components/AudioComponent.h"
 
 #include "Items/ItemActor.h"
-#include "Items/UsableItem.h"
 #include "Items/MagazineItem.h"
 #include "Items/WeaponItem.h"
 #include "Items/ArmorItem.h"
@@ -112,7 +111,7 @@ private:
 	bool HasFaceTarget;
 	
 	// Deferred action states.
-	AUsableItem* CurrentUseItem;
+	AItemActor* CurrentUseItem;
 	AInteractiveActor* CurrentInteractActor;
 	AMagazineItem* LoadingMagazine;
 	AMagazineItem* UnloadingMagazine;
@@ -194,7 +193,6 @@ public:
 
 // Internals.
 private:
-	void UnitDequipActiveItem();
 	void UnitRawSetActiveItem(AItemActor* Item);
 
 	void ThenFinishUse();
@@ -208,6 +206,7 @@ private:
 // Exposures.
 protected:
 	virtual void UnitDiscoverDynamicChildComponents();
+	void UnitDequipActiveItem();
 
 	// Must be called at the end of child-class ticks.
 	void UnitPostTick(float DeltaTime);

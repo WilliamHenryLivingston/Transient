@@ -31,7 +31,4 @@ private:
 
 public:
 	virtual void Tick(float DeltaTime) override;
-
-public:
-	virtual bool WeaponEmpty() override;
 };

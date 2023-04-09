@@ -24,7 +24,11 @@ private:
 	int KineticHealth = 100.0f;
 	UPROPERTY(EditAnywhere, Category="Proximity Trap")
 	int FactionID;
-	UPROPERTY(EditAnywhere, Category="Activate Animation")
+	UPROPERTY(EditAnywhere, Category="Proximity Trap")
+	TSubclassOf<AActor> HitEffect;
+	UPROPERTY(EditAnywhere, Category="Proximity Trap")
+	TSubclassOf<AActor> TriggerEffect;
+	UPROPERTY(EditAnywhere, Category="Proximity Trap")
 	float RiseSpeed;
 
 	float ActivationTimer;
@@ -32,7 +36,7 @@ private:
 	USphereComponent* TriggerComponent;
 	UStaticMeshComponent* VisibleComponent;
 
-	AUnitPawn* ActiveTarget;
+	TArray<IDamagable*> ActiveTargets; // TODO: Sphere cast instead.
 
 public:
 	AProximityTrapActor();
@@ -45,8 +49,10 @@ public:
 	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Source) override;
 
 private:
+	void TrapDetonate();
+
 	UFUNCTION()
-	void OnUnitEnterUnchecked(UPrimitiveComponent* Into, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherIdx, bool FromSweep, const FHitResult &Sweep);
+	void OnActorEnter(UPrimitiveComponent* Into, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherIdx, bool FromSweep, const FHitResult &Sweep);
 	UFUNCTION()
-	void OnUnitLeaveUnchecked(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	void OnActorLeave(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 };

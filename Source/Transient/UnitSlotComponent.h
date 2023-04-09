@@ -19,6 +19,8 @@ private:
 	AItemActor* Content;
 	UPROPERTY(EditAnywhere, Category="Inventory Slot")
 	float InventoryViewColliderRadius = 2.0f;
+	UPROPERTY(EditAnywhere, Category="Inventory Slot")
+	bool UseEquippedItemTransform;
 
 	UUnitSlotColliderComponent* InventoryLookCollider;
 

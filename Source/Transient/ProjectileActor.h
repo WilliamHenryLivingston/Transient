@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Components/BoxComponent.h"
+#include "NiagaraSystem.h"
 
 #include "Damagable.h"
 
@@ -27,6 +28,10 @@ private:
 	bool StickOnStaticCollide;
 	UPROPERTY(EditAnywhere, Category="Projectile")
 	UMaterial* BulletHoleDecal;
+	UPROPERTY(EditAnywhere, Category="Projectile")
+	TSubclassOf<AActor> HitEffect;
+	UPROPERTY(EditAnywhere, Category="Projectile")
+	bool HitEffectOnAny;
 
 	UPROPERTY(EditDefaultsOnly, Category="BP Object Common")
 	UStaticMeshComponent* VisibleComponent;
@@ -42,8 +47,10 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+protected:
+	virtual void ProjectileHitVictim(IDamagable* Victim);
+
 private:
 	UFUNCTION()
 	void OnCollideUnchecked(UPrimitiveComponent* Into, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherIdx, bool FromSweep, const FHitResult &Sweep);
-
 };
