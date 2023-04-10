@@ -10,7 +10,7 @@ void ATimeDilatorItem::BeginPlay() {
     Super::BeginPlay();
 
     this->Light = this->FindComponentByClass<UPointLightComponent>();
-    this->Light->SetVisibility(false);
+    if (this->Light != nullptr) this->Light->SetVisibility(false);
 }
 
 void ATimeDilatorItem::Tick(float DeltaTime) {
@@ -18,5 +18,5 @@ void ATimeDilatorItem::Tick(float DeltaTime) {
 
     bool Active = this->CurrentHolder != nullptr && Cast<AUnitPawn>(this->CurrentHolder)->UnitIsExerted();
 
-    this->Light->SetVisibility(Active);
+    if (this->Light != nullptr) this->Light->SetVisibility(Active);
 }
