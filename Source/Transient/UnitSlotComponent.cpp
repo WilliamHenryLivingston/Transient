@@ -2,8 +2,7 @@
 
 #include "Components/SphereComponent.h"
 
-#include "TransientDebug.h"
-#include "ItemHolder.h"
+#include "Items/ItemHolder.h"
 
 UUnitSlotComponent::UUnitSlotComponent() {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -23,7 +22,6 @@ void UUnitSlotComponent::BeginPlay() {
 	this->InventoryLookCollider->SetSphereRadius(0.0f);
 	this->InventoryLookCollider->SetCollisionProfileName(FName("EquipHost"));
 	this->InventoryLookCollider->ParentSlot = this;
-	this->InventoryLookCollider->SetHiddenInGame(NODEBUG_COLLIDERS);
 
 	if (this->Content != nullptr) {
 		this->Content->ItemTake(Cast<IItemHolder>(this->GetOwner()));
@@ -58,8 +56,12 @@ void UUnitSlotComponent::SlotSetContent(AItemActor* NewContent) {
 		);
 
 		this->Content->SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
-		this->Content->SetActorRelativeLocation(this->Content->InSlotOffset);
-		this->Content->SetActorRelativeRotation(this->Content->InSlotRotation);
+		this->Content->SetActorRelativeLocation(
+			this->UseEquippedItemTransform ? this->Content->EquippedOffset : this->Content->InSlotOffset
+		);
+		this->Content->SetActorRelativeRotation(
+			this->UseEquippedItemTransform ? this->Content->EquippedRotation : this->Content->InSlotRotation
+		);
 		this->InventoryLookCollider->SetSphereRadius(this->InventoryViewColliderRadius * this->Content->SlotColliderModifier);
 	}
 }

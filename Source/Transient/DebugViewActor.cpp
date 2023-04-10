@@ -1,3 +1,5 @@
+// Copyright: R. Saxifrage, 2023. All rights reserved.
+
 #include "DebugViewActor.h"
 
 #include "Components/StaticMeshComponent.h"

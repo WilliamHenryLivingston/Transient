@@ -2,6 +2,7 @@
 
 #include "Engine/DecalActor.h"
 #include "Components/DecalComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 #include "UnitPawn.h"
 
@@ -34,21 +35,29 @@ void AProjectileActor::Tick(float DeltaTime) {
 	SetActorLocation(GetActorLocation() + Move);
 }
 
+void AProjectileActor::ProjectileHitVictim(IDamagable* Victim) {
+	Victim->DamagableTakeDamage(this->DamageProfile, this->Source);
+}
+
 void AProjectileActor::OnCollideUnchecked(
 	UPrimitiveComponent* Into,
 	AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherIdx,
 	bool FromSweep, const FHitResult &Sweep
 ) {
 	if (this->Inertness > 0) return;
-	AUnitPawn* HitUnit = Cast<AUnitPawn>(OtherActor);
+	IDamagable* Victim = Cast<IDamagable>(OtherActor);
 
-	if (HitUnit != nullptr) {
-		HitUnit->UnitTakeDamage(this->DamageProfile, this->Source);
+	bool PlayEffect = this->HitEffectOnAny;
+	bool DestroySelf = true;
+
+	if (Victim != nullptr) {
+		this->ProjectileHitVictim(Victim);
 	
-		this->Destroy();
+		PlayEffect = true;
 	}
 	else if (this->StickOnStaticCollide) {
 		this->Inertness = 1;
+		DestroySelf = false;
 	}
 	else if (this->BulletHoleDecal != nullptr) {
 		ADecalActor* Decal = this->GetWorld()->SpawnActor<ADecalActor>(this->GetActorLocation(), FRotator());
@@ -56,10 +65,16 @@ void AProjectileActor::OnCollideUnchecked(
 		Decal->SetLifeSpan(30.0f);
 		Decal->GetDecal()->DecalSize = FVector(16.0f, 16.0f, 16.0f);
 		Decal->SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
-	
-		this->Destroy();
 	}
-	else {
-		this->Destroy();
+
+	if (PlayEffect && this->HitEffect != nullptr) {
+		FVector CurrentLocation = this->GetActorLocation();
+		this->GetWorld()->SpawnActor<AActor>(
+			this->HitEffect,
+			CurrentLocation,
+			UKismetMathLibrary::FindLookAtRotation(OtherActor->GetActorLocation(), CurrentLocation),
+			FActorSpawnParameters()
+		);
 	}
+	if (DestroySelf) this->Destroy();
 }
