@@ -240,6 +240,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	RigLocation.Z = this->BaseRigVerticalOffset;
 	FVector RigScale = this->BaseRigScale;
 	if (this->Crouching) {
+		this->HasMoveTarget = false;
 		LegsState = EUnitAnimLegsState::Crouch;
 		ColliderScale.Z *= this->CrouchVerticalShrink;
 		RigLocation.Z += this->CrouchVerticalTranslate;
@@ -283,7 +284,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		else if (abs(AngleDeg - (45.0f * 5.0f)) < 90.0f) {
 			LegsState = EUnitAnimLegsState::WalkFwd;
 
-			if (this->Exerted && !this->Crouching) {
+			if (this->Exerted) {
 				MoveDelta *= this->SprintModifier;
 				LegsModifier = EUnitAnimLegsModifier::Sprint;
 				LegIK.StepDistanceCoef *= 1.5f;
@@ -909,7 +910,7 @@ void AUnitPawn::UnitSetCheckingStatus(bool NewChecking) {
 void AUnitPawn::UnitUseActiveItem(AActor* Target) {
 	if (this->UnitAreArmsOccupied()) return;
 
-	if (this->ActiveItem != nullptr && !this->ActiveItem->Usable) return;
+	if (this->ActiveItem == nullptr || !this->ActiveItem->Usable) return;
 
 	bool InvalidTarget = (
 		this->ActiveItem->RequiresTarget && (

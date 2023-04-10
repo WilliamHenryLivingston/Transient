@@ -47,7 +47,7 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
 
     float CurrentStepDistance = this->Profile.StepBaseDistance * Dynamics.StepDistanceCoef;
     float CurrentOffsetTolerance = this->Profile.RestingOffsetTolerance;
-    bool BodyMoving = BodyVelocity.Size() > 2.0f;
+    bool BodyMoving = BodyVelocity.Size2D() > 10.0f;
     if (BodyMoving) {
         CurrentOffsetTolerance = this->Profile.MovingOffsetTolerance;
     }

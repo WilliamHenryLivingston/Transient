@@ -9,7 +9,7 @@ FBipedLegIKProfile::FBipedLegIKProfile() {
     this->StepBaseDistance = 150.0f;
 	this->BodyBaseOffset = 105.0f;
 	this->MovingOffsetTolerance = 40.0f;
-	this->RestingOffsetTolerance = 25.0f;
+	this->RestingOffsetTolerance = 15.0f;
     this->LerpRate = 25.0f;
 
     this->TrackGroups = TArray<FLegIKTrackGroupProfile>();
