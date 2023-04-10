@@ -20,7 +20,7 @@ class TRANSIENT_API ULegIKSkeletonComponent : public USkeletalMeshComponent {
 	GENERATED_BODY()
 
 private:
-	UPROPERTY(EditAnywhere, Category="Skeleton IK")
+	UPROPERTY(EditAnywhere, Category="Leg IK")
 	ELegIKProfileType ProfileType;
 
 	ULegIKInstance* IK;

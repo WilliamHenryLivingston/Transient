@@ -222,23 +222,8 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	// Movement update.
 	FLegIKDynamics LegIK;
 
-	if (this->Crouching || this->Immobilized) {
-		LegIK.StepDistanceCoef *= 0.333f;
-	}
-	if (LowPower) {
+	if (this->Crouching || this->Immobilized || LowPower) {
 		LegIK.StepDistanceCoef *= 0.25f;
-		LegIK.LerpRateCoef *= 0.65f;
-	}
-	float TimeDilation = UGameplayStatics::GetGlobalTimeDilation(this->GetWorld());
-	if (TimeDilation != 1.0f) {
-		if (this->IsA(APlayerUnit::StaticClass())) {
-			LegIK.LerpRateCoef *= 1.0f / TimeDilation;
-			LegIK.StepDistanceCoef *= 1.0f / TimeDilation;
-		}
-		else {
-			LegIK.LerpRateCoef *= 0.5f / TimeDilation;
-			LegIK.StepDistanceCoef *= 0.5f / TimeDilation;
-		}
 	}
 
 	FVector CurrentLocation = this->GetActorLocation();	
@@ -283,37 +268,34 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 
 		if (this->Crouching || this->Slow) {
 			MoveDelta *= 0.5;
-			LegIK.StepDistanceCoef *= 0.5f;
 		}
 
 		if (abs(AngleDeg - 45.0f) < 90.0f && AngleDeg > 45.0f) {
 			LegsState = EUnitAnimLegsState::WalkBwd;
-			LegIK.StepDistanceCoef *= 0.5f;
 			MoveDelta *= StrafeModifier;
+			LegIK.StepDistanceCoef *= 0.5f;
 		}
 		else if (abs(AngleDeg - (45.0f * 3.0f)) < 90.0f) {
 			LegsState = EUnitAnimLegsState::WalkLeft;
-			LegIK.StepDistanceCoef *= 0.5f;
 			MoveDelta *= StrafeModifier;
+			LegIK.StepDistanceCoef *= 0.5f;
 		}
 		else if (abs(AngleDeg - (45.0f * 5.0f)) < 90.0f) {
 			LegsState = EUnitAnimLegsState::WalkFwd;
 
-			if (this->Crouching) LegIK.StepDistanceCoef *= 1.5f;
-
 			if (this->Exerted && !this->Crouching) {
 				MoveDelta *= this->SprintModifier;
 				LegsModifier = EUnitAnimLegsModifier::Sprint;
-				LegIK.LerpRateCoef *= 1.1f;
-				LegIK.StepDistanceCoef *= 1.1f;
+				LegIK.StepDistanceCoef *= 1.5f;
 			}
 		}
 		else {
 			LegsState = EUnitAnimLegsState::WalkRight;
-			LegIK.StepDistanceCoef *= 0.5f;
 			MoveDelta *= StrafeModifier;
+			LegIK.StepDistanceCoef *= 0.5f;
 		}
 
+		LegIK.BodyVelocity = MoveDelta / DeltaTime;
 		this->SetActorLocation(CurrentLocation + MoveDelta);
 	}
 	this->RigComponent->LegIKSetDynamics(LegIK);
@@ -927,7 +909,7 @@ void AUnitPawn::UnitSetCheckingStatus(bool NewChecking) {
 void AUnitPawn::UnitUseActiveItem(AActor* Target) {
 	if (this->UnitAreArmsOccupied()) return;
 
-	if (!this->ActiveItem->Usable) return;
+	if (this->ActiveItem != nullptr && !this->ActiveItem->Usable) return;
 
 	bool InvalidTarget = (
 		this->ActiveItem->RequiresTarget && (

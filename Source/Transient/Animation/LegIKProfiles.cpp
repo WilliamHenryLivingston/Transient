@@ -6,7 +6,7 @@ FBipedLegIKProfile::FBipedLegIKProfile() {
     this->GroundCastDistance = 200.0f;
     this->StepVerticalOffset = 25.0f;
     this->StepReachWorldRadius = 1.0f;
-    this->StepBaseDistance = 6000.0f;
+    this->StepBaseDistance = 150.0f;
 	this->BodyBaseOffset = 105.0f;
 	this->MovingOffsetTolerance = 40.0f;
 	this->RestingOffsetTolerance = 25.0f;

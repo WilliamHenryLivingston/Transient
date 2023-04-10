@@ -23,11 +23,6 @@ private:
 
 	TArray<FLegIKTrackGroup> TrackGroups;
 
-	FVector LastWorldLocation;
-	FVector LastMoveDelta;
-	TArray<FVector> LastMoveDeltas;
-	int LastMoveDeltaIndex;
-
 	FLegIKDynamics Dynamics;
 
 public:

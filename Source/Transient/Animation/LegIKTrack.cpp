@@ -15,73 +15,43 @@ FLegIKTrack::FLegIKTrack(FVector InitialWorldLocation, FLegIKProfile InitProfile
     this->Profile = InitProfile;
 }
 
-FVector FLegIKTrack::LegIKTrackWorldLocation() { return this->CurrentWorldLocation; }
-ELegIKStepPhase FLegIKTrack::LegIKTrackGetStepPhase() { return this->StepPhase; }
-
-void FLegIKTrack::LegIKTrackStepTo(FVector WorldOffset, USceneComponent* Parent) {
-    this->StepWorldLocation = WorldOffset;
-    this->StepWorldLocation.Z = this->GroundHit(this->StepWorldLocation, Parent).Z;
-    this->StepPhase = ELegIKStepPhase::Lift;
+float FLegIKTrack::LegIKTrackStepProgress() {
+    return FMath::Min(1.0f, this->StepTime / this->StepTimeBudget);
 }
 
-FVector FLegIKTrack::LegIKTrackTick(
-    float DeltaTime, USceneComponent* Parent, FLegIKDynamics Dynamics
-) {
-    FVector TickTargetWorldLocation = this->CurrentWorldLocation;
-    TickTargetWorldLocation.Z = this->GroundHit(this->CurrentWorldLocation, Parent).Z;
+void FLegIKTrack::LegIKTrackStepTo(FVector WorldOffset, USceneComponent* Parent, float TimeBudget) {
+    this->StepStartWorldLocation = this->CurrentWorldLocation;
+    this->StepWorldLocation = WorldOffset;
+    this->StepWorldLocation.Z = this->GroundHit(this->StepWorldLocation, Parent).Z;
+    this->StepTimeBudget = TimeBudget;
+    this->StepTime = 0.0f;
+}
 
-    float StepVerticalOffset = this->Profile.StepVerticalOffset * Dynamics.StepVerticalCoef;
+FVector FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneComponent* Parent, FLegIKDynamics Dynamics) {
+    float GroundHitZ = this->GroundHit(this->CurrentWorldLocation, Parent).Z;
 
-    if (this->StepPhase == ELegIKStepPhase::Lift) {
-        float LiftedZ = TickTargetWorldLocation.Z + StepVerticalOffset;
-
-        if (FMath::Abs(this->CurrentWorldLocation.Z - LiftedZ) < 5.0f) {
-            TickTargetWorldLocation.Z += StepVerticalOffset;
-            this->StepPhase = ELegIKStepPhase::Swing;
-        }
-        else {
-            FVector PartialStepWorldDelta = (
-                (this->StepWorldLocation - this->CurrentWorldLocation) * 0.25f
-            );
-            TickTargetWorldLocation.Z += StepVerticalOffset;
-            TickTargetWorldLocation.X += PartialStepWorldDelta.X;
-            TickTargetWorldLocation.Y += PartialStepWorldDelta.Y;
-        }
+    if (this->StepTime >= this->StepTimeBudget) {
+        this->CurrentWorldLocation = this->StepWorldLocation;
+        this->CurrentWorldLocation.Z = GroundHitZ;
     }
-    else if (this->StepPhase == ELegIKStepPhase::Swing) {
-        FVector PlaneWorldDistance = this->CurrentWorldLocation - this->StepWorldLocation;
-        PlaneWorldDistance.Z = 0.0f;
+    else {
+        this->StepTime += DeltaTime;
+        float Alpha = this->StepTime / this->StepTimeBudget;
 
-        if (PlaneWorldDistance.Size() < this->Profile.StepReachWorldRadius) {
-            this->StepPhase = ELegIKStepPhase::Place;
-        }
-        else {
-            TickTargetWorldLocation.X = this->StepWorldLocation.X;
-            TickTargetWorldLocation.Y = this->StepWorldLocation.Y;
-            TickTargetWorldLocation.Z += StepVerticalOffset;
-        }
+        this->CurrentWorldLocation = FMath::Lerp(
+            this->StepStartWorldLocation,
+            this->StepWorldLocation,
+            Alpha
+        );
+        this->CurrentWorldLocation.Z = GroundHitZ + (sin(Alpha * 3.14159f) * this->Profile.StepVerticalOffset); 
     }
-    else if (this->StepPhase == ELegIKStepPhase::Place) {
-        float WorldDistance = FMath::Abs(this->CurrentWorldLocation.Z - TickTargetWorldLocation.Z);
-
-        if (WorldDistance < this->Profile.StepReachWorldRadius) {
-            this->StepPhase = ELegIKStepPhase::None;
-        }
-    }
-
-    this->CurrentWorldLocation = FMath::VInterpTo(
-        this->CurrentWorldLocation,
-        TickTargetWorldLocation,
-        DeltaTime,
-        this->Profile.LerpRate * Dynamics.LerpRateCoef
-    );
 
     #ifdef DEBUG_DRAWS
     DrawDebugSphere(
         Parent->GetWorld(),
         this->StepWorldLocation,
         5.0f, 5,
-        this->StepPhase != ELegIKStepPhase::None ? FColor::Yellow : FColor::Black,
+        this->StepTime >= this->StepTimeBudget ? FColor::Yellow : FColor::Black,
         false, 0.2f, 100
     );
     DrawDebugSphere(

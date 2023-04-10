@@ -4,16 +4,19 @@
 
 //#define DEBUG_DRAWS true
 
+#ifdef DEBUG_DRAWS
+#include "DrawDebugHelpers.h"
+#endif
+
 void ULegIKInstance::LegIKInstanceInit(USceneComponent* Parent, FLegIKProfile InitProfile) {
     this->Profile = InitProfile;
     this->Dynamics = FLegIKDynamics();
-    this->LastWorldLocation = Parent->GetComponentLocation();
 
     TArray<FLegIKTrackGroupProfile> GroupProfiles = this->Profile.TrackGroups;
     this->TrackGroups = TArray<FLegIKTrackGroup>();
 
     FVector ParentLocation = Parent->GetComponentLocation();
-    FRotator ParentRotation = Parent->GetComponentRotation();
+    FRotator BodyRotation = Parent->GetComponentRotation();
     for (int i = 0; i < GroupProfiles.Num(); i++) {
         FLegIKTrackGroupProfile* GroupProfile = &GroupProfiles[i];
         FLegIKTrackGroup Group;
@@ -22,7 +25,7 @@ void ULegIKInstance::LegIKInstanceInit(USceneComponent* Parent, FLegIKProfile In
             FVector BaseComponentLocation = GroupProfile->BaseComponentLocations[j];
 
             Group.Tracks.Push(FLegIKTrack(
-                ParentLocation + ParentRotation.RotateVector(BaseComponentLocation),
+                ParentLocation + BodyRotation.RotateVector(BaseComponentLocation),
                 this->Profile
             ));
             Group.BaseComponentLocations.Push(BaseComponentLocation);
@@ -36,132 +39,142 @@ void ULegIKInstance::LegIKInstanceSetDynamics(FLegIKDynamics NewDynamics) {
     this->Dynamics = NewDynamics;
 }
 
+// TODO: Optimize and refactor.
 void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent) {
-    FVector ParentWorldLocation = Parent->GetComponentLocation();
-    FRotator ParentRotation = Parent->GetComponentRotation();
+    FVector BodyLocation = Parent->GetComponentLocation();
+    FRotator BodyRotation = Parent->GetComponentRotation();
+    FVector BodyVelocity = this->Dynamics.BodyVelocity;
 
-    FVector TickMoveWorldDelta = ParentWorldLocation - this->LastWorldLocation;
-    this->LastWorldLocation = ParentWorldLocation;
-    TickMoveWorldDelta.Z = 0;
-
-    if (this->LastMoveDeltas.Num() < 5) {
-        this->LastMoveDeltas.Push(TickMoveWorldDelta);
-        this->LastMoveDeltaIndex++;
-    }
-    else {
-        this->LastMoveDeltaIndex = (this->LastMoveDeltaIndex + 1) % this->LastMoveDeltas.Num();
-        this->LastMoveDeltas[this->LastMoveDeltaIndex] = TickMoveWorldDelta;
+    float CurrentStepDistance = this->Profile.StepBaseDistance * Dynamics.StepDistanceCoef;
+    float CurrentOffsetTolerance = this->Profile.RestingOffsetTolerance;
+    bool BodyMoving = BodyVelocity.Size() > 2.0f;
+    if (BodyMoving) {
+        CurrentOffsetTolerance = this->Profile.MovingOffsetTolerance;
     }
 
-    FVector MoveWorldDelta = TickMoveWorldDelta;
-    if (Cast<UPrimitiveComponent>(Parent)->GetPhysicsAngularVelocityInDegrees().Size() > 10.0f) {
-        for (int i = 0; i < this->LastMoveDeltas.Num(); i++) {
-            MoveWorldDelta += this->LastMoveDeltas[i] / this->LastMoveDeltas.Num();
-        }
-    }
-
-    #ifdef DEBUG_DRAWS
-    DrawDebugLine(
-        Parent->GetWorld(),
-        ParentWorldLocation,
-        ParentWorldLocation + (MoveWorldDelta * 1.0f),
-        FColor::Blue,
-        false, 1.0f, -1, 1.0f
-    );
-    #endif
-
-    bool CriticalDeltaChange = (
-        (TickMoveWorldDelta.IsZero() && !this->LastMoveDelta.IsZero()) ||
-        acosf(FVector::DotProduct(TickMoveWorldDelta, this->LastMoveDelta)) > 2.0f
-    );
-    this->LastMoveDelta = TickMoveWorldDelta;
-
-    FLegIKTrackGroup* CriticalImpactedGroup = nullptr;
     bool ConsiderStep = true;
+    TArray<FLegIKTrackGroup*> ActiveStepGroups;
     TArray<bool> GroupsStillPlacing;
     for (int i = 0; i < this->TrackGroups.Num(); i++) {
         FLegIKTrackGroup* Group = &this->TrackGroups[i];
 
         bool StillPlacing = false;
         for (int j = 0; j < Group->Tracks.Num(); j++) {
-            ELegIKStepPhase CheckPhase = Group->Tracks[j].LegIKTrackGetStepPhase();
-            if (CheckPhase == ELegIKStepPhase::None) continue;
+            float CheckProgress = Group->Tracks[j].LegIKTrackStepProgress();
+            if (CheckProgress >= 1.0f) continue;
+            
+            if (!ActiveStepGroups.Contains(Group)) ActiveStepGroups.Push(Group);
 
-            CriticalImpactedGroup = Group;
-            if (CheckPhase == ELegIKStepPhase::Place) StillPlacing = true;
+            if (CheckProgress >= 0.8f) StillPlacing = true;
             else ConsiderStep = false;
         }
         GroupsStillPlacing.Push(StillPlacing);
     }
 
-    if (ConsiderStep || CriticalDeltaChange) {
-        // Compute current base positions and offset tolerance given current travel and
-        // find group that needs to step most.
-        float CurrentOffsetTolerance = this->Profile.RestingOffsetTolerance;
-        FVector StepTargetDelta;
-        if (MoveWorldDelta.Size2D() > 2.0f) {
-            CurrentOffsetTolerance = this->Profile.MovingOffsetTolerance;
-            StepTargetDelta += (
-                MoveWorldDelta.GetSafeNormal() *
-                this->Profile.StepBaseDistance *
-                Dynamics.StepDistanceCoef *
-                DeltaTime
+    // Validate existing steps, scheduling any that are invalid for reset.
+    // TODO: Simplify as: did currentworldposition change?
+    TArray<FLegIKTrackGroup*> TriggerStepGroups;
+    for (int i = 0; i < ActiveStepGroups.Num(); i++) {
+        FLegIKTrackGroup* CheckGroup = ActiveStepGroups[i];
+
+        for (int j = 0; j < CheckGroup->Tracks.Num(); j++) {
+            FLegIKTrack* CheckTrack = &CheckGroup->Tracks[j];
+            float TrackProgress = CheckTrack->LegIKTrackStepProgress();
+            if (TrackProgress >= 1.0f) continue;
+
+            FVector ExpectedEndLocation = (
+                BodyLocation +
+                (BodyVelocity * CheckTrack->StepTimeBudget * (1.0f - TrackProgress)) +
+                BodyRotation.RotateVector(CheckGroup->BaseComponentLocations[j])
             );
-        }
 
+            float DistanceToOriginalTarget = (
+                (ExpectedEndLocation - CheckTrack->StepWorldLocation).Size2D()
+            );
+            bool Invalidated = DistanceToOriginalTarget > (CurrentOffsetTolerance * 2.0f);
+
+            #ifdef DEBUG_DRAWS
+            DrawDebugSphere(
+                Parent->GetWorld(),
+                ExpectedEndLocation,
+                5.0f, 5,
+                Invalidated ? FColor::Red : FColor::Purple,
+                false, 0.2f, 100
+            );
+            #endif
+
+            if (Invalidated) {
+                TriggerStepGroups.Push(CheckGroup);
+                break;
+            }
+        }
+    }
+    
+    // Update current world location tracking.
+    FVector StepTargetDelta;
+    if (BodyMoving) {
+        StepTargetDelta += BodyVelocity.GetSafeNormal() * 1.25f * CurrentStepDistance;
+    }
+
+    for (int i = 0; i < this->TrackGroups.Num(); i++) {
+        FLegIKTrackGroup* Group = &this->TrackGroups[i];
+
+        Group->CurrentWorldLocations = TArray<FVector>();
+        for (int j = 0; j < Group->Tracks.Num(); j++) { 
+            FVector NewWorldLocation = (
+                BodyLocation +
+                BodyRotation.RotateVector(Group->BaseComponentLocations[j]) +
+                StepTargetDelta
+            );
+
+            #ifdef DEBUG_DRAWS
+            DrawDebugSphere(
+                Parent->GetWorld(),
+                NewWorldLocation,
+                5.0f, 5, FColor::Green, false, 0.2f, 100
+            );
+            #endif
+
+            Group->CurrentWorldLocations.Push(NewWorldLocation);
+        }
+    }
+
+    if (ConsiderStep) {
+        FLegIKTrackGroup* MaxGroup = nullptr;
+        float MaxOffset = CurrentOffsetTolerance;
         for (int i = 0; i < this->TrackGroups.Num(); i++) {
-            FLegIKTrackGroup* Group = &this->TrackGroups[i];
+            if (GroupsStillPlacing[i]) continue;
 
-            Group->CurrentWorldLocations = TArray<FVector>();
-            for (int j = 0; j < Group->Tracks.Num(); j++) { 
-                FVector NewWorldLocation = (
-                    ParentWorldLocation +
-                    ParentRotation.RotateVector(Group->BaseComponentLocations[j]) +
-                    StepTargetDelta +
-                    FVector(0.0f, 0.0f, 20.0f)
-                );
- 
-                #ifdef DEBUG_DRAWS
-                DrawDebugSphere(
-                    Parent->GetWorld(),
-                    NewWorldLocation,
-                    5.0f, 5, FColor::Green, false, 0.2f, 100
-                );
-                #endif
+            FLegIKTrackGroup* CheckGroup = &this->TrackGroups[i];
 
-                Group->CurrentWorldLocations.Push(NewWorldLocation);
+            float CheckOffset = FMath::Abs((
+                CheckGroup->Tracks[0].CurrentWorldLocation -
+                CheckGroup->CurrentWorldLocations[0]
+            ).Size2D());
+
+            if (CheckOffset > MaxOffset) {
+                MaxOffset = CheckOffset;
+                MaxGroup = CheckGroup;
             }
         }
+        if (MaxGroup != nullptr) TriggerStepGroups.Push(MaxGroup);
+    }
 
-        FLegIKTrackGroup* StepGroup = nullptr;
-        if (CriticalDeltaChange) StepGroup = CriticalImpactedGroup;
-        else {
-            float MaxOffset = CurrentOffsetTolerance;
-            for (int i = 0; i < this->TrackGroups.Num(); i++) {
-                if (GroupsStillPlacing[i]) continue;
+    // Trigger steps.
+    float TimeBudget = 0.2f;
+    if (BodyMoving) TimeBudget = CurrentStepDistance / BodyVelocity.Size();
+    // TODO: Conf.
+    if (TimeBudget > 0.8f) TimeBudget = 0.8f;
 
-                FLegIKTrackGroup* CheckGroup = &this->TrackGroups[i];
+    for (int i = 0; i < TriggerStepGroups.Num(); i++) {
+        FLegIKTrackGroup* Group = TriggerStepGroups[i];
 
-                float CheckOffset = FMath::Abs((
-                    CheckGroup->Tracks[0].LegIKTrackWorldLocation() -
-                    CheckGroup->CurrentWorldLocations[0]
-                ).Size2D());
-
-                if (CheckOffset > MaxOffset) {
-                    MaxOffset = CheckOffset;
-                    StepGroup = CheckGroup;
-                }
-            }
-        }
-
-        // Perform step.
-        if (StepGroup != nullptr) {
-            for (int i = 0; i < StepGroup->Tracks.Num(); i++) {
-                StepGroup->Tracks[i].LegIKTrackStepTo(
-                    StepGroup->CurrentWorldLocations[i],
-                    Parent
-                );
-            }
+        for (int j = 0; j < Group->Tracks.Num(); j++) {
+            Group->Tracks[j].LegIKTrackStepTo(
+                Group->CurrentWorldLocations[j],
+                Parent,
+                TimeBudget
+            );
         }
     }
 
@@ -174,7 +187,7 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
         for (int j = 0; j < Group->Tracks.Num(); j++) {
             FVector TargetWorldLocation = Group->Tracks[j].LegIKTrackTick(DeltaTime, Parent, this->Dynamics);
             FVector TargetComponentLocation = (
-                ParentRotation.UnrotateVector(TargetWorldLocation - ParentWorldLocation)
+                BodyRotation.UnrotateVector(TargetWorldLocation - BodyLocation)
             );
 
             NewIKTargets.Push(TargetComponentLocation);
@@ -206,7 +219,7 @@ void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent)
     FVector InterpedRootTarget = FMath::VInterpTo(
         LastRootTarget, TickRootTarget,
         DeltaTime,
-        this->Profile.LerpRate * this->Dynamics.LerpRateCoef
+        this->Profile.LerpRate * this->Dynamics.BodyLerpRateCoef
     );
 
     this->Script_IKTargets.Push(InterpedRootTarget);

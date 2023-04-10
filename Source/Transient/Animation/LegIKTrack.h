@@ -8,32 +8,28 @@
 
 #include "LegIKTrack.generated.h"
 
-enum class ELegIKStepPhase : uint8 {
-    None,
-	Lift,
-	Swing,
-    Place
-};
-
 USTRUCT()
 struct FLegIKTrack {
     GENERATED_BODY()
 
+// TODO: These public because lazy.
 public:
     FLegIKProfile Profile;
 
-private:
     FVector CurrentWorldLocation;
-
-    ELegIKStepPhase StepPhase;
     FVector StepWorldLocation;
+    FVector StepStartWorldLocation;
+
+    float StepTimeBudget;
+
+private:
+    float StepTime;
 
 public:
     FLegIKTrack();
     FLegIKTrack(FVector InitialWorldLocation, FLegIKProfile Profile);
-    FVector LegIKTrackWorldLocation();
-    ELegIKStepPhase LegIKTrackGetStepPhase();
-    void LegIKTrackStepTo(FVector WorldOffset, USceneComponent* Parent);
+    float LegIKTrackStepProgress();
+    void LegIKTrackStepTo(FVector WorldOffset, USceneComponent* Parent, float TimeBudget);
     FVector LegIKTrackTick(float DeltaTime, USceneComponent* Parent, FLegIKDynamics Dynamics);
 
 private:

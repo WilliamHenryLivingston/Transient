@@ -14,7 +14,9 @@ public:
 	float StepDistanceCoef = 1.0f;
     float StepVerticalCoef = 1.0f;
 	float BodyBaseCoef = 1.0f;
-	float LerpRateCoef = 1.0f;
+	float BodyLerpRateCoef = 1.0f;
+
+	FVector BodyVelocity;
 };
 
 // Using this approach because the editor frequently destroys data
