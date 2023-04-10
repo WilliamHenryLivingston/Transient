@@ -47,6 +47,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	bool Equippable;
 	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
+	bool TakeToHandsIfPossible;
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	bool EquipStateOnly;
 	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	float EquippedTorsoYaw;

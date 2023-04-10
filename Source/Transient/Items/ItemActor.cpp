@@ -40,8 +40,9 @@ void AItemActor::ItemDrop(IItemHolder* Target) {
 
 	FRotator ParentRotation = Target->ItemHolderGetRotation();
 	FVector DropLocation = Target->ItemHolderGetLocation() + ParentRotation.RotateVector(FVector(150.0f, 0.0f, 0.0f));
-	DropLocation.X += FMath::RandRange(-50.0f, 50.0f);
-	DropLocation.Y += FMath::RandRange(-50.0f, 50.0f);
+	float DropRadius = 150.0f;
+	DropLocation.X += FMath::RandRange(-DropRadius, DropRadius);
+	DropLocation.Y += FMath::RandRange(-DropRadius, DropRadius);
 	this->SetActorLocation(DropLocation);
 
 	FRotator DropRotation = ParentRotation;

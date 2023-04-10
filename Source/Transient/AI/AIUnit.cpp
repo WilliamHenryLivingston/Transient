@@ -203,3 +203,19 @@ AActor* AAIUnit::AICheckDetection() {
 
     return nullptr;
 }
+
+void AAIUnit::UnitDie() {
+    AMagazineItem* Magazine = Cast<AMagazineItem>(this->UnitGetItemByClass(AMagazineItem::StaticClass()));
+
+    if (Magazine != nullptr) {
+        if (FMath::RandRange(0.0f, 1.0f) < 0.5f) {
+            this->UnitDropItem(Magazine);
+            Magazine->Destroy();
+        }
+        else {
+            Magazine->Ammo = FMath::RandRange(1, Magazine->Capacity);
+        }
+    }
+
+    Super::UnitDie();
+}

@@ -264,7 +264,7 @@ public:
 	// External impacts.
 	void UnitHealDamage(FDamageProfile Healing);
 	void UnitTakeItem(AItemActor* TargetItem);
-	void UnitDie();
+	virtual void UnitDie();
 
 	void UnitAddConcealment(AActor* Source, int Score, int ScoreCrouched);
 	void UnitRemoveConcealment(AActor* Source);

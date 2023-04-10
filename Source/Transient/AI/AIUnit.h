@@ -55,6 +55,7 @@ protected:
 public:
 	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Source) override;
 	virtual void UnitReload() override;
+	virtual void UnitDie() override;
 
 // IAIGroupMember.
 public:

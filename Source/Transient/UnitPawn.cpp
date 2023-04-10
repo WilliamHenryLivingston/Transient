@@ -570,7 +570,7 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 	}
 
 	// If equippable and active item has available slot; move current and equip.
-	if (TargetItem->Equippable) {
+	if (TargetItem->Equippable && TargetItem->TakeToHandsIfPossible) {
 		bool ActiveCleared = this->ActiveItem == nullptr;
 		
 		if (!ActiveCleared) {
@@ -608,7 +608,7 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 	if (TargetItem->Equippable) {
 		this->UnitPlayInteractAnimation();
 
-		this->ActiveItem->ItemDrop(this); // Active item known non-null.
+		if (this->ActiveItem != nullptr) this->ActiveItem->ItemDrop(this);
 
 		TargetItem->ItemTake(this);
 		this->UnitRawSetActiveItem(TargetItem);
