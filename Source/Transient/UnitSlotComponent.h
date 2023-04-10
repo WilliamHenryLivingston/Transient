@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 
-#include "ItemActor.h"
+#include "Items/ItemActor.h"
 #include "UnitSlotColliderComponent.h"
 
 #include "UnitSlotComponent.generated.h"
@@ -19,6 +19,8 @@ private:
 	AItemActor* Content;
 	UPROPERTY(EditAnywhere, Category="Inventory Slot")
 	float InventoryViewColliderRadius = 2.0f;
+	UPROPERTY(EditAnywhere, Category="Inventory Slot")
+	bool UseEquippedItemTransform;
 
 	UUnitSlotColliderComponent* InventoryLookCollider;
 

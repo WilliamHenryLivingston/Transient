@@ -1,10 +1,14 @@
+// Copyright: R. Saxifrage, 2023. All rights reserved.
+
 #include "UnitPawn.h"
 
 #include "Components/BoxComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
 
-#include "TransientDebug.h"
-#include "ProjectileWeapon.h"
+#include "Debug.h"
+#include "PlayerUnit.h"
+#include "Items/ProjectileWeapon.h"
 
 AUnitPawn::AUnitPawn() {
 	this->PrimaryActorTick.bCanEverTick = true;
@@ -17,7 +21,7 @@ void AUnitPawn::BeginPlay() {
 
 	this->JumpTimer = -1.0f; // TODO: Janky.
 	
-	this->RigComponent = this->FindComponentByClass<USkeletalMeshComponent>();
+	this->RigComponent = this->FindComponentByClass<ULegIKSkeletonComponent>();
 	this->Animation = Cast<UUnitAnimInstance>(this->RigComponent->GetAnimInstance());
 	this->AudioComponent = this->FindComponentByClass<UAudioComponent>();
 
@@ -41,7 +45,6 @@ void AUnitPawn::BeginPlay() {
 		else if (Name.Equals("AimRoot")) this->AimRootComponent = Check;
 	}
 
-	this->ColliderComponent->SetHiddenInGame(NODEBUG_COLLIDERS);
 	this->BaseColliderVerticalScale = this->ColliderComponent->GetRelativeScale3D().Z;
 	this->BaseRigScale = this->RigComponent->GetRelativeScale3D();
 	this->BaseRigVerticalOffset = this->RigComponent->GetRelativeLocation().Z;
@@ -74,7 +77,7 @@ void AUnitPawn::UnitDiscoverDynamicChildComponents() {
 	this->GetComponents(SlotComponents, true);
 
 	TArray<AActor*> Attached;
-	this->GetAttachedActors(Attached, false);
+	this->GetAttachedActors(Attached, true);
 
 	for (int i = 0; i < Attached.Num(); i++) {
 		AActor* Check = Attached[i];
@@ -217,6 +220,12 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	}
 
 	// Movement update.
+	FLegIKDynamics LegIK;
+
+	if (this->Crouching || this->Immobilized || LowPower) {
+		LegIK.StepDistanceCoef *= 0.25f;
+	}
+
 	FVector CurrentLocation = this->GetActorLocation();	
 
 	bool ActiveJump = this->JumpTimer > 0.0f;
@@ -235,8 +244,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		ColliderScale.Z *= this->CrouchVerticalShrink;
 		RigLocation.Z += this->CrouchVerticalTranslate;
 		RigScale.Z *= this->BaseColliderVerticalScale / ColliderScale.Z;
-		
-		this->HasMoveTarget = false;
+		LegIK.BodyBaseCoef *= this->CrouchVerticalShrink;
 	}
 	this->ColliderComponent->SetRelativeScale3D(ColliderScale);
 	this->RigComponent->SetRelativeLocation(RigLocation);
@@ -251,28 +259,46 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		FVector MoveDelta = (this->MoveTarget - CurrentLocation).GetSafeNormal() * Speed * DeltaTime;
 		MoveDelta.Z = 0;
 
-		// Check whether strafing.
 		float Angle = acos(MoveDelta.Dot(ActorForward) / (MoveDelta.Length() * ActorForward.Length()));
-		if (Angle > this->StrafeConeAngle) MoveDelta *= StrafeModifier;
 
 		float AngleDeg = FMath::RadiansToDegrees(atan2(
 			(ActorForward.X * MoveDelta.X) + (ActorForward.Y * MoveDelta.Y),
 			(ActorForward.X * MoveDelta.Y) + (ActorForward.Y * MoveDelta.X)
 		)) + 180.0f;
 
-		if (abs(AngleDeg - 45.0f) < 90.0f && AngleDeg > 45.0f) LegsState = EUnitAnimLegsState::WalkBwd;
-		else if (abs(AngleDeg - (45.0f * 3.0f)) < 90.0f) LegsState = EUnitAnimLegsState::WalkLeft;
+		if (this->Crouching || this->Slow) {
+			MoveDelta *= 0.5;
+		}
+
+		if (abs(AngleDeg - 45.0f) < 90.0f && AngleDeg > 45.0f) {
+			LegsState = EUnitAnimLegsState::WalkBwd;
+			MoveDelta *= StrafeModifier;
+			LegIK.StepDistanceCoef *= 0.5f;
+		}
+		else if (abs(AngleDeg - (45.0f * 3.0f)) < 90.0f) {
+			LegsState = EUnitAnimLegsState::WalkLeft;
+			MoveDelta *= StrafeModifier;
+			LegIK.StepDistanceCoef *= 0.5f;
+		}
 		else if (abs(AngleDeg - (45.0f * 5.0f)) < 90.0f) {
 			LegsState = EUnitAnimLegsState::WalkFwd;
-			if (this->Exerted) {
+
+			if (this->Exerted && !this->Crouching) {
 				MoveDelta *= this->SprintModifier;
 				LegsModifier = EUnitAnimLegsModifier::Sprint;
+				LegIK.StepDistanceCoef *= 1.5f;
 			}
 		}
-		else LegsState = EUnitAnimLegsState::WalkRight;
+		else {
+			LegsState = EUnitAnimLegsState::WalkRight;
+			MoveDelta *= StrafeModifier;
+			LegIK.StepDistanceCoef *= 0.5f;
+		}
 
+		LegIK.BodyVelocity = MoveDelta / DeltaTime;
 		this->SetActorLocation(CurrentLocation + MoveDelta);
 	}
+	this->RigComponent->LegIKSetDynamics(LegIK);
 
 	// Jump animation has highest priority.
 	if (ActiveJump) LegsState = EUnitAnimLegsState::Jump;
@@ -421,6 +447,47 @@ bool AUnitPawn::UnitIsExerted() { return this->Exerted; }
 AItemActor* AUnitPawn::UnitGetActiveItem() { return this->ActiveItem; }
 AArmorItem* AUnitPawn::UnitGetArmor() { return this->ArmorItem; }
 
+int AUnitPawn::UnitGetConcealmentScore() {
+	int Best = 0;
+	if (this->ActiveItem != nullptr) Best = this->ActiveItem->EquippedConcealment;
+
+	for (int i = 0; i < this->ActiveConcealments.Num(); i++) {
+		int Check = (
+			this->UnitIsCrouched() ?
+				this->ActiveConcealments[i].ScoreCrouched
+				:
+				this->ActiveConcealments[i].Score
+		);
+
+		if (Check > Best) Best = Check;
+	}
+
+	return Best;
+}
+
+void AUnitPawn::UnitAddConcealment(AActor* Source, int Score, int ScoreCrouched) {
+	FUnitConcealment Entry;
+	Entry.Source = Source;
+	Entry.Score = Score;
+	Entry.ScoreCrouched = ScoreCrouched;
+
+	this->ActiveConcealments.Push(Entry);
+}
+
+void AUnitPawn::UnitRemoveConcealment(AActor* Source) {
+	int RemoveIndex = -1;
+	for (int i = 0; i < this->ActiveConcealments.Num(); i++) {
+		FUnitConcealment* Check = &this->ActiveConcealments[i];
+
+		if (Check->Source == Source) {
+			RemoveIndex = i;
+			break;
+		}
+	}
+
+	if (RemoveIndex >= 0) this->ActiveConcealments.RemoveAt(RemoveIndex);
+}
+
 AWeaponItem* AUnitPawn::UnitGetActiveWeapon() {
 	if (this->ActiveItem == nullptr) return nullptr;
 
@@ -438,6 +505,10 @@ bool AUnitPawn::UnitAreArmsOccupied() {
 
 bool AUnitPawn::UnitIsJumping() {
 	return this->JumpTimer > 0.0f;
+}
+
+bool AUnitPawn::UnitIsMoving() {
+	return this->HasMoveTarget;
 }
 
 bool AUnitPawn::UnitHasFaceTarget() {
@@ -491,6 +562,8 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 			),
 			FName("S_Armor")
 		);
+		this->ArmorItem->SetActorRelativeLocation(this->ArmorItem->EquippedOffset);
+		this->ArmorItem->SetActorRelativeRotation(this->ArmorItem->EquippedRotation);
 		this->UnitDiscoverDynamicChildComponents();
 		return;
 	}
@@ -514,6 +587,7 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 
 			TargetItem->ItemTake(this);
 			this->UnitRawSetActiveItem(TargetItem);
+			this->UnitDiscoverDynamicChildComponents();
 			return;
 		}
 	}
@@ -525,7 +599,6 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 
 		TargetItem->ItemTake(this);
 		AvailSlot->SlotSetContent(TargetItem);
-		
 		this->UnitDiscoverDynamicChildComponents();
 		return;
 	}
@@ -538,6 +611,7 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 
 		TargetItem->ItemTake(this);
 		this->UnitRawSetActiveItem(TargetItem);
+		this->UnitDiscoverDynamicChildComponents();
 		return;
 	}
 
@@ -556,8 +630,7 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 	}
 
 	// TODO: ??? (Can't take).
-	C_LOG(this->GetName());
-	C_LOG(TEXT("take item fail:"));
+	ERR_LOG(this, "take item fail:");
 }
 
 void AUnitPawn::UnitDropActiveItem() {
@@ -568,6 +641,7 @@ void AUnitPawn::UnitDropActiveItem() {
 
 	this->ActiveItem->ItemDrop(this);
 	this->UnitRawSetActiveItem(nullptr);
+	this->UnitDiscoverDynamicChildComponents();
 }
 
 void AUnitPawn::UnitDropItem(AItemActor* Target) {
@@ -656,6 +730,7 @@ void AUnitPawn::UnitDequipActiveItem() {
 	}
 	else {
 		PreviousActive->ItemDrop(this);
+		this->UnitDiscoverDynamicChildComponents();
 	}
 }
 
@@ -834,22 +909,22 @@ void AUnitPawn::UnitSetCheckingStatus(bool NewChecking) {
 void AUnitPawn::UnitUseActiveItem(AActor* Target) {
 	if (this->UnitAreArmsOccupied()) return;
 
-	AUsableItem* AsUsable = Cast<AUsableItem>(this->ActiveItem);
-	if (AsUsable == nullptr) return;
+	if (this->ActiveItem != nullptr && !this->ActiveItem->Usable) return;
 
 	bool InvalidTarget = (
-		AsUsable->RequiresTarget && (
+		this->ActiveItem->RequiresTarget && (
 			Target == nullptr ||
-			!Target->IsA(AsUsable->TargetType) ||
+			!Target->IsA(this->ActiveItem->TargetType) ||
 			(Target->GetActorLocation() - this->GetActorLocation()).Size() > this->UseReach
 		)
 	);
 	if (InvalidTarget) return;
 
-	this->CurrentUseItem = AsUsable;
+	this->CurrentUseItem = this->ActiveItem;
+	this->CurrentUseItem->ItemStartUse();
 	this->CurrentUseItemTarget = Target;
 	if (this->CurrentUseItem->ImmobilizeOnUse) this->ArmsActionMoveLock = true;
-	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Use, AsUsable->UseAnimation, &AUnitPawn::ThenFinishUse);
+	this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Use, this->ActiveItem->UseAnimation, &AUnitPawn::ThenFinishUse);
 }
 
 void AUnitPawn::UnitImmobilize(bool Which) {
@@ -857,6 +932,10 @@ void AUnitPawn::UnitImmobilize(bool Which) {
 	if (this->Immobilized) {
 		this->UnitSetTriggerPulled(false);
 	}
+}
+
+void AUnitPawn::UnitSetSlow(bool Which) {
+	this->Slow = Which;
 }
 
 void AUnitPawn::UnitMoveTowards(FVector Target) {
@@ -968,7 +1047,7 @@ void AUnitPawn::UnitHealDamage(FDamageProfile Healing) {
 	this->Energy = FMath::Min(this->MaxEnergy, this->Energy + Healing.Energy);
 }
 
-void AUnitPawn::UnitTakeDamage(FDamageProfile Profile, AActor* Source) {
+void AUnitPawn::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
 	float Kinetic = Profile.Kinetic;
 
 	//	Absorb damage with armor.

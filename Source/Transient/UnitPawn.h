@@ -6,19 +6,32 @@
 #include "GameFramework/Pawn.h"
 #include "Components/AudioComponent.h"
 
-#include "ItemActor.h"
-#include "UsableItem.h"
-#include "MagazineItem.h"
-#include "WeaponItem.h"
-#include "ArmorItem.h"
-#include "InteractiveActor.h"
-#include "UnitAnimInstance.h"
+#include "Items/ItemActor.h"
+#include "Items/MagazineItem.h"
+#include "Items/WeaponItem.h"
+#include "Items/ArmorItem.h"
+#include "Environment/InteractiveActor.h"
+#include "Animation/UnitAnimInstance.h"
+#include "Animation/LegIKSkeletonComponent.h"
 #include "UnitSlotComponent.h"
+#include "Damagable.h"
 
 #include "UnitPawn.generated.h"
 
+// TODO: Shrink significantly, lots of biped specific stuff in here.
+
+USTRUCT() // TODO: Move.
+struct FUnitConcealment {
+	GENERATED_BODY()
+
+public:
+	AActor* Source;
+	int Score;
+	int ScoreCrouched;
+};
+
 UCLASS()
-class TRANSIENT_API AUnitPawn : public APawn, public IItemHolder {
+class TRANSIENT_API AUnitPawn : public APawn, public IItemHolder, public IDamagable {
 	GENERATED_BODY()
 
 // Variables.
@@ -35,7 +48,7 @@ private:
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
 	float StrafeModifier = 0.5f;
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
-	float StrafeConeAngle = 0.9f;
+	float StrafeConeAngle = 0.9f; // TODO: Remove.
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
 	float JumpStrength = 300.0f;
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
@@ -85,7 +98,6 @@ private:
 	TArray<UUnitSlotComponent*> Slots;
 
 	// Internal child components.
-	USkeletalMeshComponent* RigComponent;
 	USceneComponent* ActiveItemHostComponent;
 	USceneComponent* ActiveItemAltHostComponent;
 
@@ -99,7 +111,7 @@ private:
 	bool HasFaceTarget;
 	
 	// Deferred action states.
-	AUsableItem* CurrentUseItem;
+	AItemActor* CurrentUseItem;
 	AInteractiveActor* CurrentInteractActor;
 	AMagazineItem* LoadingMagazine;
 	AMagazineItem* UnloadingMagazine;
@@ -130,6 +142,9 @@ private:
 	bool ArmsActionMoveLock;
 
 	bool Immobilized;
+	bool Slow;
+
+	TArray<FUnitConcealment> ActiveConcealments;
 
 protected:
 	UPROPERTY(EditAnywhere, Category="Unit Movement")
@@ -144,6 +159,7 @@ protected:
 	bool IgnoreTorsoYaw;
 
 	// Child components available to child classes.
+	ULegIKSkeletonComponent* RigComponent;
 	UShapeComponent* ColliderComponent;
 	UAudioComponent* AudioComponent;
 	UUnitAnimInstance* Animation;
@@ -156,7 +172,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
 	int FactionID = 1;
 
-// AActor methods.
+// AActor.
 public:
 	AUnitPawn();
 	virtual void Tick(float DeltaTime) override;
@@ -164,16 +180,19 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-// IItemHolder methods.
+// IItemHolder.
 public:
 	virtual FVector ItemHolderGetLocation() override;
 	virtual FRotator ItemHolderGetRotation() override;
 	virtual void ItemHolderPlaySound(USoundBase* Sound) override;
 	virtual float ItemHolderGetSpreadModifier() override;
 
+// IDamagable.
+public:
+	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Source) override;
+
 // Internals.
 private:
-	void UnitDequipActiveItem();
 	void UnitRawSetActiveItem(AItemActor* Item);
 
 	void ThenFinishUse();
@@ -187,6 +206,7 @@ private:
 // Exposures.
 protected:
 	virtual void UnitDiscoverDynamicChildComponents();
+	void UnitDequipActiveItem();
 
 	// Must be called at the end of child-class ticks.
 	void UnitPostTick(float DeltaTime);
@@ -196,7 +216,9 @@ public:
 	bool UnitAreArmsOccupied();
 	bool UnitIsJumping();
 	bool UnitIsCrouched();
+	bool UnitIsMoving();
 	bool UnitIsExerted();
+	int UnitGetConcealmentScore();
 	AItemActor* UnitGetActiveItem();
 	AWeaponItem* UnitGetActiveWeapon();
 	AArmorItem* UnitGetArmor();
@@ -225,6 +247,7 @@ public:
 	void UnitFaceTowards(FVector Target);
 	bool UnitHasFaceTarget();
 	void UnitImmobilize(bool Which);
+	void UnitSetSlow(bool Which);
 	void UnitJump();
 	void UnitSetCrouched(bool NewCrouch);
 	void UnitSetExerted(bool NewSprint);
@@ -239,8 +262,10 @@ public:
 	void UnitPlayInteractAnimation();
 
 	// External impacts.
-	virtual void UnitTakeDamage(FDamageProfile Profile, AActor* Source);
 	void UnitHealDamage(FDamageProfile Healing);
 	void UnitTakeItem(AItemActor* TargetItem);
 	void UnitDie();
+
+	void UnitAddConcealment(AActor* Source, int Score, int ScoreCrouched);
+	void UnitRemoveConcealment(AActor* Source);
 };

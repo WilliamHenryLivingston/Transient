@@ -10,8 +10,8 @@
 #include "Components/WidgetComponent.h"
 
 #include "UnitPawn.h"
-#include "MainUIWidget.h"
-#include "StatusUIWidget.h"
+#include "UI/MainUIWidget.h"
+#include "UI/StatusUIWidget.h"
 
 #include "PlayerUnit.generated.h"
 
@@ -53,6 +53,7 @@ private:
 	UStatusUIWidget* StatusUI;
 	UStatusUIWidget* ExpandedStatusUI;
 	UWidgetComponent* ExpandedStatusUIComponent;
+	UUnitSlotComponent* BackSlot;
 
 	float CurrentForcedDilation;
 
@@ -106,4 +107,5 @@ private:
 	void InputEndAim();
 	void InputStartCheckStatus();
 	void InputEndCheckStatus();
+	void InputDropBackSlot();
 };
