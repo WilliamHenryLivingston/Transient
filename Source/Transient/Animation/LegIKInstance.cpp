@@ -40,11 +40,12 @@ void ULegIKInstance::LegIKInstanceSetDynamics(FLegIKDynamics NewDynamics) {
 }
 
 // TODO: Optimize and refactor.
-void ULegIKInstance::LegIKInstanceTick(float DeltaTime, USceneComponent* Parent) {
+void ULegIKInstance::LegIKInstanceTick(float RawDeltaTime, USceneComponent* Parent) {
     FVector BodyLocation = Parent->GetComponentLocation();
     FRotator BodyRotation = Parent->GetComponentRotation();
     FVector BodyVelocity = this->Dynamics.BodyVelocity;
 
+    float DeltaTime = RawDeltaTime * Dynamics.DeltaTimeCoef;
     float CurrentStepDistance = this->Profile.StepBaseDistance * Dynamics.StepDistanceCoef;
     float CurrentOffsetTolerance = this->Profile.RestingOffsetTolerance;
     bool BodyMoving = BodyVelocity.Size2D() > 10.0f;

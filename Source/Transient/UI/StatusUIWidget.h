@@ -15,6 +15,8 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	float Script_KineticHealth;
 	UPROPERTY(BlueprintReadWrite)
+	float Script_ArmorKineticHealth;
+	UPROPERTY(BlueprintReadWrite)
 	float Script_Energy;
 	UPROPERTY(BlueprintReadWrite)
 	float Script_Stamina;

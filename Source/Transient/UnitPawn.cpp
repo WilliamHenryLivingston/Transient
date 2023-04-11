@@ -72,12 +72,9 @@ void AUnitPawn::BeginPlay() {
 	this->OverrideArmsState = false;
 }
 
-void AUnitPawn::UnitDiscoverDynamicChildComponents() {
-	TArray<UUnitSlotComponent*> SlotComponents;
-	this->GetComponents(SlotComponents, true);
-
+void AUnitPawn::UnitDiscoverDynamicChildComponentsOf(TArray<UUnitSlotComponent*>& Into, AActor* Actor) {
 	TArray<AActor*> Attached;
-	this->GetAttachedActors(Attached, true);
+	Actor->GetAttachedActors(Attached, false);
 
 	for (int i = 0; i < Attached.Num(); i++) {
 		AActor* Check = Attached[i];
@@ -85,8 +82,17 @@ void AUnitPawn::UnitDiscoverDynamicChildComponents() {
 		TArray<UUnitSlotComponent*> IncludedComponents;
 		Check->GetComponents(IncludedComponents, true);
 
-		SlotComponents.Append(IncludedComponents);
+		this->UnitDiscoverDynamicChildComponentsOf(Into, Check);
+
+		Into.Append(IncludedComponents);
 	}
+}
+
+void AUnitPawn::UnitDiscoverDynamicChildComponents() {
+	TArray<UUnitSlotComponent*> SlotComponents;
+	this->GetComponents(SlotComponents, true);
+
+	this->UnitDiscoverDynamicChildComponentsOf(SlotComponents, this);
 
 	this->Slots = SlotComponents;
 }
@@ -221,8 +227,9 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 
 	// Movement update.
 	FLegIKDynamics LegIK;
+	LegIK.DeltaTimeCoef = 1.0f / this->AnimationScale;
 
-	if (this->Crouching || this->Immobilized || LowPower) {
+	if (this->Crouching || this->Immobilized) {
 		LegIK.StepDistanceCoef *= 0.25f;
 	}
 
@@ -253,7 +260,14 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 
 	if (this->HasMoveTarget && !this->Immobilized && !this->ArmsActionMoveLock) {
 		float Speed = this->MoveSpeed;
-		if (LowPower) Speed *= 0.25f;
+		if (LowPower) {
+			LegIK.StepDistanceCoef *= 0.25f;
+			Speed *= 0.25f;
+		}
+
+		if (this->ArmorItem != nullptr && this->ArmorItem->Heavy) {
+			Speed *= 0.65f;
+		}
 
 		FVector ActorForward = this->GetActorForwardVector();
 
@@ -545,11 +559,9 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 	// If armor; equip.
 	AArmorItem* AsArmor = Cast<AArmorItem>(TargetItem);
 	if (AsArmor != nullptr) {
-		this->UnitPlayInteractAnimation();
+		if (this->ArmorItem != nullptr) this->UnitDropArmor();
 
-		if (this->ArmorItem != nullptr) {
-			this->ArmorItem->ItemDrop(this);
-		}
+		this->UnitPlayInteractAnimation();
 
 		this->ArmorItem = AsArmor;
 		this->ArmorItem->ItemTake(this);
@@ -712,6 +724,7 @@ void AUnitPawn::UnitDropArmor() {
 
 	this->UnitPlayInteractAnimation();
 
+	this->ArmorItem->DetachFromActor(FDetachmentTransformRules(EDetachmentRule::KeepWorld, false));
 	this->ArmorItem->ItemDrop(this);
 	this->ArmorItem = nullptr;
 
@@ -1044,7 +1057,23 @@ bool AUnitPawn::UnitDrainEnergy(float Amount) {
 }
 
 void AUnitPawn::UnitHealDamage(FDamageProfile Healing) {
-	this->KineticHealth = FMath::Min(this->MaxKineticHealth, this->KineticHealth + Healing.Kinetic);
+	float Kinetic = Healing.Kinetic;
+	float RemainingCurrentKinetic = this->MaxKineticHealth - this->KineticHealth;
+	if (Kinetic > RemainingCurrentKinetic) {
+		Kinetic -= RemainingCurrentKinetic;
+		this->KineticHealth = this->MaxKineticHealth;
+
+		if (this->ArmorItem != nullptr) {
+			this->ArmorItem->KineticHealth = FMath::Min(
+				this->ArmorItem->MaxKineticHealth,
+				this->ArmorItem->KineticHealth + Kinetic
+			);
+		}
+	}
+	else {
+		this->KineticHealth += Kinetic;
+	}
+
 	this->Energy = FMath::Min(this->MaxEnergy, this->Energy + Healing.Energy);
 }
 

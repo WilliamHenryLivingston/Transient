@@ -206,6 +206,7 @@ private:
 // Exposures.
 protected:
 	virtual void UnitDiscoverDynamicChildComponents();
+	void UnitDiscoverDynamicChildComponentsOf(TArray<UUnitSlotComponent*>& Into, AActor* Actor);
 	void UnitDequipActiveItem();
 
 	// Must be called at the end of child-class ticks.
