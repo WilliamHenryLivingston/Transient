@@ -22,6 +22,8 @@ void AItemActor::BeginPlay() {
 
 void AItemActor::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
+	
+    if (!IsValid(Cast<AActor>(this->CurrentHolder))) this->CurrentHolder = nullptr;
 }
 
 void AItemActor::ItemStartUse() { }
@@ -35,11 +37,11 @@ void AItemActor::ItemTake(IItemHolder* Target) {
 	this->ColliderComponent->SetCollisionProfileName(FName("NoCollision"), true);
 }
 
-void AItemActor::ItemDrop(IItemHolder* Target) {
+void AItemActor::ItemDrop(AActor* Target) {
 	this->CurrentHolder = nullptr;
 
-	FRotator ParentRotation = Target->ItemHolderGetRotation();
-	FVector DropLocation = Target->ItemHolderGetLocation() + ParentRotation.RotateVector(FVector(150.0f, 0.0f, 0.0f));
+	FRotator ParentRotation = Target->GetActorRotation();
+	FVector DropLocation = Target->GetActorLocation() + ParentRotation.RotateVector(FVector(50.0f, 0.0f, 0.0f));
 	float DropRadius = 150.0f;
 	DropLocation.X += FMath::RandRange(-DropRadius, DropRadius);
 	DropLocation.Y += FMath::RandRange(-DropRadius, DropRadius);

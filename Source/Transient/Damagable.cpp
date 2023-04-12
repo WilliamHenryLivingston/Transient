@@ -4,6 +4,6 @@
 
 #include "Debug.h"
 
-void IDamagable::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
+void IDamagable::DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) {
     ERR_LOG(Cast<AActor>(this), "unset damage trigger");
 }

@@ -87,7 +87,7 @@ void AWeaponItem::WeaponDisposeCurrentMagazine() {
 
 	if (this->ActiveMagazine->Ammo > 0) {
 		this->ActiveMagazine->DetachFromActor(FDetachmentTransformRules(EDetachmentRule::KeepWorld, false));
-		this->ActiveMagazine->ItemDrop(this->CurrentHolder);
+		this->ActiveMagazine->ItemDrop(Cast<AActor>(this->CurrentHolder));
 	}
 	else {
 		this->ActiveMagazine->Destroy();

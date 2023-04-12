@@ -4,12 +4,13 @@
 
 #include "CoreMinimal.h"
 
+#include "../Damagable.h"
 #include "ItemActor.h"
 
 #include "ArmorItem.generated.h"
 
 UCLASS()
-class TRANSIENT_API AArmorItem : public AItemActor {
+class TRANSIENT_API AArmorItem : public AItemActor, public IDamagable {
 	GENERATED_BODY()
 
 public:
@@ -31,4 +32,7 @@ protected:
 
 public:
 	virtual void Tick(float DeltaTime) override;
+
+public:
+	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) override;
 };

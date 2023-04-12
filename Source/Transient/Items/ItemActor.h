@@ -92,7 +92,7 @@ protected:
 public:
 	virtual FString ItemGetDescriptorString();
 	virtual void ItemTake(IItemHolder* Target);
-	virtual void ItemDrop(IItemHolder* Target);
+	virtual void ItemDrop(AActor* Target);
 	virtual void ItemStartUse();
 	virtual void ItemUse(AActor* Target);
 };

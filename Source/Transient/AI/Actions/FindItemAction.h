@@ -5,24 +5,19 @@
 #include "CoreMinimal.h"
 
 #include "../../Items/ItemActor.h"
-#include "../AINavNode.h"
 #include "AIActionExecutor.h"
 
-#include "PatrolStepAction.generated.h"
-
-class CPatrolStepAction : public IAIActionExecutor {
+class CFindItemAction : public IAIActionExecutor {
 private:
-    FAIPatrolStep Step;
+    AItemActor* Target;
 
     bool TravelStarted;
-    bool UseFinished;
-
-	int RemainingItemUseTimes;
 
 public:
-    CPatrolStepAction(FAIPatrolStep Step);
-    virtual ~CPatrolStepAction() override;
+    static CFindItemAction* AIActionTryPlan(AActor* Owner, TSubclassOf<AItemActor> TargetType, float MaxDistance);
+    virtual ~CFindItemAction() override;
 
 public:
+    CFindItemAction(AItemActor* Target);
 	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;
 };

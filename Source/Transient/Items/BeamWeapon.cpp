@@ -51,7 +51,7 @@ void ABeamWeapon::Tick(float DeltaTime) {
                 );
             }
 
-            Victim->DamagableTakeDamage(PITProfile, HolderActor);
+            Victim->DamagableTakeDamage(PITProfile, HolderActor, HolderActor);
         }
 
         FVector BeamEnd = Hit ? HitResult.ImpactPoint : BeamMax;

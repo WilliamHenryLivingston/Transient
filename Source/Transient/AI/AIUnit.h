@@ -12,6 +12,17 @@
 
 #include "AIUnit.generated.h"
 
+USTRUCT()
+struct FChanceItemEntry {
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AItemActor> Item;
+	UPROPERTY(EditAnywhere)
+	float Chance;
+};
+
 UCLASS()
 class TRANSIENT_API AAIUnit : public AUnitPawn, public IAIGroupMember {
 	GENERATED_BODY()
@@ -27,6 +38,8 @@ public:
 	USceneComponent* DetectionSourceComponent;
 
 private:
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
+	TArray<FChanceItemEntry> ChanceItems;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	TSubclassOf<AMagazineItem> AutoSpawnMagazine;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
@@ -53,7 +66,7 @@ protected:
 
 // AUnitPawn.
 public:
-	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Source) override;
+	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) override;
 	virtual void UnitReload() override;
 	virtual void UnitDie() override;
 

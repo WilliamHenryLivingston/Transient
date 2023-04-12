@@ -29,6 +29,8 @@ public:
 
 	USceneComponent* InteractLookTargetComponent;
 
+	bool InteractEnabled;
+
 	// Updated by user. < 0 when inactive.
 	float InteractTimer = -1.0f;
 

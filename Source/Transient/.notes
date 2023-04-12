@@ -77,3 +77,15 @@ MORE STUFF:
 
 * new backpack
 * another leg slot
+
+
+map testing:
+* can get hard-locked by running out of bolts early
+    - crates with lots of bolts at spawn
+      - not op because player can't carry
+* church nav bounds broken
+* slightly less chokepoints / crates -> more player freedom
+  * replace some solid crates with breakable crates?
+* mines in more dangerous spots
+* high loot enemies could be tougher (new armor and stuff)
+* more workers throughout map doing stuff -> more immersive

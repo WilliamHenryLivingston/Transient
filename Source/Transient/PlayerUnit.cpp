@@ -260,7 +260,11 @@ void APlayerUnit::Tick(float DeltaTime) {
 			else if (HitComponent->GetName().Equals(TEXT("InvViewSelf"))) {
 				AItemActor* AsItem = Cast<AItemActor>(MouseHit.GetActor());
 				
-				if (this->UnitHasItem(AsItem)) TargetedItem = AsItem;
+				UUnitSlotComponent* ContainingSlot = this->UnitGetSlotWithItem(AsItem);
+				if (ContainingSlot != nullptr) {
+					TargetedItem = AsItem;
+					AsSlotCollider = ContainingSlot->InventoryLookCollider;
+				}
 			}
 			
 			if (TargetedItem != nullptr) {

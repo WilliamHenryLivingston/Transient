@@ -227,6 +227,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 
 	// Movement update.
 	FLegIKDynamics LegIK;
+	LegIK.BodyVelocity = FVector(0.0f, 0.0f, 0.0f);
 	LegIK.DeltaTimeCoef = 1.0f / this->AnimationScale;
 
 	if (this->Crouching || this->Immobilized) {
@@ -686,14 +687,14 @@ void AUnitPawn::UnitDropItem(AItemActor* Target) {
 	}
 }
 
-bool AUnitPawn::UnitHasItem(AItemActor* Target) {	
+UUnitSlotComponent* AUnitPawn::UnitGetSlotWithItem(AItemActor* Target) {	
 	for (int i = 0; i < this->Slots.Num(); i++) {
 		UUnitSlotComponent* Check = this->Slots[i];
 
-		if (Check->SlotGetContent() == Target) return true;
+		if (Check->SlotGetContent() == Target) return Check;
 	}
 
-	return false;
+	return nullptr;
 }
 
 AItemActor* AUnitPawn::UnitGetItemByName(FString ItemName) {	
@@ -890,7 +891,7 @@ void AUnitPawn::UnitInteractWith(AActor* Target) {
 	if (Distance > this->UseReach) return;
 	
 	AInteractiveActor* AsInteractive = Cast<AInteractiveActor>(Target);
-	if (AsInteractive == nullptr) return;
+	if (AsInteractive == nullptr || !AsInteractive->InteractEnabled) return;
 
 	if (this->UnitAreArmsOccupied()) return;
 
@@ -1077,7 +1078,7 @@ void AUnitPawn::UnitHealDamage(FDamageProfile Healing) {
 	this->Energy = FMath::Min(this->MaxEnergy, this->Energy + Healing.Energy);
 }
 
-void AUnitPawn::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
+void AUnitPawn::DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) {
 	float Kinetic = Profile.Kinetic;
 
 	//	Absorb damage with armor.
@@ -1116,8 +1117,10 @@ void AUnitPawn::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
 void AUnitPawn::UnitDie() {
 	this->OverrideArmsState = true;
 	
-	for (int i = 0; i < this->Slots.Num(); i++) {
-		UUnitSlotComponent* Slot = this->Slots[i];
+	TArray<UUnitSlotComponent*> DirectSlots;
+	this->GetComponents(DirectSlots, false);
+	for (int i = 0; i < DirectSlots.Num(); i++) {
+		UUnitSlotComponent* Slot = DirectSlots[i];
 
 		AItemActor* Content = Slot->SlotGetContent();
 		if (Content == nullptr) continue;

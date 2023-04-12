@@ -6,6 +6,10 @@
 
 #include "../UnitPawn.h"
 
+AAIManager* AAIManager::AIGetManagerInstance(UWorld* WorldCtx) {
+	return Cast<AAIManager>(UGameplayStatics::GetActorOfClass(WorldCtx, AAIManager::StaticClass()));
+}
+
 AAIManager::AAIManager() {
 	PrimaryActorTick.bCanEverTick = true;
 }
@@ -80,10 +84,6 @@ TArray<AAINavNode*> AAIManager::AIGetNavNearestNodes(AActor* From, int Count) {
 	}
 
 	return Result;
-}
-
-AAIManager* AAIManager::AIGetManagerInstance(UWorld* WorldCtx) {
-	return Cast<AAIManager>(UGameplayStatics::GetActorOfClass(WorldCtx, AAIManager::StaticClass()));
 }
 
 bool AAIManager::AIIsFactionEnemy(int MyFaction, int OtherFaction) {

@@ -22,5 +22,5 @@ public:
 	TArray<TSubclassOf<AActor>> SpawnOnBreak;
 
 public:
-	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Source) override;
+	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) override;
 };

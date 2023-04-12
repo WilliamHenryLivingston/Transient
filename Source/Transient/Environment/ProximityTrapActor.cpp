@@ -36,7 +36,7 @@ void AProximityTrapActor::Tick(float DeltaTime) {
 			AActor* AsActor = Cast<AActor>(ThisTarget);
 			if (!IsValid(AsActor)) continue;
 
-			ThisTarget->DamagableTakeDamage(this->Damage, nullptr);
+			ThisTarget->DamagableTakeDamage(this->Damage, this, nullptr);
 			if (this->HitEffect != nullptr) {
 				FVector CurrentLocation = this->GetActorLocation();
 				FVector OtherLocation = AsActor->GetActorLocation();
@@ -55,7 +55,7 @@ void AProximityTrapActor::Tick(float DeltaTime) {
 	}
 }
 
-void AProximityTrapActor::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
+void AProximityTrapActor::DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) {
 	this->KineticHealth -= Profile.Kinetic;
 
 	if (this->KineticHealth <= 0.0f) {

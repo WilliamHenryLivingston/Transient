@@ -9,6 +9,14 @@
 //#define DEBUG_DRAWS true
 
 void AAIUnit::BeginPlay() {
+    for (int i = 0; i < this->ChanceItems.Num(); i++) {
+        FChanceItemEntry Entry = this->ChanceItems[i];
+
+        if (FMath::RandRange(0.0f, 1.0f) < Entry.Chance) {
+            this->AutoSpawnInitialItems.Push(Entry.Item);
+        }
+    }
+
 	Super::BeginPlay();
 
 	TArray<USceneComponent*> SceneComponents;
@@ -146,7 +154,7 @@ void AAIUnit::UnitReload() {
     Super::UnitReload();
 }
 
-void AAIUnit::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
+void AAIUnit::DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) {
     if (Source != nullptr) {
         AUnitPawn* AsUnit = Cast<AUnitPawn>(Source);
         if (AsUnit != nullptr && AsUnit->FactionID != this->FactionID) { // Can agro onto allied factions.
@@ -155,7 +163,7 @@ void AAIUnit::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
     }
 
     Profile.Energy *= 3.0f; // TODO: Better number.
-    Super::DamagableTakeDamage(Profile, Source);
+    Super::DamagableTakeDamage(Profile, Cause, Source);
 }
 
 AActor* AAIUnit::AICheckDetection() {
