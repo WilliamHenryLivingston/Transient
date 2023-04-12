@@ -463,6 +463,14 @@ bool AUnitPawn::UnitIsExerted() { return this->Exerted; }
 AItemActor* AUnitPawn::UnitGetActiveItem() { return this->ActiveItem; }
 AArmorItem* AUnitPawn::UnitGetArmor() { return this->ArmorItem; }
 
+float AUnitPawn::UnitGetEnergy() {
+	return this->Energy / this->MaxEnergy;
+}
+
+float AUnitPawn::UnitGetKineticHealth() {
+	return this->KineticHealth / this->MaxKineticHealth;
+}
+
 int AUnitPawn::UnitGetConcealmentScore() {
 	int Best = 0;
 	if (this->ActiveItem != nullptr) Best = this->ActiveItem->EquippedConcealment;

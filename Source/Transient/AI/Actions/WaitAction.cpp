@@ -5,6 +5,8 @@
 CWaitAction::CWaitAction(float Duration, bool InitScanIfIdle) {
     this->Timer = Duration;
     this->ScanIfIdle = InitScanIfIdle;
+
+    this->DebugInfo = FString::Printf(TEXT("wait %.2f"), Duration);
 }
 
 CWaitAction::~CWaitAction() {}

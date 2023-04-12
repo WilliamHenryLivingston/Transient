@@ -30,6 +30,9 @@ public:
 
 class IAIActionExecutor {
 
+public:
+	FString DebugInfo;
+
 protected:
 	FAIActionTickResult Unfinished;
 	FAIActionTickResult Finished;

@@ -12,8 +12,10 @@ class TRANSIENT_API ADebugViewActor : public AActor {
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Debug")
 	UStaticMeshComponent* DebugVisibility;
+	UPROPERTY(EditAnywhere, Category="Debug")
+	FString DebugLabel;
 
 public:	
 	ADebugViewActor();
@@ -21,4 +23,8 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+
+public:
+	UFUNCTION(CallInEditor, Category="Debug")
+	void DebugSetLabel();
 };

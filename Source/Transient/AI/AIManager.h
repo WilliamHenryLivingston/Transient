@@ -40,8 +40,6 @@ public:
 
 	TArray<AAINavNode*> Nodes;
 
-	UPROPERTY(EditAnywhere, Category="Debug Utils")
-	bool DebugSlowMo; // TODO: New actor for stuff like this?
 private:
 	TArray<FNavNodeClaim> Claims;
 

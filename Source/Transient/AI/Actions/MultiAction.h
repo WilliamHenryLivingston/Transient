@@ -5,21 +5,17 @@
 #include "CoreMinimal.h"
 
 #include "../../Items/ItemActor.h"
-#include "../AINavNode.h"
 #include "AIActionExecutor.h"
 
-class CPatrolStepAction : public IAIActionExecutor {
+class CMultiAction : public IAIActionExecutor {
 private:
-    AAINavNode* Node;
+    TArray<IAIActionExecutor*> Parts;
 
-    bool TravelStarted;
-    bool EquipStarted;
-    bool WaitStarted;
-    bool UseStarted;
+    int PartIndex;
 
 public:
-    CPatrolStepAction(AAINavNode* Node);
-    virtual ~CPatrolStepAction() override;
+    CMultiAction(TArray<IAIActionExecutor*> Parts);
+    virtual ~CMultiAction() override;
 
 public:
 	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;

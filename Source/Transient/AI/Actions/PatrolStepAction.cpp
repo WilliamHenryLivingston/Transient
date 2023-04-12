@@ -4,14 +4,18 @@
 #include "UseItemAction.h"
 #include "EquipItemAction.h"
 #include "MoveToPointAction.h"
+#include "FindItemAction.h"
 #include "WaitAction.h"
 
-CPatrolStepAction::CPatrolStepAction(FAIPatrolStep InitStep) {
-    this->Step = InitStep;
+CPatrolStepAction::CPatrolStepAction(AAINavNode* InitNode) {
+    this->Node = InitNode;
 
     this->TravelStarted = false;
-    this->UseFinished = false;
-    this->RemainingItemUseTimes = this->Step.UseItemTimes;
+    this->EquipStarted = false;
+    this->WaitStarted = false;
+    this->UseStarted = false;
+
+    this->DebugInfo = FString::Printf(TEXT("patrolstep %s"), *this->Node->GetName());
 }
 
 CPatrolStepAction::~CPatrolStepAction() {}
@@ -21,44 +25,47 @@ FAIActionTickResult CPatrolStepAction::AIActionTick(AActor* RawOwner, float Delt
 
     if (!this->TravelStarted) {
         this->TravelStarted = true;
-        return FAIActionTickResult(false, new CMoveToPointAction(this->Step.Node, this->Step.NodeReachDistance));
+        return FAIActionTickResult(false, new CMoveToPointAction(this->Node, this->Node->ReachDistance));
     }
 
-    if (!this->UseFinished) {
-        if (this->Step.EquipItemType != nullptr) {
-            AItemActor* TargetItem = Owner->UnitGetActiveItem();
-            if (TargetItem == nullptr || !TargetItem->IsA(this->Step.EquipItemType)) {
-                TargetItem = Owner->UnitGetItemByClass(this->Step.EquipItemType);
-                if (TargetItem == nullptr) {
-                    TargetItem = Owner->GetWorld()->SpawnActor<AItemActor>(
-                        this->Step.EquipItemType,
-                        Owner->GetActorLocation(),
-                        Owner->GetActorRotation(),
-                        FActorSpawnParameters()
-                    );
-                    Owner->OverrideArmsState = true;
-                    Owner->UnitTakeItem(TargetItem);
-                    Owner->OverrideArmsState = false;
+    if (!this->EquipStarted) {
+        if (this->Node->EquipItem) {
+            this->EquipStarted = true;
+
+            if (this->Node->EquipItemType == nullptr) {
+                return FAIActionTickResult(false, new CEquipItemAction(nullptr));
+            }
+            else {
+                AItemActor* TargetItem = Owner->UnitGetActiveItem();
+                if (TargetItem == nullptr || !TargetItem->IsA(this->Node->EquipItemType)) {
+                    TargetItem = Owner->UnitGetItemByClass(this->Node->EquipItemType);
+                    if (TargetItem == nullptr) {
+                        return FAIActionTickResult(false, new CFindItemAction(Owner, this->Node->EquipItemType, this->Node->FindEquipItemMaxDistance, false));
+                    }
+
+                    return FAIActionTickResult(false, new CEquipItemAction(TargetItem));
                 }
-
-                return FAIActionTickResult(false, new CEquipItemAction(TargetItem));
             }
-        }
-
-        if (this->RemainingItemUseTimes < 0) {
-            this->UseFinished = true;
-            return this->Unfinished;
-        }
-        else {
-            this->RemainingItemUseTimes--;
-            if (this->RemainingItemUseTimes >= 0) {
-                return FAIActionTickResult(false, new CUseItemAction(Owner->UnitGetActiveItem(), this->Step.UseItemTarget));
-            }
-
-            return this->Unfinished;
         }
     }
 
-    float WaitTime = FMath::RandRange(this->Step.WaitTimeMin, this->Step.WaitTimeMax);
-    return FAIActionTickResult(true, new CWaitAction(WaitTime, this->Step.ScanWhileWaiting));
+    if (!this->UseStarted) {
+        this->UseStarted = true;
+
+        if (this->Node->UseItem) {
+            return FAIActionTickResult(false, new CUseItemAction(Owner->UnitGetActiveItem(), this->Node->UseItemTarget));
+        }
+    }
+
+    if (!this->WaitStarted) {
+        this->WaitStarted = true;
+
+        float WaitTime = FMath::RandRange(this->Node->WaitTimeMin, this->Node->WaitTimeMax);
+        return FAIActionTickResult(false, new CWaitAction(WaitTime, this->Node->ScanWhileWaiting));
+    }
+
+    if (this->Node->ForceNext != nullptr) {
+        return FAIActionTickResult(true, new CPatrolStepAction(this->Node->ForceNext));
+    }
+    return this->Finished;
 }

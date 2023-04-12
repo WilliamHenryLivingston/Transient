@@ -209,7 +209,6 @@ private:
 protected:
 	virtual void UnitDiscoverDynamicChildComponents();
 	void UnitDiscoverDynamicChildComponentsOf(TArray<UUnitSlotComponent*>& Into, AActor* Actor);
-	void UnitDequipActiveItem();
 
 	// Must be called at the end of child-class ticks.
 	void UnitPostTick(float DeltaTime);
@@ -221,6 +220,8 @@ public:
 	bool UnitIsCrouched();
 	bool UnitIsMoving();
 	bool UnitIsExerted();
+	float UnitGetEnergy();
+	float UnitGetKineticHealth();
 	int UnitGetConcealmentScore();
 	AItemActor* UnitGetActiveItem();
 	AWeaponItem* UnitGetActiveWeapon();
@@ -228,6 +229,7 @@ public:
 
 	// Inventory.
 	void UnitDropActiveItem();
+	void UnitDequipActiveItem();
 	void UnitDropArmor();
 	UUnitSlotComponent* UnitGetSlotWithItem(AItemActor* Target);
 	AItemActor* UnitGetItemByName(FString ItemName);

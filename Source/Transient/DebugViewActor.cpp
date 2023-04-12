@@ -3,6 +3,7 @@
 #include "DebugViewActor.h"
 
 #include "Components/StaticMeshComponent.h"
+#include "Components/TextRenderComponent.h"
 
 ADebugViewActor::ADebugViewActor() {
 	PrimaryActorTick.bCanEverTick = true;
@@ -22,4 +23,21 @@ void ADebugViewActor::BeginPlay() {
 
 void ADebugViewActor::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
+}
+
+void ADebugViewActor::DebugSetLabel() {
+	UTextRenderComponent* PrevLabel = this->FindComponentByClass<UTextRenderComponent>();
+	if (PrevLabel != nullptr) PrevLabel->DestroyComponent();
+
+	UTextRenderComponent* Label = NewObject<UTextRenderComponent>(this);
+	this->AddInstanceComponent(Label);
+	Label->RegisterComponent();
+
+	Label->SetText(FText::FromString(this->DebugLabel));
+	Label->AttachToComponent(this->DebugVisibility, FAttachmentTransformRules::SnapToTargetIncludingScale);
+	Label->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.2f));
+	Label->SetWorldRotation(FRotator(90.0f, 0.0f, 0.0f));
+	Label->SetRelativeLocation(FVector(0.0f, 0.0f, 2.0f));
+	Label->bIsEditorOnly = true;
+	Label->SetHiddenInGame(true);
 }

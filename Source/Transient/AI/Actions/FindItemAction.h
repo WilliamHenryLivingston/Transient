@@ -9,15 +9,17 @@
 
 class CFindItemAction : public IAIActionExecutor {
 private:
+    TSubclassOf<AItemActor> TargetType;
     AItemActor* Target;
 
-    bool TravelStarted;
+    bool Started;
+    bool TakeStarted;
+    bool EquipStarted;
 
 public:
-    static CFindItemAction* AIActionTryPlan(AActor* Owner, TSubclassOf<AItemActor> TargetType, float MaxDistance);
+    CFindItemAction(AActor* Owner, TSubclassOf<AItemActor> TargetType, float MaxDistance, bool EquipAfter);
     virtual ~CFindItemAction() override;
 
 public:
-    CFindItemAction(AItemActor* Target);
 	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;
 };

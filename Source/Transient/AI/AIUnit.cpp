@@ -4,9 +4,12 @@
 
 #include "AIManager.h"
 #include "Actions/AttackAction.h"
-#include "Actions/PatrolAction.h"
+#include "Actions/BaseBehavior.h"
 
 //#define DEBUG_DRAWS true
+
+#define BEHAVIOR_LOG_START(S) if (this->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, S->DebugInfo);
+#define BEHAVIOR_LOG_END(S) if (this->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, S->DebugInfo);
 
 void AAIUnit::BeginPlay() {
     for (int i = 0; i < this->ChanceItems.Num(); i++) {
@@ -29,7 +32,7 @@ void AAIUnit::BeginPlay() {
 	}
 
     this->ActionExecutorStack = TArray<IAIActionExecutor*>();
-    this->ActionExecutorStack.Push(new CPatrolAction(&this->Patrol));
+    this->ActionExecutorStack.Push(new CBaseBehavior(&this->Patrol));
 
     this->OverrideArmsState = true;
     this->UnitReload();
@@ -96,10 +99,14 @@ void AAIUnit::Tick(float DeltaTime) {
             FAIActionTickResult Result = Executor->AIActionTick(this, DeltaTime);
 
             if (Result.Finished) {
+                BEHAVIOR_LOG_END(Executor);
+
                 this->ActionExecutorStack.Pop(false);
                 delete Executor;
             }
             if (Result.PushChild != nullptr) {
+                BEHAVIOR_LOG_START(Result.PushChild);
+
                 this->ActionExecutorStack.Push(Result.PushChild);
             }
         }
@@ -118,11 +125,15 @@ void AAIUnit::Tick(float DeltaTime) {
 
     if (StopBeyond >= 0) {
         while (this->ActionExecutorStack.Num() - 1 > StopBeyond) {
+            BEHAVIOR_LOG_END(this->ActionExecutorStack[this->ActionExecutorStack.Num() - 1]);
+
             delete this->ActionExecutorStack[this->ActionExecutorStack.Num() - 1];
             this->ActionExecutorStack.Pop(false);
         }
     }
     if (DeferredPush != nullptr) {
+        BEHAVIOR_LOG_START(DeferredPush);
+
         this->ActionExecutorStack.Push(DeferredPush);
     }
 

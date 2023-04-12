@@ -8,7 +8,6 @@
 #include "AINavNode.h"
 #include "AIGroup.h"
 #include "Actions/AIActionExecutor.h"
-#include "Actions/PatrolStepAction.h"
 
 #include "AIUnit.generated.h"
 
@@ -34,6 +33,14 @@ public:
 	bool AssaultIfAlone;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	bool FullyPassive;
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
+	TSubclassOf<AItemActor> EnergyHealItem;
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
+	TSubclassOf<AItemActor> KineticHealItem;
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
+	float DefaultWorldSearchRadius = 1000.0f;
+
+	TMap<FString, int> AIState;
 
 	USceneComponent* DetectionSourceComponent;
 
@@ -45,9 +52,12 @@ private:
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	float DetectionDistance = 60.0f;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
-	TArray<FAIPatrolStep> Patrol;
+	TArray<AAINavNode*> Patrol;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	int Detection;
+
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
+	bool DebugBehavior;
 
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	AActor* PendingAgroTarget;

@@ -7,6 +7,8 @@ CEngageAction::CEngageAction(AActor* InitTarget, float Duration, bool InitPopOut
     this->Target = InitTarget;
     this->PopOut = InitPopOut;
     this->PopOutTimer = 0.0f;
+
+    this->DebugInfo = FString::Printf(TEXT("engage %s for %.2f"), *this->Target->GetName(), this->Timer);
 }
 
 CEngageAction::~CEngageAction() {}

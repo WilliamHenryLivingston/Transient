@@ -6,11 +6,12 @@
 
 #include "../AIUnit.h"
 #include "MoveToPointAction.h"
+#include "EquipItemAction.h"
 
-CFindItemAction* CFindItemAction::AIActionTryPlan(AActor* Owner, TSubclassOf<AItemActor> TargetType, float MaxDistance) {
+CFindItemAction::CFindItemAction(AActor* Owner, TSubclassOf<AItemActor> TargetType, float MaxDistance, bool EquipAfter) {
     TArray<AActor*> Options;
-    UGameplayStatics::GetAllActorsOfClass(Owner->GetWorld(), TargetType->StaticClass(), Options);
-    
+    UGameplayStatics::GetAllActorsOfClass(Owner->GetWorld(), TargetType, Options);
+
     FVector OwnerLocation = Owner->GetActorLocation();
 
     // TODO: Faster approach.
@@ -26,14 +27,17 @@ CFindItemAction* CFindItemAction::AIActionTryPlan(AActor* Owner, TSubclassOf<AIt
         }
     }
 
-    if (Best == nullptr) return nullptr;
+    this->TargetType = TargetType;
+    this->Target = Cast<AItemActor>(Best);
+    this->EquipStarted = !EquipAfter;
+    this->Started = false;
+    this->TakeStarted = false;
 
-    return new CFindItemAction(Cast<AItemActor>(Best));
-}
-
-CFindItemAction::CFindItemAction(AItemActor* InitTarget) {
-    this->Target = InitTarget;
-    this->TravelStarted = false;
+    FString Name = TEXT("worldfind <spawn>");
+    if (this->Target != nullptr) {
+        Name = FString::Printf(TEXT("worldfind %s"), *this->Target->GetName());
+    }
+    this->DebugInfo = Name;
 }
 
 CFindItemAction::~CFindItemAction() {}
@@ -41,11 +45,36 @@ CFindItemAction::~CFindItemAction() {}
 FAIActionTickResult CFindItemAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
     AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
 
-    if (!this->TravelStarted) {
-        this->TravelStarted = true;
-        return FAIActionTickResult(false, new CMoveToPointAction(this->Target, Owner->TakeReach * 0.75f));
+    if (Owner->UnitAreArmsOccupied()) return this->Unfinished;
+
+    if (!this->Started) {
+        this->Started = true;
+
+        if (this->Target == nullptr) {
+            this->Target = Owner->GetWorld()->SpawnActor<AItemActor>(
+                this->TargetType,
+                Owner->GetActorLocation(),
+                Owner->GetActorRotation(),
+                FActorSpawnParameters()
+            );
+        }
+        else {
+            return FAIActionTickResult(false, new CMoveToPointAction(this->Target, Owner->TakeReach * 0.75f));
+        }
     }
 
-    Owner->UnitTakeItem(Target);
+    if (!this->TakeStarted) {
+        this->TakeStarted = true;
+
+        Owner->UnitTakeItem(this->Target);
+        return this->Unfinished;
+    }
+
+    if (!this->EquipStarted) {
+        this->EquipStarted = true;
+
+        return FAIActionTickResult(false, new CEquipItemAction(this->Target));
+    }
+
     return this->Finished;
 }

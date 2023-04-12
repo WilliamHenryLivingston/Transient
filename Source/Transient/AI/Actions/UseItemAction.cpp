@@ -10,12 +10,20 @@ CUseItemAction::CUseItemAction(AItemActor* InitTarget, AActor* InitUseTarget) {
     this->UseTarget = InitUseTarget;
     this->Timer = InitUseTarget != nullptr ? 1.0f : -1.0f;
     this->UseStarted = false;
+
+    FString Name = TEXT("<current>");
+    if (this->Target != nullptr) {
+        Name = this->Target->GetName();
+    }
+    this->DebugInfo = FString::Printf(TEXT("use %s"), *Name);
 }
 
 CUseItemAction::~CUseItemAction() {}
 
 FAIActionTickResult CUseItemAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
     AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
+
+    if (this->Target == nullptr) this->Target = Owner->UnitGetActiveItem();
 
     if (Owner->UnitAreArmsOccupied()) return this->Unfinished;
 

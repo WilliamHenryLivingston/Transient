@@ -11,6 +11,8 @@ CAttackAction::CAttackAction(AActor* InitTarget) {
     this->Target = InitTarget;
     this->Cover = nullptr;
     this->AttackTime = 0.0f;
+
+    this->DebugInfo = FString::Printf(TEXT("attack %s"), *this->Target->GetName());
 }
 
 CAttackAction::~CAttackAction() {}
