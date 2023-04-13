@@ -22,11 +22,11 @@ private:
 	UPROPERTY(EditAnywhere, Category="Inventory Slot")
 	bool UseEquippedItemTransform;
 
-	UUnitSlotColliderComponent* InventoryLookCollider;
-
 public:
 	UPROPERTY(EditAnywhere, Category="Inventory Slot")
 	TArray<EItemInventoryType> AllowedItems;
+
+	UUnitSlotColliderComponent* InventoryLookCollider;
 
 public:	
 	UUnitSlotComponent();

@@ -30,5 +30,6 @@ void ALootableInteractive::InteractiveUse(AActor* User) {
 	if (!this->Animation->Script_Flag) {
 		this->Animation->Script_Flag = true;
 		this->ClosedStateColliderComponent->SetCollisionProfileName(FName("NoCollision"));
+		this->InteractEnabled = false;
 	}
 }

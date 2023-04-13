@@ -4,7 +4,7 @@
 
 #include "Kismet/KismetMathLibrary.h"
 
-void ABreakableItem::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
+void ABreakableItem::DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) {
     this->KineticHealth -= Profile.Kinetic;
     if (this->KineticHealth > 0.0f) return;
 

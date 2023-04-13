@@ -6,16 +6,16 @@
 
 #include "../UnitPawn.h"
 
+AAIManager* AAIManager::AIGetManagerInstance(UWorld* WorldCtx) {
+	return Cast<AAIManager>(UGameplayStatics::GetActorOfClass(WorldCtx, AAIManager::StaticClass()));
+}
+
 AAIManager::AAIManager() {
 	PrimaryActorTick.bCanEverTick = true;
 }
 
 void AAIManager::BeginPlay() {
 	Super::BeginPlay();
-
-	if (this->DebugSlowMo) {
-		this->GetWorld()->GetWorldSettings()->SetTimeDilation(0.25f);
-	}
 
 	TArray<AActor*> FoundNodes;
 	UGameplayStatics::GetAllActorsOfClass(this->GetWorld(), AAINavNode::StaticClass(), FoundNodes);
@@ -54,6 +54,37 @@ void AAIManager::AIUnclaimAllNavNodes(AActor* Claimer) {
 	}
 }
 
+AAINavNode* AAIManager::AIGetNavBestCoverNodeFor(AActor* For, AActor* From, int SearchCount, float MaxDistance) {
+	FVector ForLocation = For->GetActorLocation();
+    FVector ThreatLocation = From->GetActorLocation();
+
+    TArray<AAINavNode*> CheckSet = this->AIGetNavNearestNodes(For, SearchCount);
+
+    AAINavNode* FoundCover = nullptr;
+    float CoverScore = 0.0f;
+    for (int i = 0; i < CheckSet.Num(); i++) {
+        AAINavNode* Check = CheckSet[i];
+
+        if (!Check->CoverPosition) continue;
+        if (this->AIIsNavNodeClaimed(Check)) continue;
+
+        FVector CheckLocation = Check->GetActorLocation();
+        if (MaxDistance > 0.0f && (CheckLocation - ForLocation).Size() > MaxDistance) continue;
+
+        float RootDist = (CheckLocation - ThreatLocation).Size();
+        float FrontDist = (CheckLocation + (Check->GetActorForwardVector() * 100.0f) - ThreatLocation).Size();
+        if (FrontDist >= RootDist) continue;
+
+        float CheckScore = FrontDist - RootDist;
+        if (FoundCover == nullptr || CheckScore < CoverScore) {
+            FoundCover = Check;
+            CoverScore = CheckScore;
+        }
+    }
+
+    return FoundCover;
+}
+
 TArray<AAINavNode*> AAIManager::AIGetNavNearestNodes(AActor* From, int Count) {
 	// TODO: Rewrite, too lazy to to properly.
 
@@ -82,19 +113,16 @@ TArray<AAINavNode*> AAIManager::AIGetNavNearestNodes(AActor* From, int Count) {
 	return Result;
 }
 
-AAIManager* AAIManager::AIGetManagerInstance(UWorld* WorldCtx) {
-	return Cast<AAIManager>(UGameplayStatics::GetActorOfClass(WorldCtx, AAIManager::StaticClass()));
-}
-
-bool AAIManager::AIIsFactionEnemy(int MyFaction, int OtherFaction) {
+bool AAIManager::AIIsFactionEnemy(int MyFaction, int OtherFaction, bool GivenDamage) {
 	if (MyFaction == OtherFaction) return false;
 
 	for (int i = 0; i < this->FactionConfig.Num(); i++) {
 		FFactionAlliance Check = this->FactionConfig[i];
 
 		bool Allied = (
-			(Check.FactionA == MyFaction && Check.FactionB == OtherFaction) ||
-			(Check.FactionB == MyFaction && Check.FactionA == OtherFaction)
+			Check.FactionA == MyFaction &&
+			Check.FactionB == OtherFaction &&
+			(!GivenDamage || Check.IgnoreDamage)	
 		);
 		if (Allied) return false;
 	}
@@ -106,7 +134,7 @@ bool AAIManager::AIShouldDetect(int FactionID, int Detection, AActor* RawTarget)
 	AUnitPawn* Target = Cast<AUnitPawn>(RawTarget);
 
 	if (Target == nullptr) return false;
-	if (!this->AIIsFactionEnemy(FactionID, Target->FactionID)) return false;
+	if (!this->AIIsFactionEnemy(FactionID, Target->FactionID, false)) return false;
 	if (Target->UnitGetConcealmentScore() > Detection) return false;
 
 	return true;

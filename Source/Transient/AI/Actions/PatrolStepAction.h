@@ -8,47 +8,19 @@
 #include "../AINavNode.h"
 #include "AIActionExecutor.h"
 
-#include "PatrolStepAction.generated.h"
-
-USTRUCT()
-struct FAIPatrolStep {
-	GENERATED_BODY()
-
-public:
-	UPROPERTY(EditAnywhere, Category="Travel")
-	AAINavNode* Node;
-	UPROPERTY(EditAnywhere, Category="Travel")
-    float NodeReachDistance = 50.0f;
-
-	UPROPERTY(EditAnywhere, Category="Equip")
-	bool EquipItem;
-	UPROPERTY(EditAnywhere, Category="Equip")
-	TSubclassOf<AItemActor> EquipItemType;
-
-	UPROPERTY(EditAnywhere, Category="Animation")
-	int UseItemTimes = -1;
-    UPROPERTY(EditAnywhere, Category="Animation")
-    AActor* UseItemTarget;
-
-	UPROPERTY(EditAnywhere, Category="Wait")
-	float WaitTimeMin = 0.5f;
-	UPROPERTY(EditAnywhere, Category="Wait")
-	float WaitTimeMax = 1.0f;
-	UPROPERTY(EditAnywhere, Category="Wait")
-	bool ScanWhileWaiting = true;
-};
-
 class CPatrolStepAction : public IAIActionExecutor {
 private:
-    FAIPatrolStep Step;
+    AAINavNode* Node;
 
     bool TravelStarted;
-    bool UseFinished;
-
-	int RemainingItemUseTimes;
+    bool EquipStarted;
+    bool WaitStarted;
+    bool UseStarted;
+    bool InteractStarted;
+    bool SubjugateStarted;
 
 public:
-    CPatrolStepAction(FAIPatrolStep Step);
+    CPatrolStepAction(AAINavNode* Node);
     virtual ~CPatrolStepAction() override;
 
 public:

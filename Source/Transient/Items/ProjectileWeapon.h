@@ -26,7 +26,6 @@ private:
 	UPROPERTY(EditAnywhere, Category="Projectile Weapon")
 	float FireCooldownTime = 0.25f;
 
-	// State.
 	float FireCooldownTimer = 0.0f;
 
 public:

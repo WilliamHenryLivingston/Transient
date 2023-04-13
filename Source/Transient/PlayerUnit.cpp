@@ -168,6 +168,18 @@ void APlayerUnit::Tick(float DeltaTime) {
 		this->CameraComponent->PostProcessSettings.SceneFringeIntensity = FMath::Max(0.0f, this->CameraComponent->PostProcessSettings.SceneFringeIntensity - (RawDeltaTime * 3.0f));
 	}
 
+	float LastDOF = this->CameraComponent->PostProcessSettings.DepthOfFieldFocalDistance;
+	if (this->InventoryView) {
+		this->CameraComponent->PostProcessSettings.DepthOfFieldFocalDistance = (
+			FMath::Max(320.0f, LastDOF - (DeltaTime * 1500.0f))
+		);
+	}
+	else {
+		this->CameraComponent->PostProcessSettings.DepthOfFieldFocalDistance = (
+			FMath::Min(1150.0f, LastDOF + (DeltaTime * 1500.0f))
+		);
+	}
+
 	FHitResult MouseHit;
 	this->GetWorld()->GetFirstPlayerController()->GetHitResultUnderCursorByChannel(
 		this->InventoryView ? ETraceTypeQuery::TraceTypeQuery3 : ETraceTypeQuery::TraceTypeQuery4,
@@ -177,6 +189,13 @@ void APlayerUnit::Tick(float DeltaTime) {
 
 	this->AimIndicatorComponent->SetWorldLocation(MouseHit.ImpactPoint);
 
+	float ArmorHealth = 0.0f;
+	AArmorItem* Armor = this->UnitGetArmor();
+	if (Armor != nullptr) {
+		ArmorHealth = Armor->KineticHealth / 1000.0f;
+	}
+
+	this->ExpandedStatusUI->Script_ArmorKineticHealth = this->StatusUI->Script_ArmorKineticHealth = ArmorHealth;
 	this->ExpandedStatusUI->Script_KineticHealth = this->StatusUI->Script_KineticHealth = this->KineticHealth / this->MaxKineticHealth;
 	this->ExpandedStatusUI->Script_Energy = this->StatusUI->Script_Energy = this->Energy / this->MaxEnergy;
 	this->ExpandedStatusUI->Script_Stamina = this->StatusUI->Script_Stamina = this->Stamina / this->MaxStamina;
@@ -241,7 +260,11 @@ void APlayerUnit::Tick(float DeltaTime) {
 			else if (HitComponent->GetName().Equals(TEXT("InvViewSelf"))) {
 				AItemActor* AsItem = Cast<AItemActor>(MouseHit.GetActor());
 				
-				if (this->UnitHasItem(AsItem)) TargetedItem = AsItem;
+				UUnitSlotComponent* ContainingSlot = this->UnitGetSlotWithItem(AsItem);
+				if (ContainingSlot != nullptr) {
+					TargetedItem = AsItem;
+					AsSlotCollider = ContainingSlot->InventoryLookCollider;
+				}
 			}
 			
 			if (TargetedItem != nullptr) {

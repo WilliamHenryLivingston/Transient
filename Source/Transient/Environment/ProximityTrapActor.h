@@ -46,7 +46,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Source) override;
+	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) override;
 
 private:
 	void TrapDetonate();

@@ -96,7 +96,7 @@ void ADetectorActor::Tick(float DeltaTime) {
 	);
 
 	AUnitPawn* AsUnit = Cast<AUnitPawn>(ScanHit.GetActor());
-	if (AsUnit != nullptr && AsUnit->UnitIsMoving()) {
+	if (AsUnit != nullptr) {
 		AAIManager* Manager = AAIManager::AIGetManagerInstance(this->GetWorld());
 
 		if (Manager->AIShouldDetect(this->FactionID, this->Detection, AsUnit)) {
@@ -115,12 +115,12 @@ void ADetectorActor::AIGroupMemberJoin(AAIGroup* NewGroup) {
 
 void ADetectorActor::AIGroupMemberAlert(AActor* AgroTarget) { return; }
 
-void ADetectorActor::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
+void ADetectorActor::DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) {
 	this->EnergyHealth -= Profile.Energy;
 	if (this->EnergyHealth <= 0.0f) {
 		this->Disabled = true;
 	}
-	else {
+	else if (Source != nullptr) {
 		if (this->Group != nullptr) {
 			this->Group->AIGroupDistributeAlert(Source);
 		}

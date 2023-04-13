@@ -2,14 +2,22 @@
 
 #include "Kismet/KismetMathLibrary.h"
 
+#include "../../Items/WeaponItem.h"
 #include "../AIUnit.h"
 #include "EquipItemAction.h"
+#include "AIState.h"
 
 CUseItemAction::CUseItemAction(AItemActor* InitTarget, AActor* InitUseTarget) {
     this->Target = InitTarget;
     this->UseTarget = InitUseTarget;
     this->Timer = InitUseTarget != nullptr ? 1.0f : -1.0f;
     this->UseStarted = false;
+
+    FString Name = TEXT("<current>");
+    if (this->Target != nullptr) {
+        Name = this->Target->GetName();
+    }
+    this->DebugInfo = FString::Printf(TEXT("use %s"), *Name);
 }
 
 CUseItemAction::~CUseItemAction() {}
@@ -17,7 +25,11 @@ CUseItemAction::~CUseItemAction() {}
 FAIActionTickResult CUseItemAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
     AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
 
+    if (this->Target == nullptr) this->Target = Owner->UnitGetActiveItem();
+
     if (Owner->UnitAreArmsOccupied()) return this->Unfinished;
+
+    Owner->UnitSetCrouched(false);
 
     if (!this->UseStarted) {
         if (Owner->UnitGetActiveItem() != this->Target) {
@@ -36,7 +48,14 @@ FAIActionTickResult CUseItemAction::AIActionTick(AActor* RawOwner, float DeltaTi
             return this->Unfinished;
         }
 
-        Owner->UnitUseActiveItem(this->UseTarget);
+        AWeaponItem* AsWeapon = Cast<AWeaponItem>(this->Target);
+        if (AsWeapon != nullptr) Owner->UnitReload();
+        else Owner->UnitUseActiveItem(this->UseTarget);
+
+        if (Owner->AIAgroTarget() != nullptr && Owner->AIState.FindOrAdd(STATE_IN_COVER, 0) != 0) {
+            Owner->UnitSetCrouched(true);
+        }
+
         this->UseStarted = true;
         return this->Unfinished;
     }

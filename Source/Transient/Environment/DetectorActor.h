@@ -59,5 +59,5 @@ public:
 	virtual void AIGroupMemberAlert(AActor* AgroTarget) override;
 
 public:
-	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Source);
+	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source);
 };

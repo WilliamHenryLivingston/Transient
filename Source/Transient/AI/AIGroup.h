@@ -31,6 +31,8 @@ public:
 	TArray<AActor*> InitialMembers;
 	UPROPERTY(EditAnywhere, Category="Group")
 	TArray<AAIGroup*> AlertChain;
+	UPROPERTY(EditAnywhere, Category="Group")
+	TArray<AActor*> AlertTowers;
 
 	TArray<IAIGroupMember*> Members;
 

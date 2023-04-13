@@ -15,6 +15,7 @@ public:
     float StepVerticalCoef = 1.0f;
 	float BodyBaseCoef = 1.0f;
 	float BodyLerpRateCoef = 1.0f;
+	float DeltaTimeCoef = 1.0f;
 
 	FVector BodyVelocity;
 };
@@ -37,7 +38,6 @@ struct FLegIKProfile {
 public:
     float GroundCastDistance;
     float StepVerticalOffset;
-    float StepReachWorldRadius;
     float StepBaseDistance;
 	float BodyBaseOffset;
 	float MovingOffsetTolerance;

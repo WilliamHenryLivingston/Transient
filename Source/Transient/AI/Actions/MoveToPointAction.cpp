@@ -6,6 +6,7 @@
 #include "../../Debug.h"
 #include "../AIManager.h"
 #include "../AIUnit.h"
+#include "../AINavNode.h"
 
 // TODO: Take vector as target.
 CMoveToPointAction::CMoveToPointAction(AActor* InitTarget, float InitReachDistance) {
@@ -14,6 +15,8 @@ CMoveToPointAction::CMoveToPointAction(AActor* InitTarget, float InitReachDistan
 
     this->Planned = false;
     this->Steps = TArray<FVector>();
+
+    this->DebugInfo = FString::Printf(TEXT("moveto %s"), *this->Target->GetName());
 }
 
 CMoveToPointAction::~CMoveToPointAction() {}
@@ -22,7 +25,10 @@ FAIActionTickResult CMoveToPointAction::AIActionTick(AActor* RawOwner, float Del
     if (this->Target == nullptr || !IsValid(this->Target)) return this->Finished;
 
     AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
+
     Owner->UnitUpdateTorsoPitch(0.0f);
+    Owner->AIState.Emplace(STATE_IN_COVER, 0);
+    Owner->UnitSetExerted(Owner->AIAgroTarget() != nullptr);
 
     if (!this->Planned) {
         this->PlanMove(Owner);
@@ -39,7 +45,7 @@ FAIActionTickResult CMoveToPointAction::AIActionTick(AActor* RawOwner, float Del
     FVector TargetLocation = this->Steps[0];
 
     Owner->UnitMoveTowards(TargetLocation);
-    if (!Owner->UnitHasFaceTarget()) {
+    if (Owner->AIState.FindOrAdd(STATE_AGRO_CONTROL, 0) == 0) {
         Owner->UnitFaceTowards(TargetLocation);
     }
 
@@ -52,6 +58,14 @@ FAIActionTickResult CMoveToPointAction::AIActionTick(AActor* RawOwner, float Del
     bool Reached = Distance < this->ReachDistance;
     if (Reached) {
         if (this->Steps.Num() == 1) {
+            Owner->UnitSetExerted(false);
+
+            bool Cover = (
+                this->Target->IsA(AAINavNode::StaticClass()) &&
+                Cast<AAINavNode>(this->Target)->CoverPosition
+            );
+            
+            Owner->AIState.Emplace(STATE_IN_COVER, Cover ? 1 : 0);
             return this->Finished;
         }
 

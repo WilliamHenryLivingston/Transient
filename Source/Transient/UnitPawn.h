@@ -90,8 +90,6 @@ private:
 
 	// Inventory.
 	UPROPERTY(EditAnywhere, Category="Unit Inventory")
-	TArray<TSubclassOf<AItemActor>> AutoSpawnInitialItems;
-	UPROPERTY(EditAnywhere, Category="Unit Inventory")
 	AItemActor* ActiveItem;
 	UPROPERTY(EditAnywhere, Category="Unit Inventory")
 	AArmorItem* ArmorItem;
@@ -147,10 +145,8 @@ private:
 	TArray<FUnitConcealment> ActiveConcealments;
 
 protected:
-	UPROPERTY(EditAnywhere, Category="Unit Movement")
-	float TakeReach = 300.0f; // TODO: Private later.
-	UPROPERTY(EditAnywhere, Category="Unit Movement")
-	float UseReach = 300.0f;
+	UPROPERTY(EditAnywhere, Category="Unit Inventory")
+	TArray<TSubclassOf<AItemActor>> AutoSpawnInitialItems;
 
 	bool ForceArmsEmptyAnimation; // TODO: Better solution (inventory view).
 	bool CheckingStatus; // TODO
@@ -166,6 +162,12 @@ protected:
 	USceneComponent* AimRootComponent;
 
 public:
+	// TODO: Private these later.
+	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	float TakeReach = 300.0f;
+	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	float UseReach = 300.0f;
+
 	bool OverrideArmsState; // Used to prevent validity checks and animation on arm-based actions.
 
 public:
@@ -189,7 +191,7 @@ public:
 
 // IDamagable.
 public:
-	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Source) override;
+	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) override;
 
 // Internals.
 private:
@@ -206,7 +208,7 @@ private:
 // Exposures.
 protected:
 	virtual void UnitDiscoverDynamicChildComponents();
-	void UnitDequipActiveItem();
+	void UnitDiscoverDynamicChildComponentsOf(TArray<UUnitSlotComponent*>& Into, AActor* Actor);
 
 	// Must be called at the end of child-class ticks.
 	void UnitPostTick(float DeltaTime);
@@ -218,6 +220,8 @@ public:
 	bool UnitIsCrouched();
 	bool UnitIsMoving();
 	bool UnitIsExerted();
+	float UnitGetEnergy();
+	float UnitGetKineticHealth();
 	int UnitGetConcealmentScore();
 	AItemActor* UnitGetActiveItem();
 	AWeaponItem* UnitGetActiveWeapon();
@@ -225,8 +229,9 @@ public:
 
 	// Inventory.
 	void UnitDropActiveItem();
+	void UnitDequipActiveItem();
 	void UnitDropArmor();
-	bool UnitHasItem(AItemActor* Target);
+	UUnitSlotComponent* UnitGetSlotWithItem(AItemActor* Target);
 	AItemActor* UnitGetItemByName(FString ItemName);
 	AItemActor* UnitGetItemByClass(TSubclassOf<AItemActor> ItemClass);
 	void UnitDropItem(AItemActor* Target);

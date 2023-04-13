@@ -26,6 +26,8 @@ public:
 	int FactionA;
 	UPROPERTY(EditAnywhere)
 	int FactionB;
+	UPROPERTY(EditAnywhere)
+	bool IgnoreDamage;
 };
 
 UCLASS()
@@ -40,8 +42,6 @@ public:
 
 	TArray<AAINavNode*> Nodes;
 
-	UPROPERTY(EditAnywhere, Category="Debug Utils")
-	bool DebugSlowMo; // TODO: New actor for stuff like this?
 private:
 	TArray<FNavNodeClaim> Claims;
 
@@ -59,6 +59,7 @@ public:
 	void AIClaimNavNode(AAINavNode* Node, AActor* Claimer);
 	void AIUnclaimAllNavNodes(AActor* Claimer);
 	TArray<AAINavNode*> AIGetNavNearestNodes(AActor* From, int Count);
-	bool AIIsFactionEnemy(int MyFaction, int OtherFaction);
+	AAINavNode* AIGetNavBestCoverNodeFor(AActor* For, AActor* From, int Count, float MaxDistance);
+	bool AIIsFactionEnemy(int MyFaction, int OtherFaction, bool GivenDamage);
 	bool AIShouldDetect(int FactionID, int Detection, AActor* Target);
 };

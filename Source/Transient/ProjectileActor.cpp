@@ -36,7 +36,7 @@ void AProjectileActor::Tick(float DeltaTime) {
 }
 
 void AProjectileActor::ProjectileHitVictim(IDamagable* Victim) {
-	Victim->DamagableTakeDamage(this->DamageProfile, this->Source);
+	Victim->DamagableTakeDamage(this->DamageProfile, this, this->Source);
 }
 
 void AProjectileActor::OnCollideUnchecked(

@@ -72,12 +72,9 @@ void AUnitPawn::BeginPlay() {
 	this->OverrideArmsState = false;
 }
 
-void AUnitPawn::UnitDiscoverDynamicChildComponents() {
-	TArray<UUnitSlotComponent*> SlotComponents;
-	this->GetComponents(SlotComponents, true);
-
+void AUnitPawn::UnitDiscoverDynamicChildComponentsOf(TArray<UUnitSlotComponent*>& Into, AActor* Actor) {
 	TArray<AActor*> Attached;
-	this->GetAttachedActors(Attached, true);
+	Actor->GetAttachedActors(Attached, false);
 
 	for (int i = 0; i < Attached.Num(); i++) {
 		AActor* Check = Attached[i];
@@ -85,8 +82,17 @@ void AUnitPawn::UnitDiscoverDynamicChildComponents() {
 		TArray<UUnitSlotComponent*> IncludedComponents;
 		Check->GetComponents(IncludedComponents, true);
 
-		SlotComponents.Append(IncludedComponents);
+		this->UnitDiscoverDynamicChildComponentsOf(Into, Check);
+
+		Into.Append(IncludedComponents);
 	}
+}
+
+void AUnitPawn::UnitDiscoverDynamicChildComponents() {
+	TArray<UUnitSlotComponent*> SlotComponents;
+	this->GetComponents(SlotComponents, true);
+
+	this->UnitDiscoverDynamicChildComponentsOf(SlotComponents, this);
 
 	this->Slots = SlotComponents;
 }
@@ -110,9 +116,6 @@ void AUnitPawn::Tick(float DeltaTime) {
 
 void AUnitPawn::UnitPostTick(float DeltaTime) {
 	bool LowPower = this->Stamina <= 1.0f && this->Energy <= 1.0f;
-	if (LowPower) {
-		this->AnimationScale *= 4.0f;
-	}
 	
 	if (this->CurrentInteractActor != nullptr) {
 		float InteractDelta = DeltaTime;
@@ -221,8 +224,14 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 
 	// Movement update.
 	FLegIKDynamics LegIK;
+	LegIK.BodyVelocity = FVector(0.0f, 0.0f, 0.0f);
+	LegIK.DeltaTimeCoef = 1.0f / this->AnimationScale;
 
-	if (this->Crouching || this->Immobilized || LowPower) {
+	if (LowPower) {
+		LegIK.StepDistanceCoef *= 0.5f;
+		LegIK.DeltaTimeCoef *= 0.9f;
+	}
+	if (this->Crouching || this->Immobilized) {
 		LegIK.StepDistanceCoef *= 0.25f;
 	}
 
@@ -253,7 +262,13 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 
 	if (this->HasMoveTarget && !this->Immobilized && !this->ArmsActionMoveLock) {
 		float Speed = this->MoveSpeed;
-		if (LowPower) Speed *= 0.25f;
+		if (LowPower) {
+			Speed *= 0.25f;
+		}
+
+		if (this->ArmorItem != nullptr && this->ArmorItem->Heavy) {
+			Speed *= 0.65f;
+		}
 
 		FVector ActorForward = this->GetActorForwardVector();
 
@@ -323,6 +338,9 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	}
 
 	this->Animation->Script_TimeDilation = this->AnimationScale;
+	if (LowPower) {
+		this->Animation->Script_TimeDilation *= 4.0f;
+	}
 }
 
 // IItemHolder implementation.
@@ -351,6 +369,7 @@ void AUnitPawn::ThenFinishInteract() {
 	this->CurrentInteractActor->InteractiveUse(this);
 	this->CurrentInteractActor->InteractTimer = -1.0f;
 	this->CurrentInteractActor = nullptr;
+	this->Immobilized = false;
 }
 
 void AUnitPawn::ThenFinishUse() {
@@ -447,6 +466,14 @@ bool AUnitPawn::UnitIsCrouched() { return this->Crouching; }
 bool AUnitPawn::UnitIsExerted() { return this->Exerted; }
 AItemActor* AUnitPawn::UnitGetActiveItem() { return this->ActiveItem; }
 AArmorItem* AUnitPawn::UnitGetArmor() { return this->ArmorItem; }
+
+float AUnitPawn::UnitGetEnergy() {
+	return this->Energy / this->MaxEnergy;
+}
+
+float AUnitPawn::UnitGetKineticHealth() {
+	return this->KineticHealth / this->MaxKineticHealth;
+}
 
 int AUnitPawn::UnitGetConcealmentScore() {
 	int Best = 0;
@@ -545,11 +572,9 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 	// If armor; equip.
 	AArmorItem* AsArmor = Cast<AArmorItem>(TargetItem);
 	if (AsArmor != nullptr) {
-		this->UnitPlayInteractAnimation();
+		if (this->ArmorItem != nullptr) this->UnitDropArmor();
 
-		if (this->ArmorItem != nullptr) {
-			this->ArmorItem->ItemDrop(this);
-		}
+		this->UnitPlayInteractAnimation();
 
 		this->ArmorItem = AsArmor;
 		this->ArmorItem->ItemTake(this);
@@ -674,14 +699,14 @@ void AUnitPawn::UnitDropItem(AItemActor* Target) {
 	}
 }
 
-bool AUnitPawn::UnitHasItem(AItemActor* Target) {	
+UUnitSlotComponent* AUnitPawn::UnitGetSlotWithItem(AItemActor* Target) {	
 	for (int i = 0; i < this->Slots.Num(); i++) {
 		UUnitSlotComponent* Check = this->Slots[i];
 
-		if (Check->SlotGetContent() == Target) return true;
+		if (Check->SlotGetContent() == Target) return Check;
 	}
 
-	return false;
+	return nullptr;
 }
 
 AItemActor* AUnitPawn::UnitGetItemByName(FString ItemName) {	
@@ -712,6 +737,7 @@ void AUnitPawn::UnitDropArmor() {
 
 	this->UnitPlayInteractAnimation();
 
+	this->ArmorItem->DetachFromActor(FDetachmentTransformRules(EDetachmentRule::KeepWorld, false));
 	this->ArmorItem->ItemDrop(this);
 	this->ArmorItem = nullptr;
 
@@ -877,7 +903,7 @@ void AUnitPawn::UnitInteractWith(AActor* Target) {
 	if (Distance > this->UseReach) return;
 	
 	AInteractiveActor* AsInteractive = Cast<AInteractiveActor>(Target);
-	if (AsInteractive == nullptr) return;
+	if (AsInteractive == nullptr || !AsInteractive->InteractEnabled) return;
 
 	if (this->UnitAreArmsOccupied()) return;
 
@@ -1044,11 +1070,27 @@ bool AUnitPawn::UnitDrainEnergy(float Amount) {
 }
 
 void AUnitPawn::UnitHealDamage(FDamageProfile Healing) {
-	this->KineticHealth = FMath::Min(this->MaxKineticHealth, this->KineticHealth + Healing.Kinetic);
+	float Kinetic = Healing.Kinetic;
+	float RemainingCurrentKinetic = this->MaxKineticHealth - this->KineticHealth;
+	if (Kinetic > RemainingCurrentKinetic) {
+		Kinetic -= RemainingCurrentKinetic;
+		this->KineticHealth = this->MaxKineticHealth;
+
+		if (this->ArmorItem != nullptr) {
+			this->ArmorItem->KineticHealth = FMath::Min(
+				this->ArmorItem->MaxKineticHealth,
+				this->ArmorItem->KineticHealth + Kinetic
+			);
+		}
+	}
+	else {
+		this->KineticHealth += Kinetic;
+	}
+
 	this->Energy = FMath::Min(this->MaxEnergy, this->Energy + Healing.Energy);
 }
 
-void AUnitPawn::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
+void AUnitPawn::DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) {
 	float Kinetic = Profile.Kinetic;
 
 	//	Absorb damage with armor.
@@ -1087,8 +1129,10 @@ void AUnitPawn::DamagableTakeDamage(FDamageProfile Profile, AActor* Source) {
 void AUnitPawn::UnitDie() {
 	this->OverrideArmsState = true;
 	
-	for (int i = 0; i < this->Slots.Num(); i++) {
-		UUnitSlotComponent* Slot = this->Slots[i];
+	TArray<UUnitSlotComponent*> DirectSlots;
+	this->GetComponents(DirectSlots, false);
+	for (int i = 0; i < DirectSlots.Num(); i++) {
+		UUnitSlotComponent* Slot = DirectSlots[i];
 
 		AItemActor* Content = Slot->SlotGetContent();
 		if (Content == nullptr) continue;

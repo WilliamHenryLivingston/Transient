@@ -29,8 +29,8 @@ IAIActionExecutor::IAIActionExecutor() {
 
 IAIActionExecutor::~IAIActionExecutor() {}
 
-bool IAIActionExecutor::AIActionIsAttackOn(AActor* Target) {
-    return false;
+AActor* IAIActionExecutor::AIActionAgroTarget() {
+    return nullptr;
 }
 
 FAIActionTickResult IAIActionExecutor::AIActionTick(AActor* Owner, float DeltaTime) {

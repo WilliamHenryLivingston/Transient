@@ -25,5 +25,5 @@ class IDamagable {
 	GENERATED_BODY()
 
 public:
-	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Source);
+	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source);
 };

@@ -7,23 +7,20 @@
 #include "../AINavNode.h"
 #include "AIActionExecutor.h"
 
-class CAttackAction : public IAIActionExecutor {
+class CAgroAction : public IAIActionExecutor {
 private:
     AActor* Target;
-    AAINavNode* Cover;
-
-	float AttackTime;
-    bool Engaging;
 
 public:
-    CAttackAction(AActor* Target);
-    virtual ~CAttackAction() override;
+    CAgroAction(AActor* Target);
+    virtual ~CAgroAction() override;
 
 public:
-	virtual bool AIActionIsAttackOn(AActor* Target) override;
+	virtual AActor* AIActionAgroTarget() override;
 	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;
 	virtual FAIParentActionTickResult AIParentActionTick(AActor* Owner, float DeltaTime) override;
 
 private:
-    void HandleWeapon(AActor* Owner);
+    IAIActionExecutor* HandleWeapon(AActor* Owner);
+    bool HandleTriggerAndFacing(AActor* Owner);
 };

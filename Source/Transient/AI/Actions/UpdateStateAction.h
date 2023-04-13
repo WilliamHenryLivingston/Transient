@@ -4,18 +4,18 @@
 
 #include "CoreMinimal.h"
 
+#include "../../Items/ItemActor.h"
 #include "AIActionExecutor.h"
-#include "PatrolStepAction.h"
+#include "AIState.h"
 
-class CPatrolAction : public IAIActionExecutor {
+class CUpdateStateAction : public IAIActionExecutor {
 private:
-    TArray<FAIPatrolStep>* Steps;
-
-    int CurrentStep;
+    AI_STATE_T Key;
+    int Value;
 
 public:
-    CPatrolAction(TArray<FAIPatrolStep>* Steps);
-    virtual ~CPatrolAction() override;
+    CUpdateStateAction(AI_STATE_T Key, int Value);
+    virtual ~CUpdateStateAction() override;
 
 public:
 	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;

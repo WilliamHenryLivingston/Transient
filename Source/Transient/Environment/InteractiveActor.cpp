@@ -8,6 +8,8 @@ AInteractiveActor::AInteractiveActor() {
 
 void AInteractiveActor::BeginPlay() {
 	Super::BeginPlay();
+
+	this->InteractEnabled = true;
 	
 	TArray<USceneComponent*> SceneComponents;
 	this->GetComponents(SceneComponents, true);
