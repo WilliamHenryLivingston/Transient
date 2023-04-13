@@ -116,9 +116,6 @@ void AUnitPawn::Tick(float DeltaTime) {
 
 void AUnitPawn::UnitPostTick(float DeltaTime) {
 	bool LowPower = this->Stamina <= 1.0f && this->Energy <= 1.0f;
-	if (LowPower) {
-		this->AnimationScale *= 4.0f;
-	}
 	
 	if (this->CurrentInteractActor != nullptr) {
 		float InteractDelta = DeltaTime;
@@ -230,6 +227,10 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	LegIK.BodyVelocity = FVector(0.0f, 0.0f, 0.0f);
 	LegIK.DeltaTimeCoef = 1.0f / this->AnimationScale;
 
+	if (LowPower) {
+		LegIK.StepDistanceCoef *= 0.5f;
+		LegIK.DeltaTimeCoef *= 0.9f;
+	}
 	if (this->Crouching || this->Immobilized) {
 		LegIK.StepDistanceCoef *= 0.25f;
 	}
@@ -337,6 +338,9 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	}
 
 	this->Animation->Script_TimeDilation = this->AnimationScale;
+	if (LowPower) {
+		this->Animation->Script_TimeDilation *= 4.0f;
+	}
 }
 
 // IItemHolder implementation.

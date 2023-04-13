@@ -96,7 +96,7 @@ void ADetectorActor::Tick(float DeltaTime) {
 	);
 
 	AUnitPawn* AsUnit = Cast<AUnitPawn>(ScanHit.GetActor());
-	if (AsUnit != nullptr && AsUnit->UnitIsMoving()) {
+	if (AsUnit != nullptr) {
 		AAIManager* Manager = AAIManager::AIGetManagerInstance(this->GetWorld());
 
 		if (Manager->AIShouldDetect(this->FactionID, this->Detection, AsUnit)) {

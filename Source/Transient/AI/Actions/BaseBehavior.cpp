@@ -53,9 +53,9 @@ FAIParentActionTickResult CBaseBehavior::AIParentActionTick(AActor* RawOwner, fl
 
         AActor* OwnerAgroTarget = Owner->AIAgroTarget();
         if (OwnerAgroTarget != nullptr) {
-            AAINavNode* Cover = Manager->AIGetNavBestCoverNodeFor(Owner, OwnerAgroTarget, 10, 2000.0f);
+            AAINavNode* Cover = Manager->AIGetNavBestCoverNodeFor(Owner, OwnerAgroTarget, 30, 2000.0f);
 
-            Parts.Push(new CMoveToPointAction(Cover, Cover->ReachDistance));
+            if (Cover != nullptr) Parts.Push(new CMoveToPointAction(Cover, Cover->ReachDistance));
         }
         Parts.Push(new CUseItemAction(nullptr, nullptr));
         Parts.Push(new CUpdateStateAction(HealStateKey, 0));

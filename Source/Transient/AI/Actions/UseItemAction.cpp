@@ -5,6 +5,7 @@
 #include "../../Items/WeaponItem.h"
 #include "../AIUnit.h"
 #include "EquipItemAction.h"
+#include "AIState.h"
 
 CUseItemAction::CUseItemAction(AItemActor* InitTarget, AActor* InitUseTarget) {
     this->Target = InitTarget;
@@ -28,6 +29,8 @@ FAIActionTickResult CUseItemAction::AIActionTick(AActor* RawOwner, float DeltaTi
 
     if (Owner->UnitAreArmsOccupied()) return this->Unfinished;
 
+    Owner->UnitSetCrouched(false);
+
     if (!this->UseStarted) {
         if (Owner->UnitGetActiveItem() != this->Target) {
             return FAIActionTickResult(false, new CEquipItemAction(this->Target));
@@ -48,6 +51,10 @@ FAIActionTickResult CUseItemAction::AIActionTick(AActor* RawOwner, float DeltaTi
         AWeaponItem* AsWeapon = Cast<AWeaponItem>(this->Target);
         if (AsWeapon != nullptr) Owner->UnitReload();
         else Owner->UnitUseActiveItem(this->UseTarget);
+
+        if (Owner->AIAgroTarget() != nullptr && Owner->AIState.FindOrAdd(STATE_IN_COVER, 0) != 0) {
+            Owner->UnitSetCrouched(true);
+        }
 
         this->UseStarted = true;
         return this->Unfinished;

@@ -14,6 +14,7 @@
 #include "EquipItemAction.h"
 #include "UseItemAction.h"
 #include "MultiAction.h"
+#include "WaitAction.h"
 #include "AIState.h"
 
 CAgroAction::CAgroAction(AActor* InitTarget) {
@@ -50,6 +51,10 @@ IAIActionExecutor* CAgroAction::HandleWeapon(AActor* RawOwner) {
         AAINavNode* HidingSpot = Manager->AIGetNavBestCoverNodeFor(Owner, this->Target, 30, 4000.0f);
         Manager->AIClaimNavNode(HidingSpot, Owner);
         if (HidingSpot == nullptr) return nullptr; // TODO: Action totally busted.
+
+        if ((Owner->GetActorLocation() - HidingSpot->GetActorLocation()).Size() < HidingSpot->ReachDistance * 1.25f) {
+            return new CWaitAction(FMath::RandRange(3.0f, 10.0f), false);
+        }
 
         return new CMoveToPointAction(HidingSpot, HidingSpot->ReachDistance);
     }
