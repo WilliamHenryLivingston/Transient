@@ -26,6 +26,8 @@ public:
 	int FactionA;
 	UPROPERTY(EditAnywhere)
 	int FactionB;
+	UPROPERTY(EditAnywhere)
+	bool IgnoreDamage;
 };
 
 UCLASS()
@@ -57,6 +59,6 @@ public:
 	void AIClaimNavNode(AAINavNode* Node, AActor* Claimer);
 	void AIUnclaimAllNavNodes(AActor* Claimer);
 	TArray<AAINavNode*> AIGetNavNearestNodes(AActor* From, int Count);
-	bool AIIsFactionEnemy(int MyFaction, int OtherFaction);
+	bool AIIsFactionEnemy(int MyFaction, int OtherFaction, bool GivenDamage);
 	bool AIShouldDetect(int FactionID, int Detection, AActor* Target);
 };

@@ -82,15 +82,16 @@ TArray<AAINavNode*> AAIManager::AIGetNavNearestNodes(AActor* From, int Count) {
 	return Result;
 }
 
-bool AAIManager::AIIsFactionEnemy(int MyFaction, int OtherFaction) {
+bool AAIManager::AIIsFactionEnemy(int MyFaction, int OtherFaction, bool GivenDamage) {
 	if (MyFaction == OtherFaction) return false;
 
 	for (int i = 0; i < this->FactionConfig.Num(); i++) {
 		FFactionAlliance Check = this->FactionConfig[i];
 
 		bool Allied = (
-			(Check.FactionA == MyFaction && Check.FactionB == OtherFaction) ||
-			(Check.FactionB == MyFaction && Check.FactionA == OtherFaction)
+			Check.FactionA == MyFaction &&
+			Check.FactionB == OtherFaction &&
+			(!GivenDamage || Check.IgnoreDamage)	
 		);
 		if (Allied) return false;
 	}
@@ -102,7 +103,7 @@ bool AAIManager::AIShouldDetect(int FactionID, int Detection, AActor* RawTarget)
 	AUnitPawn* Target = Cast<AUnitPawn>(RawTarget);
 
 	if (Target == nullptr) return false;
-	if (!this->AIIsFactionEnemy(FactionID, Target->FactionID)) return false;
+	if (!this->AIIsFactionEnemy(FactionID, Target->FactionID, false)) return false;
 	if (Target->UnitGetConcealmentScore() > Detection) return false;
 
 	return true;

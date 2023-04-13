@@ -75,8 +75,9 @@ public:
 	UPROPERTY(EditAnywhere, Category="Item Usability")
 	FAnimationConfig UseAnimation;
 
-protected:
 	IItemHolder* CurrentHolder;
+
+protected:
 	UPROPERTY(EditDefaultsOnly, Category="Item")
 	UStaticMeshComponent* VisibleComponent;
 	UPROPERTY(EditDefaultsOnly, Category="Item")

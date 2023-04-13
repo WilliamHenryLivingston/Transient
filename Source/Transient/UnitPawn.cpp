@@ -262,7 +262,6 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 	if (this->HasMoveTarget && !this->Immobilized && !this->ArmsActionMoveLock) {
 		float Speed = this->MoveSpeed;
 		if (LowPower) {
-			LegIK.StepDistanceCoef *= 0.25f;
 			Speed *= 0.25f;
 		}
 

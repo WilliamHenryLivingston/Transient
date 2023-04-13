@@ -19,6 +19,7 @@ CFindItemAction::CFindItemAction(AActor* Owner, TSubclassOf<AItemActor> TargetTy
     float BestDistance = MaxDistance;
     for (int i = 0; i < Options.Num(); i++) {
         AActor* Check = Options[i];
+        if (Cast<AItemActor>(Check)->CurrentHolder != nullptr) continue;
         
         float CheckDistance = (OwnerLocation - Check->GetActorLocation()).Size();
         if (CheckDistance < BestDistance) {

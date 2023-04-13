@@ -8,6 +8,7 @@
 #include "AINavNode.h"
 #include "AIGroup.h"
 #include "Actions/AIActionExecutor.h"
+#include "Actions/AIState.h"
 
 #include "AIUnit.generated.h"
 
@@ -40,7 +41,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	float DefaultWorldSearchRadius = 1000.0f;
 
-	TMap<FString, int> AIState;
+	TMap<AI_STATE_T, int> AIState;
 
 	USceneComponent* DetectionSourceComponent;
 
@@ -58,9 +59,6 @@ private:
 
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	bool DebugBehavior;
-
-	UPROPERTY(EditAnywhere, Category="AI Behavior")
-	AActor* PendingAgroTarget;
 
 	TArray<IAIActionExecutor*> ActionExecutorStack;
 
@@ -87,5 +85,6 @@ public:
 
 // Internals.
 private:
+	void AIPushAttack(AActor* Target, bool AlertGroup);
 	AActor* AICheckDetection();
 };

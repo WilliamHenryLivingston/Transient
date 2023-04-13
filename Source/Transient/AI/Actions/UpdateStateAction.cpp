@@ -2,11 +2,11 @@
 
 #include "../AIUnit.h"
 
-CUpdateStateAction::CUpdateStateAction(FString InitKey, int InitValue) {
+CUpdateStateAction::CUpdateStateAction(AI_STATE_T InitKey, int InitValue) {
     this->Key = InitKey;
     this->Value = InitValue;
 
-    this->DebugInfo = FString::Printf(TEXT("stateup %s=%d"), *this->Key, this->Value);
+    this->DebugInfo = FString::Printf(TEXT("stateup %d=%d"), this->Key, this->Value);
 }
 
 CUpdateStateAction::~CUpdateStateAction() {}

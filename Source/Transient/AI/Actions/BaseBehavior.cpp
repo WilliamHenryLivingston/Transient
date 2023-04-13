@@ -5,9 +5,7 @@
 #include "FindItemAction.h"
 #include "UseItemAction.h"
 #include "UpdateStateAction.h"
-
-#define STATE_E_HEAL TEXT("e_heal")
-#define STATE_K_HEAL TEXT("k_heal")
+#include "AIState.h"
 
 CBaseBehavior::CBaseBehavior(TArray<AAINavNode*>* InitPatrolSteps) {
     this->PatrolSteps = InitPatrolSteps;
@@ -22,7 +20,7 @@ FAIParentActionTickResult CBaseBehavior::AIParentActionTick(AActor* RawOwner, fl
     AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
 
     bool ShouldEnergyHeal = (
-        Owner->UnitGetEnergy() < 0.25f &&
+        Owner->UnitGetEnergy() < 0.5f &&
         Owner->EnergyHealItem != nullptr &&
         Owner->AIState.FindOrAdd(STATE_E_HEAL, 0) == 0
     );
@@ -37,7 +35,7 @@ FAIParentActionTickResult CBaseBehavior::AIParentActionTick(AActor* RawOwner, fl
         return FAIParentActionTickResult(false, new CMultiAction(Parts));
     }
     bool ShouldKineticHeal = (
-        Owner->UnitGetKineticHealth() < 0.25f &&
+        Owner->UnitGetKineticHealth() < 0.5f &&
         Owner->KineticHealItem != nullptr &&
         Owner->AIState.FindOrAdd(STATE_K_HEAL, 0) == 0
     );

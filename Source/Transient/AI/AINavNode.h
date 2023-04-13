@@ -38,6 +38,9 @@ public:
 	TSubclassOf<AItemActor> EquipItemType;
 
 	UPROPERTY(EditAnywhere, Category="Patrol")
+	AActor* SubjugateTarget;
+
+	UPROPERTY(EditAnywhere, Category="Patrol")
 	bool UseItem;
     UPROPERTY(EditAnywhere, Category="Patrol")
     AActor* UseItemTarget;

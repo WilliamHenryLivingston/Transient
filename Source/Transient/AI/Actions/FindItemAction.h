@@ -8,9 +8,11 @@
 #include "AIActionExecutor.h"
 
 class CFindItemAction : public IAIActionExecutor {
+public:
+    AItemActor* Target;
+
 private:
     TSubclassOf<AItemActor> TargetType;
-    AItemActor* Target;
 
     bool Started;
     bool TakeStarted;

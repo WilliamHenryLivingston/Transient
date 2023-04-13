@@ -8,6 +8,7 @@
 
 //#define DEBUG_DRAWS true
 
+#define BEHAVIOR_LOG(M) if (this->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT(M));
 #define BEHAVIOR_LOG_START(S) if (this->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, S->DebugInfo);
 #define BEHAVIOR_LOG_END(S) if (this->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, S->DebugInfo);
 
@@ -59,35 +60,37 @@ void AAIUnit::AIGroupMemberJoin(AAIGroup* Target) {
 }
 
 void AAIUnit::AIGroupMemberAlert(AActor* Target) {
-    if (this->PendingAgroTarget == nullptr && IsValid(Target)) {
-        this->PendingAgroTarget = Target;
+    this->AIPushAttack(Target, false);
+}
+
+void AAIUnit::AIPushAttack(AActor* Target, bool AlertGroup) {
+    if (this->FullyPassive || Target == nullptr || !IsValid(Target)) return;
+
+    if (AlertGroup && this->Group != nullptr) {
+        this->Group->AIGroupDistributeAlert(Target);
+    }
+
+    bool IsDuplicate = false;
+    for (int i = 0; i < this->ActionExecutorStack.Num(); i++) {
+        if (this->ActionExecutorStack[i]->AIActionIsAttackOn(Target)) {
+            IsDuplicate = true;
+            break;
+        }
+    }
+
+    if (!IsDuplicate) {
+        IAIActionExecutor* Attack = new CAttackAction(Target);
+        BEHAVIOR_LOG_START(Attack);
+        this->ActionExecutorStack.Push(Attack);
     }
 }
 
 void AAIUnit::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
-    AActor* NewAgroTarget = this->PendingAgroTarget;
-    this->PendingAgroTarget = nullptr;
-    if (NewAgroTarget == nullptr) {
-        NewAgroTarget = this->AICheckDetection();
-    }
-
-    if (!this->FullyPassive && NewAgroTarget != nullptr && IsValid(NewAgroTarget)) {
-        bool IsDuplicate = false;
-        for (int i = 0; i < this->ActionExecutorStack.Num(); i++) {
-            if (this->ActionExecutorStack[i]->AIActionIsAttackOn(NewAgroTarget)) {
-                IsDuplicate = true;
-                break;
-            }
-        }
-
-        if (!IsDuplicate) {
-            if (this->Group != nullptr) {
-                this->Group->AIGroupDistributeAlert(NewAgroTarget);
-            }
-            this->ActionExecutorStack.Push(new CAttackAction(NewAgroTarget));
-        }
+    AActor* DetectedTarget = this->AICheckDetection();
+    if (DetectedTarget != nullptr) {
+        this->AIPushAttack(DetectedTarget, true);
     }
 
     int StopBeyond = -1;
@@ -125,6 +128,7 @@ void AAIUnit::Tick(float DeltaTime) {
 
     if (StopBeyond >= 0) {
         while (this->ActionExecutorStack.Num() - 1 > StopBeyond) {
+            BEHAVIOR_LOG("rollback");
             BEHAVIOR_LOG_END(this->ActionExecutorStack[this->ActionExecutorStack.Num() - 1]);
 
             delete this->ActionExecutorStack[this->ActionExecutorStack.Num() - 1];
@@ -168,8 +172,11 @@ void AAIUnit::UnitReload() {
 void AAIUnit::DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) {
     if (Source != nullptr) {
         AUnitPawn* AsUnit = Cast<AUnitPawn>(Source);
-        if (AsUnit != nullptr && AsUnit->FactionID != this->FactionID) { // Can agro onto allied factions.
-            this->PendingAgroTarget = Source;
+
+        AAIManager* Manager = AAIManager::AIGetManagerInstance(this->GetWorld());
+
+        if (AsUnit != nullptr && Manager->AIIsFactionEnemy(this->FactionID, AsUnit->FactionID, true)) {
+            this->AIPushAttack(Source, true);
         }
     }
 

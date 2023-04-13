@@ -16,6 +16,7 @@ private:
     bool EquipStarted;
     bool WaitStarted;
     bool UseStarted;
+    bool SubjugateStarted;
 
 public:
     CPatrolStepAction(AAINavNode* Node);

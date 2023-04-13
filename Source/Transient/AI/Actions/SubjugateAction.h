@@ -6,16 +6,17 @@
 
 #include "../../Items/ItemActor.h"
 #include "AIActionExecutor.h"
-#include "AIState.h"
 
-class CUpdateStateAction : public IAIActionExecutor {
+class CSubjugateAction : public IAIActionExecutor {
 private:
-    AI_STATE_T Key;
-    int Value;
+    AActor* Target;
+
+    bool TravelStarted;
+    float HurtTimer;
 
 public:
-    CUpdateStateAction(AI_STATE_T Key, int Value);
-    virtual ~CUpdateStateAction() override;
+    CSubjugateAction(AActor* Target);
+    virtual ~CSubjugateAction() override;
 
 public:
 	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;

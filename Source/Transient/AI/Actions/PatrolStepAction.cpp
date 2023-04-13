@@ -6,6 +6,7 @@
 #include "MoveToPointAction.h"
 #include "FindItemAction.h"
 #include "WaitAction.h"
+#include "SubjugateAction.h"
 
 CPatrolStepAction::CPatrolStepAction(AAINavNode* InitNode) {
     this->Node = InitNode;
@@ -14,6 +15,7 @@ CPatrolStepAction::CPatrolStepAction(AAINavNode* InitNode) {
     this->EquipStarted = false;
     this->WaitStarted = false;
     this->UseStarted = false;
+    this->SubjugateStarted = false;
 
     this->DebugInfo = FString::Printf(TEXT("patrolstep %s"), *this->Node->GetName());
 }
@@ -54,6 +56,16 @@ FAIActionTickResult CPatrolStepAction::AIActionTick(AActor* RawOwner, float Delt
 
         if (this->Node->UseItem) {
             return FAIActionTickResult(false, new CUseItemAction(Owner->UnitGetActiveItem(), this->Node->UseItemTarget));
+        }
+    }
+
+    if (!this->SubjugateStarted) {
+        this->SubjugateStarted = true;
+
+        if (!IsValid(this->Node->SubjugateTarget)) this->Node->SubjugateTarget = nullptr;
+
+        if (this->Node->SubjugateTarget != nullptr) {
+            return FAIActionTickResult(false, new CSubjugateAction(this->Node->SubjugateTarget));
         }
     }
 

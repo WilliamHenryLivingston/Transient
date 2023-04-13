@@ -91,7 +91,7 @@ void AProximityTrapActor::OnActorEnter(
 
 	this->ActiveTargets.Push(AsPawn);
 
-	if (AsPawn != nullptr && Manager->AIIsFactionEnemy(this->FactionID, AsPawn->FactionID)) {
+	if (AsPawn != nullptr && Manager->AIIsFactionEnemy(this->FactionID, AsPawn->FactionID, false)) {
 		this->TrapDetonate();
 	}
 }

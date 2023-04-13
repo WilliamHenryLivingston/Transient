@@ -26,4 +26,6 @@ public:
 
 private:
     void HandleWeapon(AActor* Owner);
+    IAIActionExecutor* FleeOrArm(AActor* Owner);
+    AAINavNode* FindCover(AActor* Owner, AActor* From, int CheckNodes, float MaxDistance);
 };
