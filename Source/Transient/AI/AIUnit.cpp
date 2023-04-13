@@ -3,7 +3,7 @@
 #include "AIUnit.h"
 
 #include "AIManager.h"
-#include "Actions/AttackAction.h"
+#include "Actions/AgroAction.h"
 #include "Actions/BaseBehavior.h"
 
 //#define DEBUG_DRAWS true
@@ -29,7 +29,10 @@ void AAIUnit::BeginPlay() {
 		USceneComponent* Check = SceneComponents[i];
 
 		FString Name = Check->GetName();
-		if (Name.Equals("DetectionSource")) this->DetectionSourceComponent = Check;
+		if (Name.Equals("DetectionSource")) {
+            // TODO: DetectionSource shouldn't exist.
+            this->AimRootComponent = this->DetectionSourceComponent = Check;
+        }
 	}
 
     this->ActionExecutorStack = TArray<IAIActionExecutor*>();
@@ -63,6 +66,18 @@ void AAIUnit::AIGroupMemberAlert(AActor* Target) {
     this->AIPushAttack(Target, false);
 }
 
+AActor* AAIUnit::AIAgroTarget() {
+    AActor* Target = nullptr;
+
+    for (int i = 0; i < this->ActionExecutorStack.Num(); i++) {
+        AActor* Check = this->ActionExecutorStack[i]->AIActionAgroTarget();
+
+        if (Check != nullptr) Target = Check;
+    }
+
+    return Target;
+}
+
 void AAIUnit::AIPushAttack(AActor* Target, bool AlertGroup) {
     if (this->FullyPassive || Target == nullptr || !IsValid(Target)) return;
 
@@ -72,14 +87,14 @@ void AAIUnit::AIPushAttack(AActor* Target, bool AlertGroup) {
 
     bool IsDuplicate = false;
     for (int i = 0; i < this->ActionExecutorStack.Num(); i++) {
-        if (this->ActionExecutorStack[i]->AIActionIsAttackOn(Target)) {
+        if (this->ActionExecutorStack[i]->AIActionAgroTarget() == Target) {
             IsDuplicate = true;
             break;
         }
     }
 
     if (!IsDuplicate) {
-        IAIActionExecutor* Attack = new CAttackAction(Target);
+        IAIActionExecutor* Attack = new CAgroAction(Target);
         BEHAVIOR_LOG_START(Attack);
         this->ActionExecutorStack.Push(Attack);
     }
@@ -153,8 +168,11 @@ void AAIUnit::UnitReload() {
     this->OverrideArmsState = true;
 
     while (this->UnitGetSlotsContainingMagazines(CurrentWeapon->AmmoTypeID).Num() < 2) {
+        TSubclassOf<AMagazineItem> AutoSpawn = this->AutoSpawnMagazine;
+        if (AutoSpawn == nullptr) AutoSpawn = CurrentWeapon->AutoSpawnMagazine;
+
         AMagazineItem* Spawned = this->GetWorld()->SpawnActor<AMagazineItem>(
-            this->AutoSpawnMagazine,
+            AutoSpawn,
             this->GetActorLocation(),
             this->GetActorRotation(),
             FActorSpawnParameters()

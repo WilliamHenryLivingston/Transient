@@ -35,6 +35,8 @@ public:
 	float AIEngageDistance = 500.0f;
 	UPROPERTY(EditAnywhere, Category="AI Handling")
 	float AIFireDistance = 1000.0f;
+	UPROPERTY(EditAnywhere, Category="AI Handling")
+	TSubclassOf<AMagazineItem> AutoSpawnMagazine;
 
 	TArray<UUnitSlotComponent*> AttachmentSlots; // Only used to check if attachments present.
 

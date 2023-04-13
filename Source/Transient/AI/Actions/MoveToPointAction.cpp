@@ -41,7 +41,7 @@ FAIActionTickResult CMoveToPointAction::AIActionTick(AActor* RawOwner, float Del
     FVector TargetLocation = this->Steps[0];
 
     Owner->UnitMoveTowards(TargetLocation);
-    if (!Owner->UnitHasFaceTarget()) {
+    if (Owner->AIState.FindOrAdd(STATE_AGRO_CONTROL, 0) == 0) {
         Owner->UnitFaceTowards(TargetLocation);
     }
 

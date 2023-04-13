@@ -54,6 +54,37 @@ void AAIManager::AIUnclaimAllNavNodes(AActor* Claimer) {
 	}
 }
 
+AAINavNode* AAIManager::AIGetNavBestCoverNodeFor(AActor* For, AActor* From, int SearchCount, float MaxDistance) {
+	FVector ForLocation = For->GetActorLocation();
+    FVector ThreatLocation = From->GetActorLocation();
+
+    TArray<AAINavNode*> CheckSet = this->AIGetNavNearestNodes(For, SearchCount);
+
+    AAINavNode* FoundCover = nullptr;
+    float CoverScore = 0.0f;
+    for (int i = 0; i < CheckSet.Num(); i++) {
+        AAINavNode* Check = CheckSet[i];
+
+        if (!Check->CoverPosition) continue;
+        if (this->AIIsNavNodeClaimed(Check)) continue;
+
+        FVector CheckLocation = Check->GetActorLocation();
+        if (MaxDistance > 0.0f && (CheckLocation - ForLocation).Size() > MaxDistance) continue;
+
+        float RootDist = (CheckLocation - ThreatLocation).Size();
+        float FrontDist = (CheckLocation + (Check->GetActorForwardVector() * 100.0f) - ThreatLocation).Size();
+        if (FrontDist >= RootDist) continue;
+
+        float CheckScore = FrontDist - RootDist;
+        if (FoundCover == nullptr || CheckScore < CoverScore) {
+            FoundCover = Check;
+            CoverScore = CheckScore;
+        }
+    }
+
+    return FoundCover;
+}
+
 TArray<AAINavNode*> AAIManager::AIGetNavNearestNodes(AActor* From, int Count) {
 	// TODO: Rewrite, too lazy to to properly.
 

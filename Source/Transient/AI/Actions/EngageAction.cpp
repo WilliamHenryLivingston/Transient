@@ -22,6 +22,7 @@ FAIActionTickResult CEngageAction::AIActionTick(AActor* RawOwner, float DeltaTim
         if (this->PopOut && !Owner->UnitAreArmsOccupied()) {
             if (this->PopOutTimer > 0.0f) {
                 this->PopOutTimer -= DeltaTime;
+                Owner->UnitSetTriggerPulled(true);
             }
             else {
                 this->PopOutTimer = FMath::RandRange(0.5f, 2.0f);

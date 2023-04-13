@@ -40,8 +40,7 @@ protected:
 public:
 	IAIActionExecutor();
 	virtual ~IAIActionExecutor();
-	// TODO: Forward declare AAIActor?
-	virtual bool AIActionIsAttackOn(AActor* Target);
+	virtual AActor* AIActionAgroTarget();
 	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime);
 	virtual FAIParentActionTickResult AIParentActionTick(AActor* Owner, float DeltaTime);
 };

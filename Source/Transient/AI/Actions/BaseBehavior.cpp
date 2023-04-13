@@ -1,10 +1,12 @@
 #include "BaseBehavior.h"
 
 #include "../AIUnit.h"
+#include "../AIManager.h"
 #include "MultiAction.h"
 #include "FindItemAction.h"
 #include "UseItemAction.h"
 #include "UpdateStateAction.h"
+#include "MoveToPointAction.h"
 #include "AIState.h"
 
 CBaseBehavior::CBaseBehavior(TArray<AAINavNode*>* InitPatrolSteps) {
@@ -18,7 +20,10 @@ CBaseBehavior::~CBaseBehavior() {}
 
 FAIParentActionTickResult CBaseBehavior::AIParentActionTick(AActor* RawOwner, float DeltaTime) {
     AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
+    AAIManager* Manager = AAIManager::AIGetManagerInstance(Owner->GetWorld());
 
+    TSubclassOf<AItemActor> HealWithItem = nullptr;
+    AI_STATE_T HealStateKey;
     bool ShouldEnergyHeal = (
         Owner->UnitGetEnergy() < 0.5f &&
         Owner->EnergyHealItem != nullptr &&
@@ -27,12 +32,8 @@ FAIParentActionTickResult CBaseBehavior::AIParentActionTick(AActor* RawOwner, fl
     if (ShouldEnergyHeal) {
         Owner->AIState.Emplace(STATE_E_HEAL, 1);
 
-        TArray<IAIActionExecutor*> Parts;
-        Parts.Push(new CFindItemAction(RawOwner, Owner->EnergyHealItem, Owner->DefaultWorldSearchRadius, true));
-        Parts.Push(new CUseItemAction(nullptr, nullptr));
-        Parts.Push(new CUpdateStateAction(STATE_E_HEAL, 0));
-
-        return FAIParentActionTickResult(false, new CMultiAction(Parts));
+        HealWithItem = Owner->EnergyHealItem;
+        HealStateKey = STATE_E_HEAL;
     }
     bool ShouldKineticHeal = (
         Owner->UnitGetKineticHealth() < 0.5f &&
@@ -42,10 +43,22 @@ FAIParentActionTickResult CBaseBehavior::AIParentActionTick(AActor* RawOwner, fl
     if (ShouldKineticHeal) {
         Owner->AIState.Emplace(STATE_K_HEAL, 1);
 
+        HealWithItem = Owner->KineticHealItem;
+        HealStateKey = STATE_K_HEAL;
+    }
+
+    if (HealWithItem != nullptr) {
         TArray<IAIActionExecutor*> Parts;
-        Parts.Push(new CFindItemAction(RawOwner, Owner->KineticHealItem, Owner->DefaultWorldSearchRadius, true));
+        Parts.Push(new CFindItemAction(RawOwner, HealWithItem, Owner->DefaultWorldSearchRadius, true));
+
+        AActor* OwnerAgroTarget = Owner->AIAgroTarget();
+        if (OwnerAgroTarget != nullptr) {
+            AAINavNode* Cover = Manager->AIGetNavBestCoverNodeFor(Owner, OwnerAgroTarget, 10, 2000.0f);
+
+            Parts.Push(new CMoveToPointAction(Cover, Cover->ReachDistance));
+        }
         Parts.Push(new CUseItemAction(nullptr, nullptr));
-        Parts.Push(new CUpdateStateAction(STATE_K_HEAL, 0));
+        Parts.Push(new CUpdateStateAction(HealStateKey, 0));
 
         return FAIParentActionTickResult(false, new CMultiAction(Parts));
     }
@@ -53,11 +66,18 @@ FAIParentActionTickResult CBaseBehavior::AIParentActionTick(AActor* RawOwner, fl
     return FAIParentActionTickResult(false, nullptr);
 }
 
-FAIActionTickResult CBaseBehavior::AIActionTick(AActor* Owner, float DeltaTime) {
+FAIActionTickResult CBaseBehavior::AIActionTick(AActor* RawOwner, float DeltaTime) {
+    AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
+
     int StepCount = this->PatrolSteps->Num();
     if (StepCount == 0) return this->Unfinished;
 
-    this->CurrentPatrolStep = (this->CurrentPatrolStep + 1) % StepCount;
+    if (Owner->RandomizePatrol) {
+        this->CurrentPatrolStep = FMath::RandRange(0, this->PatrolSteps->Num() - 1);
+    }
+    else {
+        this->CurrentPatrolStep = (this->CurrentPatrolStep + 1) % StepCount;
+    }
 
     return FAIActionTickResult(false, new CPatrolStepAction((*this->PatrolSteps)[this->CurrentPatrolStep]));
 }

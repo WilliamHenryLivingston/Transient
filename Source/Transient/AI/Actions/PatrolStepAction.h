@@ -16,6 +16,7 @@ private:
     bool EquipStarted;
     bool WaitStarted;
     bool UseStarted;
+    bool InteractStarted;
     bool SubjugateStarted;
 
 public:

@@ -1,5 +1,6 @@
 #include "PatrolStepAction.h"
 
+#include "../../Environment/InteractiveActor.h"
 #include "../AIUnit.h"
 #include "UseItemAction.h"
 #include "EquipItemAction.h"
@@ -7,6 +8,7 @@
 #include "FindItemAction.h"
 #include "WaitAction.h"
 #include "SubjugateAction.h"
+#include "InteractAction.h"
 
 CPatrolStepAction::CPatrolStepAction(AAINavNode* InitNode) {
     this->Node = InitNode;
@@ -15,6 +17,7 @@ CPatrolStepAction::CPatrolStepAction(AAINavNode* InitNode) {
     this->EquipStarted = false;
     this->WaitStarted = false;
     this->UseStarted = false;
+    this->InteractStarted = false;
     this->SubjugateStarted = false;
 
     this->DebugInfo = FString::Printf(TEXT("patrolstep %s"), *this->Node->GetName());
@@ -48,6 +51,15 @@ FAIActionTickResult CPatrolStepAction::AIActionTick(AActor* RawOwner, float Delt
                     return FAIActionTickResult(false, new CEquipItemAction(TargetItem));
                 }
             }
+        }
+    }
+
+    if (!this->InteractStarted) {
+        this->InteractStarted = true;
+
+        AInteractiveActor* AsInteractive = Cast<AInteractiveActor>(this->Node->InteractTarget);
+        if (AsInteractive != nullptr) {
+            return FAIActionTickResult(false, new CInteractAction(AsInteractive));
         }
     }
 

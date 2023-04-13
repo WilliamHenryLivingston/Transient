@@ -67,6 +67,8 @@ FAIActionTickResult CFindItemAction::AIActionTick(AActor* RawOwner, float DeltaT
     if (!this->TakeStarted) {
         this->TakeStarted = true;
 
+        // Someone else got there first.
+        if (this->Target->CurrentHolder != nullptr) return this->Finished;
         Owner->UnitTakeItem(this->Target);
         return this->Unfinished;
     }

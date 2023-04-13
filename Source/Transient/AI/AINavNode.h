@@ -46,6 +46,9 @@ public:
     AActor* UseItemTarget;
 
 	UPROPERTY(EditAnywhere, Category="Patrol")
+	AActor* InteractTarget;
+
+	UPROPERTY(EditAnywhere, Category="Patrol")
 	float WaitTimeMin = 0.5f;
 	UPROPERTY(EditAnywhere, Category="Patrol")
 	float WaitTimeMax = 1.0f;

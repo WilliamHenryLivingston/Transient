@@ -25,6 +25,13 @@ void AAIGroup::BeginPlay() {
 
 void AAIGroup::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
+
+	for (int i = 0; i < this->Members.Num(); i++) {
+		if (!IsValid(Cast<AActor>(this->Members[i]))) {
+			this->Members.RemoveAt(i);
+			i--;
+		}
+	}
 }
 
 void AAIGroup::AIGroupDistributeAlert(AActor* Target) {

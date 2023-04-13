@@ -2,4 +2,4 @@
 
 #define STATE_E_HEAL 1
 #define STATE_K_HEAL 2
-#define STATE_THREATS 3
+#define STATE_AGRO_CONTROL 3

@@ -365,6 +365,7 @@ void AUnitPawn::ThenFinishInteract() {
 	this->CurrentInteractActor->InteractiveUse(this);
 	this->CurrentInteractActor->InteractTimer = -1.0f;
 	this->CurrentInteractActor = nullptr;
+	this->Immobilized = false;
 }
 
 void AUnitPawn::ThenFinishUse() {

@@ -31,8 +31,6 @@ public:
 	AAIGroup* Group;
 
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
-	bool AssaultIfAlone;
-	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	bool FullyPassive;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	TSubclassOf<AItemActor> EnergyHealItem;
@@ -40,6 +38,12 @@ public:
 	TSubclassOf<AItemActor> KineticHealItem;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	float DefaultWorldSearchRadius = 1000.0f;
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
+	float AlertTowerUseChance = 0.25f;
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
+	bool DebugBehavior;
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
+	bool RandomizePatrol;
 
 	TMap<AI_STATE_T, int> AIState;
 
@@ -56,9 +60,6 @@ private:
 	TArray<AAINavNode*> Patrol;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	int Detection;
-
-	UPROPERTY(EditAnywhere, Category="AI Behavior")
-	bool DebugBehavior;
 
 	TArray<IAIActionExecutor*> ActionExecutorStack;
 
@@ -84,6 +85,9 @@ public:
 	virtual void AIGroupMemberAlert(AActor* AgroTarget) override;
 
 // Internals.
+public:
+	AActor* AIAgroTarget();
+
 private:
 	void AIPushAttack(AActor* Target, bool AlertGroup);
 	AActor* AICheckDetection();

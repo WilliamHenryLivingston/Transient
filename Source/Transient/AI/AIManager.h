@@ -59,6 +59,7 @@ public:
 	void AIClaimNavNode(AAINavNode* Node, AActor* Claimer);
 	void AIUnclaimAllNavNodes(AActor* Claimer);
 	TArray<AAINavNode*> AIGetNavNearestNodes(AActor* From, int Count);
+	AAINavNode* AIGetNavBestCoverNodeFor(AActor* For, AActor* From, int Count, float MaxDistance);
 	bool AIIsFactionEnemy(int MyFaction, int OtherFaction, bool GivenDamage);
 	bool AIShouldDetect(int FactionID, int Detection, AActor* Target);
 };

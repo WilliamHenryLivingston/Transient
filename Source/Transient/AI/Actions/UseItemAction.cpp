@@ -2,6 +2,7 @@
 
 #include "Kismet/KismetMathLibrary.h"
 
+#include "../../Items/WeaponItem.h"
 #include "../AIUnit.h"
 #include "EquipItemAction.h"
 
@@ -44,7 +45,10 @@ FAIActionTickResult CUseItemAction::AIActionTick(AActor* RawOwner, float DeltaTi
             return this->Unfinished;
         }
 
-        Owner->UnitUseActiveItem(this->UseTarget);
+        AWeaponItem* AsWeapon = Cast<AWeaponItem>(this->Target);
+        if (AsWeapon != nullptr) Owner->UnitReload();
+        else Owner->UnitUseActiveItem(this->UseTarget);
+
         this->UseStarted = true;
         return this->Unfinished;
     }

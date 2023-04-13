@@ -9,7 +9,9 @@ CMultiAction::CMultiAction(TArray<IAIActionExecutor*> InitParts) {
     this->DebugInfo = FString::Printf(TEXT("multi %d"), this->Parts.Num());
 }
 
-CMultiAction::~CMultiAction() {}
+CMultiAction::~CMultiAction() {
+    // TODO: Memory leak; delete all unused parts.
+}
 
 FAIActionTickResult CMultiAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
     AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
