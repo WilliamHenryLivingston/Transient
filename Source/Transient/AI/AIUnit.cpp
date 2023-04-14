@@ -12,6 +12,10 @@
 #define BEHAVIOR_LOG_START(S) if (this->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, S->DebugInfo);
 #define BEHAVIOR_LOG_END(S) if (this->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, S->DebugInfo);
 
+void UDetectCallback::Callback() {
+    Cast<AAIUnit>(this->AI)->AIPushAttack(this->AgroTarget, true);
+}
+
 void AAIUnit::BeginPlay() {
     for (int i = 0; i < this->ChanceItems.Num(); i++) {
         FChanceItemEntry Entry = this->ChanceItems[i];
@@ -103,9 +107,16 @@ void AAIUnit::AIPushAttack(AActor* Target, bool AlertGroup) {
 void AAIUnit::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
-    AActor* DetectedTarget = this->AICheckDetection();
-    if (DetectedTarget != nullptr) {
-        this->AIPushAttack(DetectedTarget, true);
+    if (this->DelegateAnimCallback == nullptr && this->AIAgroTarget() == nullptr) {
+        AActor* DetectedTarget = this->AICheckDetection();
+        if (DetectedTarget != nullptr) {
+            UDetectCallback* Callback = new UDetectCallback();
+            Callback->AI = this;
+            Callback->AgroTarget = DetectedTarget;
+
+            this->DelegateAnimCallback = Callback;
+            this->UnitPlayAnimationOnce(EUnitAnimArmsModifier::Detected, this->DetectionAnim, &AAIUnit::ThenDelegateCallback);
+        }
     }
 
     int StopBeyond = -1;

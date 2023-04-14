@@ -79,5 +79,7 @@ FAIActionTickResult CBaseBehavior::AIActionTick(AActor* RawOwner, float DeltaTim
         this->CurrentPatrolStep = (this->CurrentPatrolStep + 1) % StepCount;
     }
 
-    return FAIActionTickResult(false, new CPatrolStepAction((*this->PatrolSteps)[this->CurrentPatrolStep]));
+    AAINavNode* Step = (*this->PatrolSteps)[this->CurrentPatrolStep];
+    if (Step == nullptr) return this->Unfinished;
+    return FAIActionTickResult(false, new CPatrolStepAction(Step));
 }

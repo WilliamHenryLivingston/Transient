@@ -2,14 +2,28 @@
 
 #include "GrassVolumeActor.h"
 
+#include "Camera/CameraComponent.h"
+
 AGrassVolumeActor::AGrassVolumeActor() {
 	PrimaryActorTick.bCanEverTick = true;
 
 	this->RootComponent = this->BoundsComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("VolumeBounds"));
 }
 
-void AGrassVolumeActor::BeginPlay() {
-	Super::BeginPlay();
+void AGrassVolumeActor::Tick(float DeltaTime) {
+	Super::Tick(DeltaTime);
+
+	bool Culled = false;
+	AActor* ActiveCameraActor = this->GetWorld()->GetFirstPlayerController()->GetViewTarget();
+	if (ActiveCameraActor != nullptr) {
+		UCameraComponent* ActiveCamera = ActiveCameraActor->FindComponentByClass<UCameraComponent>();
+		FVector CullAnchor = ActiveCamera != nullptr ? ActiveCamera->GetComponentLocation() : ActiveCameraActor->GetActorLocation();
+
+		float Distance = (this->GetActorLocation() - CullAnchor).Size();
+		if (Distance > this->CullDistance) Culled = true;
+	}
+
+	this->SetActorHiddenInGame(Culled);
 }
 
 void AGrassVolumeActor::GenerateBlades() {
@@ -60,7 +74,9 @@ void AGrassVolumeActor::GenerateBlades() {
 		Blade->SetCastShadow(false);
 
 		float Angle = FMath::RandRange(0.0f, 360.0f);
-		float Radius = FMath::RandRange(0.0f, 1.0f) * HalfAreaSize;
+		float RadiusCentral = FMath::RandRange(0.0f, 1.0f) * HalfAreaSize;
+		float RadiusUniform = FMath::Sqrt(FMath::RandRange(0.0f, 1.0f)) * HalfAreaSize;
+		float Radius = (RadiusCentral * this->Centralness) + (RadiusUniform * (1.0f - this->Centralness));
 		FVector BladeLocation = FRotator(0.0f, Angle, 0.0f).RotateVector(FVector(Radius, 0.0f, 0.0f));
 		Blade->SetRelativeLocation(BladeLocation * 2.0f); // ???.
 		Blade->SetRelativeRotation(FRotator(0.0f, FMath::RandRange(0.0f, 360.0f), 0.0f));

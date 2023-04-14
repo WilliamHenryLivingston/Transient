@@ -58,7 +58,8 @@ enum class EUnitAnimArmsModifier : uint8 {
     Use,
     Interact,
     CheckStatus,
-    Inventory
+    Inventory,
+    Detected
 };
 
 UENUM(BlueprintType)

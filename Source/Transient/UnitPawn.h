@@ -30,6 +30,12 @@ public:
 	int ScoreCrouched;
 };
 
+// Because we can't use CRTP...
+class UUnitDelegateAnimationCallback {
+public:
+	virtual void Callback();
+};
+
 UCLASS()
 class TRANSIENT_API AUnitPawn : public APawn, public IItemHolder, public IDamagable {
 	GENERATED_BODY()
@@ -123,7 +129,7 @@ private:
 	float ArmsAnimationTimer;
 	float ArmsAnimationCooldownTimer;
 	void (AUnitPawn::*ArmsAnimationThen)();
-	
+
 	bool Crouching;
 	bool Exerted; // Sprint, time dialation, etc.
 
@@ -150,6 +156,8 @@ protected:
 
 	bool ForceArmsEmptyAnimation; // TODO: Better solution (inventory view).
 	bool CheckingStatus; // TODO
+
+	UUnitDelegateAnimationCallback* DelegateAnimCallback;
 
 	float AnimationScale;
 	bool IgnoreTorsoYaw;
@@ -197,6 +205,10 @@ public:
 private:
 	void UnitRawSetActiveItem(AItemActor* Item);
 
+protected:
+	void ThenDelegateCallback();
+
+private:
 	void ThenFinishUse();
 	void ThenPostReload();
 	// Reload animation phases:

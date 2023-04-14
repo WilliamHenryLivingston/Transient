@@ -23,6 +23,15 @@ public:
 	float Chance;
 };
 
+class UDetectCallback : public UUnitDelegateAnimationCallback {
+public:
+	AActor* AI;
+	AActor* AgroTarget;
+
+public:
+	virtual void Callback() override;
+};
+
 UCLASS()
 class TRANSIENT_API AAIUnit : public AUnitPawn, public IAIGroupMember {
 	GENERATED_BODY()
@@ -44,6 +53,8 @@ public:
 	bool DebugBehavior;
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	bool RandomizePatrol;
+	UPROPERTY(EditAnywhere, Category="AI Behavior")
+	FAnimationConfig DetectionAnim;
 
 	TMap<AI_STATE_T, int> AIState;
 
@@ -64,6 +75,8 @@ private:
 	TArray<IAIActionExecutor*> ActionExecutorStack;
 
 	int PatrolStep;
+
+	AActor* CurrentDetectionAnimTarget;
 
 // AActor.
 public:
@@ -87,8 +100,8 @@ public:
 // Internals.
 public:
 	AActor* AIAgroTarget();
+	void AIPushAttack(AActor* Target, bool AlertGroup);
 
 private:
-	void AIPushAttack(AActor* Target, bool AlertGroup);
 	AActor* AICheckDetection();
 };

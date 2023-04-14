@@ -10,6 +10,8 @@
 #include "PlayerUnit.h"
 #include "Items/ProjectileWeapon.h"
 
+void UUnitDelegateAnimationCallback::Callback() {}
+
 AUnitPawn::AUnitPawn() {
 	this->PrimaryActorTick.bCanEverTick = true;
 }
@@ -365,6 +367,12 @@ float AUnitPawn::ItemHolderGetSpreadModifier() {
 }
 
 // Callbacks.
+void AUnitPawn::ThenDelegateCallback() {
+	this->DelegateAnimCallback->Callback();
+	delete this->DelegateAnimCallback;
+	this->DelegateAnimCallback = nullptr;
+}
+
 void AUnitPawn::ThenFinishInteract() {
 	this->CurrentInteractActor->InteractiveUse(this);
 	this->CurrentInteractActor->InteractTimer = -1.0f;

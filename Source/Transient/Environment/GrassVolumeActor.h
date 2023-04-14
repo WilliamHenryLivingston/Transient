@@ -29,6 +29,10 @@ private:
 	float HeightScaleMin = 1.0f;
 	UPROPERTY(EditAnywhere, Category="Grass Volume")
 	float HeightScaleMax = 1.0f;
+	UPROPERTY(EditAnywhere, Category="Grass Volume")
+	float Centralness = 0.0f;
+	UPROPERTY(EditAnywhere, Category="Grass Volume")
+	float CullDistance = 3000.0f;
 
 	TArray<UGrassVolumePartition*> Partitions;
 
@@ -38,9 +42,7 @@ public:
 
 public:
 	AGrassVolumeActor();
-
-protected:
-	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 
 private:
 	UFUNCTION(CallInEditor, Category="Grass Volume")
