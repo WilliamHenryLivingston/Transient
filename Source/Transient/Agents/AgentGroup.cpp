@@ -2,41 +2,22 @@
 
 #include "AgentGroup.h"
 
-AAIGroup::AAIGroup() {
-	PrimaryActorTick.bCanEverTick = true;
+#include "AgentActor.h"
+
+TArray<AAlertTowerAgent*> AAgentGroup::AgentGroupAlerters() {
+	return this->Alerters;
 }
 
-void AAIGroup::BeginPlay() {
-	Super::BeginPlay();
-
-	for (int i = 0; i < this->InitialMembers.Num(); i++) {
-		IAIGroupMember* AsMember = Cast<IAIGroupMember>(this->InitialMembers[i]);
-		if (AsMember == nullptr) continue;
-
-		this->Members.Push(AsMember);
-		AsMember->AIGroupMemberJoin(this);
-	}
-
-	this->InitialMembers = TArray<AActor*>();
-}
-
-void AAIGroup::Tick(float DeltaTime) {
-	Super::Tick(DeltaTime);
-
+void AAgentGroup::AgentGroupDistributeTarget(AAgentActor* Target) {
 	for (int i = 0; i < this->Members.Num(); i++) {
-		if (!IsValid(Cast<AActor>(this->Members[i]))) {
-			this->Members.RemoveAt(i);
-			i--;
-		}
-	}
-}
-
-void AAIGroup::AIGroupDistributeAlert(AActor* Target) {
-	for (int i = 0; i < this->Members.Num(); i++) {
-		this->Members[i]->AIGroupMemberAlert(Target);
+		this->Members[i]->AgentAddTarget(Target);
 	}
 
 	for (int i = 0; i < this->AlertChain.Num(); i++) {
-		this->AlertChain[i]->AIGroupDistributeAlert(Target);
+		this->AlertChain[i]->AgentGroupDistributeTarget(Target);
 	}
+}
+
+void AAgentGroup::AgentGroupRemoveMember(AAgentActor* Member) {
+	this->Members.Remove(Member);
 }

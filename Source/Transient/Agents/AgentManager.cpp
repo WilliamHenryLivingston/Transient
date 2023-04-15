@@ -1,21 +1,23 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
-#include "AIManager.h"
+#include "AgentManager.h"
 
 #include "Kismet/GameplayStatics.h"
 
-#include "../UnitPawn.h"
+#include "Units/UnitAgent.h"
 
-AAIManager* AAIManager::AIGetManagerInstance(UWorld* WorldCtx) {
-	return Cast<AAIManager>(UGameplayStatics::GetActorOfClass(WorldCtx, AAIManager::StaticClass()));
+AAgentManager* AAgentManager::AgentsGetManager(UWorld* WorldCtx) {
+	return Cast<AAIManager>(UGameplayStatics::GetActorOfClass(WorldCtx, AAgentManager::StaticClass()));
 }
 
-AAIManager::AAIManager() {
-	PrimaryActorTick.bCanEverTick = true;
+AAgentManager::AAgentManager() {
+	this->SetReplicates(true);
 }
 
-void AAIManager::BeginPlay() {
+void AAgentManager::BeginPlay() {
 	Super::BeginPlay();
+
+	if (!this->HasAuthority()) return;
 
 	TArray<AActor*> FoundNodes;
 	UGameplayStatics::GetAllActorsOfClass(this->GetWorld(), AAINavNode::StaticClass(), FoundNodes);
@@ -26,11 +28,32 @@ void AAIManager::BeginPlay() {
 	}
 }
 
-void AAIManager::Tick(float DeltaTime) {
-	Super::Tick(DeltaTime);
+void AAgentManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+    DOREPLIFETIME(AAgentManager, this->FactionConfig);
 }
 
-bool AAIManager::AIIsNavNodeClaimed(AAINavNode* Node) {
+bool AAgentManager::AgentsFactionsAreEnemy(AAgentActor* A, AAgentActor* B, bool GivenDamage) {
+	int AFaction = A->AgentFactionID();
+	int BFaction = B->AgentFactionID();
+	if (AFaction == BFaction) return false;
+
+	for (int i = 0; i < this->FactionConfig.Num(); i++) {
+		FFactionAlliance Check = this->FactionConfig[i];
+
+		bool Allied = (
+			Check.FactionA == AFaction &&
+			Check.FactionB == BFaction &&
+			(!GivenDamage || Check.IgnoreDamage)	
+		);
+		if (Allied) return false;
+	}
+
+	return true;
+}
+
+bool AAgentManager::UnitAIIsNavNodeClaimed(AAINavNode* Node) const {
 	for (int i = 0; i < this->Claims.Num(); i++) {
 		if (this->Claims[i].Node == Node) return true;
 	}
@@ -38,7 +61,7 @@ bool AAIManager::AIIsNavNodeClaimed(AAINavNode* Node) {
 	return false;
 }
 
-void AAIManager::AIClaimNavNode(AAINavNode* Node, AActor* Claimer) {
+void AAgentManager::UnitAIClaimNavNode(AAINavNode* Node, AAIUnit* Claimer) {
 	FNavNodeClaim Claim;
 	Claim.Claimer = Claimer;
 	Claim.Node = Node;
@@ -46,7 +69,7 @@ void AAIManager::AIClaimNavNode(AAINavNode* Node, AActor* Claimer) {
 	this->Claims.Push(Claim);
 }
 
-void AAIManager::AIUnclaimAllNavNodes(AActor* Claimer) {
+void AAgentManager::UnitAIUnclaimAllNavNodesFor(AAIUnit* Claimer) {
 	for (int i = 0; i < this->Claims.Num(); i++) {
 		while (i < this->Claims.Num() && this->Claims[i].Claimer == Claimer) {
 			this->Claims.RemoveAt(i);
@@ -54,11 +77,12 @@ void AAIManager::AIUnclaimAllNavNodes(AActor* Claimer) {
 	}
 }
 
-AAINavNode* AAIManager::AIGetNavBestCoverNodeFor(AActor* For, AActor* From, int SearchCount, float MaxDistance) {
+AAINavNode* AAgentManager::UnitAIGetBestCoverNavNodeFor(AAIUnit* For, AActor* From, int SearchCount, float MaxDistance) {
+	// TODO: Rewrite from spatial partition (octree?).
 	FVector ForLocation = For->GetActorLocation();
     FVector ThreatLocation = From->GetActorLocation();
 
-    TArray<AAINavNode*> CheckSet = this->AIGetNavNearestNodes(For, SearchCount);
+    TArray<AAINavNode*> CheckSet = this->UnitAIGetNearestNavNodesFor(For, SearchCount);
 
     AAINavNode* FoundCover = nullptr;
     float CoverScore = 0.0f;
@@ -66,7 +90,7 @@ AAINavNode* AAIManager::AIGetNavBestCoverNodeFor(AActor* For, AActor* From, int 
         AAINavNode* Check = CheckSet[i];
 
         if (!Check->CoverPosition) continue;
-        if (this->AIIsNavNodeClaimed(Check)) continue;
+        if (this->AgentAIIsNavNodeClaimed(Check)) continue;
 
         FVector CheckLocation = Check->GetActorLocation();
         if (MaxDistance > 0.0f && (CheckLocation - ForLocation).Size() > MaxDistance) continue;
@@ -85,10 +109,9 @@ AAINavNode* AAIManager::AIGetNavBestCoverNodeFor(AActor* For, AActor* From, int 
     return FoundCover;
 }
 
-TArray<AAINavNode*> AAIManager::AIGetNavNearestNodes(AActor* From, int Count) {
+TArray<AAINavNode*> AAgentManager::UnitAIGetNearestNavNodesFor(AAIUnit* For, int Count) {
 	// TODO: Rewrite, too lazy to to properly.
-
-	FVector FromLocation = From->GetActorLocation();
+	FVector ForLocation = For->GetActorLocation();
 
 	TArray<AAINavNode*> Result;
 	while (Result.Num() < Count) {
@@ -99,7 +122,7 @@ TArray<AAINavNode*> AAIManager::AIGetNavNearestNodes(AActor* From, int Count) {
 			AAINavNode* Check = this->Nodes[i];
 			if (Result.Contains(Check)) continue;
 
-			float CheckDistance = (Check->GetActorLocation() - FromLocation).Size();
+			float CheckDistance = (Check->GetActorLocation() - ForLocation).Size();
 			if (Best == nullptr || CheckDistance < BestDistance) {
 				Best = Check;
 				BestDistance = CheckDistance;
@@ -111,31 +134,4 @@ TArray<AAINavNode*> AAIManager::AIGetNavNearestNodes(AActor* From, int Count) {
 	}
 
 	return Result;
-}
-
-bool AAIManager::AIIsFactionEnemy(int MyFaction, int OtherFaction, bool GivenDamage) {
-	if (MyFaction == OtherFaction) return false;
-
-	for (int i = 0; i < this->FactionConfig.Num(); i++) {
-		FFactionAlliance Check = this->FactionConfig[i];
-
-		bool Allied = (
-			Check.FactionA == MyFaction &&
-			Check.FactionB == OtherFaction &&
-			(!GivenDamage || Check.IgnoreDamage)	
-		);
-		if (Allied) return false;
-	}
-
-	return true;
-}
-
-bool AAIManager::AIShouldDetect(int FactionID, int Detection, AActor* RawTarget) {
-	AUnitPawn* Target = Cast<AUnitPawn>(RawTarget);
-
-	if (Target == nullptr) return false;
-	if (!this->AIIsFactionEnemy(FactionID, Target->FactionID, false)) return false;
-	if (Target->UnitGetConcealmentScore() > Detection) return false;
-
-	return true;
 }

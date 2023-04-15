@@ -104,3 +104,7 @@ map testing:
 * mines in more dangerous spots
 * high loot enemies could be tougher (new armor and stuff)
 * more workers throughout map doing stuff -> more immersive
+
+
+
+REMOVING INVENTORY SLOT COLLIDERS; items have their own look collider.
