@@ -9,21 +9,8 @@
 
 #include "AIGroup.generated.h"
 
-UINTERFACE()
-class UAIGroupMember : public UInterface {
-	GENERATED_BODY()
-};
-
-class IAIGroupMember {
-	GENERATED_BODY()
-
-public:
-	virtual void AIGroupMemberJoin(AAIGroup* Group);
-	virtual void AIGroupMemberAlert(AActor* AgroTarget);
-};
-
 UCLASS()
-class TRANSIENT_API AAIGroup : public ADebugViewActor {
+class TRANSIENT_API AAgentGroup : public ADebugViewActor {
 	GENERATED_BODY()
 
 public:

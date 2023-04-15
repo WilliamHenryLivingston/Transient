@@ -1,9 +1,6 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
-#include "AIGroup.h"
-
-void IAIGroupMember::AIGroupMemberJoin(AAIGroup* Group) { return; }
-void IAIGroupMember::AIGroupMemberAlert(AActor* AgroTarget) { return; }
+#include "AgentGroup.h"
 
 AAIGroup::AAIGroup() {
 	PrimaryActorTick.bCanEverTick = true;

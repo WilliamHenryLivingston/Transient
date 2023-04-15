@@ -2,7 +2,7 @@
 
 #include "AgentActor.h"
 
-#include "../Debug.h"
+#include "Transient/Debug.h"
 
 int AAgentActor::AgentFactionID() {
     return this->FactionID;
@@ -28,5 +28,5 @@ void AAgentActor::AgentRealignFactions(int NewFactionID) {
 }
 
 void AAgentActor::AgentTakeAlert(AAgentActor* Target) {
-
+    ERR_LOG(this, "unhandled AgentTakeAlert()");
 }
