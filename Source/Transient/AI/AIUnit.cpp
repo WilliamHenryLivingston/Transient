@@ -199,7 +199,10 @@ void AAIUnit::UnitReload() {
 }
 
 void AAIUnit::DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) {
-    if (Source != nullptr) {
+    Profile.Energy *= 3.0f; // TODO: Better number.
+    Super::DamagableTakeDamage(Profile, Cause, Source);
+
+    if (Source != nullptr && this->KineticHealth > 0.0f) {
         AUnitPawn* AsUnit = Cast<AUnitPawn>(Source);
 
         AAIManager* Manager = AAIManager::AIGetManagerInstance(this->GetWorld());
@@ -208,9 +211,6 @@ void AAIUnit::DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor*
             this->AIPushAttack(Source, true);
         }
     }
-
-    Profile.Energy *= 3.0f; // TODO: Better number.
-    Super::DamagableTakeDamage(Profile, Cause, Source);
 }
 
 AActor* AAIUnit::AICheckDetection() {
