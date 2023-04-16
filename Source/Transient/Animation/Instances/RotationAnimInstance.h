@@ -8,7 +8,7 @@
 #include "RotationAnimInstance.generated.h"
 
 UCLASS()
-class TRANSIENT_API URotationAnimInstance : public UAnimInstance {
+class URotationAnimInstance : public UAnimInstance {
 	GENERATED_BODY()
 	
 public:

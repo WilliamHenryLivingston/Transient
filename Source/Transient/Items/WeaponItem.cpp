@@ -2,99 +2,73 @@
 
 #include "WeaponItem.h"
 
-#include "MagazineItem.h"
-
 #include "Components/BoxComponent.h"
 
-AWeaponItem::AWeaponItem() {
-	this->PrimaryActorTick.bCanEverTick = true;
-
-	this->InventoryType = EItemInventoryType::Weapon;
-	this->Equippable = true;
-}
+#include "MagazineItem.h"
 
 void AWeaponItem::BeginPlay() {
 	Super::BeginPlay();
-	
+
 	TArray<USceneComponent*> SceneComponents;
 	this->GetComponents(SceneComponents, true);
 	for (int i = 0; i < SceneComponents.Num(); i++) {
 		USceneComponent* Check = SceneComponents[i];
 
 		FString Name = Check->GetName();
-		if (Name.Equals("MuzzlePosition")) this->MuzzlePosition = Check;
-		else if (Name.Equals("ActiveMagazineHost")) this->ActiveMagazineHost = Check;
+		if (Name.Equals("MuzzleLocation")) this->MuzzleLocation = Check;
 	}
 
-	this->GetComponents(this->AttachmentSlots, true);
-}
+	TArray<UReplicatedSoundComponent*> SoundComponents;
+	this->GetComponents(SoundComponents, true);
+	for (int i = 0; i < SoundComponents.Num(); i++) {
+		UReplicatedSoundComponent* Check = SoundComponents[i];
 
-void AWeaponItem::Tick(float DeltaTime) {
-	Super::Tick(DeltaTime);
-}
-
-bool AWeaponItem::WeaponGetTriggerPulled() {
-	return this->TriggerPulled;
-}
-
-void AWeaponItem::WeaponSetTriggerPulled(bool NewTriggerPulled) {
-	this->TriggerPulled = NewTriggerPulled;
-}
-
-FVector AWeaponItem::WeaponGetMuzzlePosition() {
-	return this->MuzzlePosition->GetComponentLocation();
-}
-
-FRotator AWeaponItem::WeaponGetMuzzleRotation() {
-	return this->MuzzlePosition->GetComponentRotation();
-}
-
-AMagazineItem* AWeaponItem::WeaponGetMagazine() {
-	return this->ActiveMagazine;
-}
-
-void AWeaponItem::WeaponSwapMagazines(AMagazineItem* NewMagazine) {
-	this->WeaponDisposeCurrentMagazine();
-
-	this->ActiveMagazine = NewMagazine;
-	if (this->ActiveMagazine == nullptr) return;
-
-	this->CurrentHolder->ItemHolderPlaySound(this->ReloadSound);
-
-	this->ActiveMagazine->AttachToComponent(
-		this->ActiveMagazineHost,
-		FAttachmentTransformRules(
-			EAttachmentRule::SnapToTarget,
-			EAttachmentRule::SnapToTarget,
-			EAttachmentRule::KeepWorld,
-			true
-		),
-		FName("None")
-	);
-}
-
-bool AWeaponItem::WeaponHasItemEquipped(AItemActor* Item) {
-	for (int i = 0; i < this->AttachmentSlots.Num(); i++) {
-		AItemActor* Check = this->AttachmentSlots[i]->SlotGetContent();
-		if (Check == Item) return true;
+		FString Name = Check->GetName();
+		if (Name.Equals("ReloadSound")) this->ReloadSound = Check;
+		else if (Name.Equals("EmptySound")) this->EmptySound = Check;
 	}
 
-	return false;
+	this->Inventory = this->FindComponentByClass<UInventoryComponent>();
+	this->MagazineSlot = this->Inventory->InventoryFindSlotByName(TEXT("MagazineSlot"));
 }
 
-void AWeaponItem::WeaponDisposeCurrentMagazine() {
-	if (this->ActiveMagazine == nullptr) return;
+void AWeaponItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	if (this->ActiveMagazine->Ammo > 0) {
-		this->ActiveMagazine->DetachFromActor(FDetachmentTransformRules(EDetachmentRule::KeepWorld, false));
-		this->ActiveMagazine->ItemDrop(Cast<AActor>(this->CurrentHolder));
-	}
-	else {
-		this->ActiveMagazine->Destroy();
-	}
-	this->ActiveMagazine = nullptr;
+    DOREPLIFETIME(AWeaponItem, this->TriggerPulled);
+}
+
+bool AWeaponItem::WeaponTriggerPulled() { return this->TriggerPulled; }
+
+void AWeaponItem::WeaponTriggerPulledChanged() { }
+
+AMagazineItem* AWeaponItem::WeaponMagazine() {
+	return this->MagazineSlot->SlotContent();
+}
+
+FVector AWeaponItem::WeaponMuzzleLocation() {
+	return this->MuzzleLocation->GetComponentLocation();
 }
 
 bool AWeaponItem::WeaponEmpty() {
-	return this->ActiveMagazine == nullptr || this->ActiveMagazine->Ammo == 0;
+	AMagazineItem* Magazine = this->WeaponMagazine();
+	return Magazine == nullptr || Magazine->MagazineAmmo() == 0;
+}
+
+void AWeaponItem::WeaponSetTriggerPulled(bool NewTriggerPulled) {
+	if (NewTriggerPulled && this->WeaponEmpty()) {
+		this->EmptySound->PlayableStart();
+	}
+
+	this->TriggerPulled = NewTriggerPulled;
+}
+
+AMagazineItem* AWeaponItem::WeaponSwapMagazines(AMagazineItem* NewMagazine) {
+	AMagazineItem* PrevMagazine = this->MagazineSlot->SlotContent();
+
+	this->ReloadSound->PlayableStart();
+
+	this->MagazineSlot->SlotSetContent(NewMagazine);
+
+	return PrevMagazine;
 }

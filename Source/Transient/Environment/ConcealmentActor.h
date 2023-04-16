@@ -9,7 +9,7 @@
 #include "ConcealmentActor.generated.h"
 
 UCLASS()
-class TRANSIENT_API AConcealmentActor : public AActor {
+class AConcealmentActor : public AActor {
 	GENERATED_BODY()
 
 public:

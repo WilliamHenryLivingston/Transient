@@ -1,26 +1,41 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
+// An item which can be broken by damage when in the world.
+
 #pragma once
 
 #include "CoreMinimal.h"
 
-#include "../Damagable.h"
+#include "Transient/Combat/Damagable.h"
+
 #include "ItemActor.h"
+#include "LootPool.h"
 
 #include "BreakableItem.generated.h"
 
 UCLASS()
-class TRANSIENT_API ABreakableItem : public AItemActor, public IDamagable{
+class ABreakableItem : public AItemActor, public IDamagable {
 	GENERATED_BODY()
 
-public:
+private:
 	UPROPERTY(EditAnywhere, Category="Breakable Item")
 	float KineticHealth = 400.0f;
 	UPROPERTY(EditAnywhere, Category="Breakable Item")
 	float BreakImpulseStrength = 50.0f;
 	UPROPERTY(EditAnywhere, Category="Breakable Item")
-	TArray<TSubclassOf<AActor>> SpawnOnBreak;
+	TSubclassOf<ULootPool> ContentLootPool;
+
+	UPROPERTY(ReplicatedUsing=BreakableBrokenChanged)
+	bool Broken;
 
 public:
-	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+protected:
+	// Isomorphic.
+	virtual void BreakableBrokenChanged();
+
+public:
+	// Game logic.
+	virtual void DamagableTakeDamage_Implementation(FDamageProfile Profile, AActor* Cause, AActor* Source) override;
 };

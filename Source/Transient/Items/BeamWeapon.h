@@ -5,16 +5,18 @@
 #include "CoreMinimal.h"
 #include "NiagaraComponent.h"
 
-#include "../Damagable.h"
+#include "Transient/Combat/Damagable.h"
+#include "Transient/Rep/ReplicatedEffectActor.h"
+
 #include "WeaponItem.h"
 
 #include "BeamWeapon.generated.h"
 
 UCLASS()
-class TRANSIENT_API ABeamWeapon : public AWeaponItem {
+class ABeamWeapon : public AWeaponItem {
 	GENERATED_BODY()
 
-public:
+private:
 	UPROPERTY(EditAnywhere, Category="Beam Weapon")
 	float MaxDistance;
 	UPROPERTY(EditAnywhere, Category="Beam Weapon")
@@ -22,13 +24,14 @@ public:
 	UPROPERTY(EditAnywhere, Category="Beam Weapon")
 	FDamageProfile DamageProfile;
 	UPROPERTY(EditAnywhere, Category="Beam Weapon")
-	TSubclassOf<AActor> HitEffect;
-	
-	UNiagaraComponent* BeamFX;
+	TSubclassOf<AReplicatedEffectActor> HitEffect;
 
-protected:
-	virtual void BeginPlay() override;
+	// Game logic.
+	UPROPERTY(Replicated)
+	FVector BeamEndLocation; // TODO: Might be excessive traffic.
 
 public:
+	ABeamWeapon();
 	virtual void Tick(float DeltaTime) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

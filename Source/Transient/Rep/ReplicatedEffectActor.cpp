@@ -1,8 +1,8 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
-#include "EffectActor.h"
+#include "ReplicatedEffectActor.h"
 
-AEffectActor::AEffectActor() {
+AReplicatedEffectActor::AReplicatedEffectActor() {
     PrimaryActorTick.bCanEverTick = true;
     this->SetReplicates(true);
 
@@ -13,14 +13,16 @@ AEffectActor::AEffectActor() {
     this->NiagaraComponent->SetupAttachment(this->RootComponent);
 }
 
-void AEffectActor::BeginPlay() {
+void AReplicatedEffectActor::BeginPlay() {
     this->NiagaraComponent->SetAsset(this->EffectNiagara, true);
 
     this->SoundComponent->Sound = this->EffectSound;
     this->SoundComponent->Play(0.0f);
 }
 
-void AEffectActor::Tick(float DeltaTime) {
+void AReplicatedEffectActor::Tick(float DeltaTime) {
+    if (!this->HasAuthority()) return;
+
     this->LifeTimer += DeltaTime;
 
     if (this->LifeTimer > this->LifeTime) this->Destroy();

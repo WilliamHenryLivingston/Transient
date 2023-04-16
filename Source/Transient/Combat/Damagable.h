@@ -6,7 +6,7 @@
 
 #include "Damagable.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FDamageProfile {
 	GENERATED_BODY()
 
@@ -25,5 +25,6 @@ class IDamagable {
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source);
 };

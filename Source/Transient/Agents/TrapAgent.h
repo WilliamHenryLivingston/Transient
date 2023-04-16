@@ -8,7 +8,7 @@
 #include "CoreMinimal.h"
 #include "Components/SphereComponent.h"
 
-#include "Transient/EffectActor.h"
+#include "Transient/Rep/ReplicatedEffectActor.h"
 #include "Transient/Combat/Damagable.h"
 
 #include "AgentActor.h"
@@ -16,7 +16,7 @@
 #include "ProximityTrapActor.generated.h"
 
 UCLASS()
-class TRANSIENT_API ATrapAgent : public AAgentActor, public IDamagable {
+class ATrapAgent : public AAgentActor, public IDamagable {
 	GENERATED_BODY()
 
 private:
@@ -27,7 +27,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Proximity Trap")
 	float DetonationRadius;
 	UPROPERTY(EditDefaultsOnly, Category="Proximity Trap")
-	TSubclassOf<AEffectActor> DetonateEffect;
+	TSubclassOf<AReplicatedEffectActor> DetonateEffect;
 	UPROPERTY(EditDefaultsOnly, Category="Proximity Trap")
 	int KineticHealth = 100.0f;
 
@@ -40,12 +40,11 @@ private:
 public:
 	ATrapAgent();
 	virtual void Tick(float DeltaTime) override;
-	virtual void Destroyed() override;
 
 public:
 	// Game logic.
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
-	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) override;
+	virtual void DamagableTakeDamage_Implementation(FDamageProfile Profile, AActor* Cause, AActor* Source) override;
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
 	virtual void AgentAddTarget(AAgentActor* Target) override;
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)

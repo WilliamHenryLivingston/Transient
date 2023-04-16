@@ -4,20 +4,23 @@
 
 #include "CoreMinimal.h"
 
+#include "Transient/Rep/ReplicatedEffectActor.h"
+
 #include "MagazineItem.h"
 
 #include "BatteryItem.generated.h"
 
 UCLASS()
-class TRANSIENT_API ABatteryItem : public AMagazineItem {
+class ABatteryItem : public AMagazineItem {
 	GENERATED_BODY()
 
 private:
 	UPROPERTY(EditAnywhere, Category="Repair Item")
-	FDamageProfile Healing;
+	FDamageProfile Healing; // TODO: Needs to be impacted by remaining ammo.
 	UPROPERTY(EditAnywhere, Category="Repair Item")
-	TSubclassOf<AActor> FinishEffect;
+	TSubclassOf<AReplicatedEffectActor> FinishEffect;
 
 public:
-	virtual void ItemUse(AActor* Target) override;
+	// Game logic.
+	virtual void ItemUse_Implementation(AActor* Target) override;
 };

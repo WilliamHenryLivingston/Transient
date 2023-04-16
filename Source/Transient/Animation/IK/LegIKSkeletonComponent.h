@@ -16,7 +16,7 @@ enum class ELegIKProfileType : uint8 {
 };
 
 UCLASS(ClassGroup=Transient, meta=BlueprintSpawnableComponent)
-class TRANSIENT_API ULegIKSkeletonComponent : public USkeletalMeshComponent {
+class ULegIKSkeletonComponent : public USkeletalMeshComponent {
 	GENERATED_BODY()
 
 private:

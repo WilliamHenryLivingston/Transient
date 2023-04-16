@@ -1,12 +1,18 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
+// Items can be placed in inventory slots (via attachment), and used in various ways by
+// their parent unit actor. Items are either in the world or in a slot.
+
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Components/BoxComponent.h"
 
-#include "../Animation/UnitAnimInstance.h"
+#include "Transient/Animation/UnitAnimInstance.h"
+#include "Transient/Rep/ReplicatedSoundComponent.h"
+#include "Transient/Rep/ReplicatedNiagaraComponent.h"
+
 #include "ItemHolder.h"
 
 #include "ItemActor.generated.h"
@@ -27,8 +33,18 @@ enum class EItemInventoryType : uint8 {
 	SecondaryRailAttachment
 };
 
+USTRUCT(BlueprintType)
+struct FItemInfo {
+public:
+	FString Name;
+	FString Details;
+};
+
+class UInventorySlotComponent;
+class AUnitAgent;
+
 UCLASS()
-class TRANSIENT_API AItemActor : public AActor {
+class AItemActor : public AActor {
 	GENERATED_BODY()
 	
 public:
@@ -54,46 +70,72 @@ public:
 	float EquippedTorsoYaw;
 	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	bool EquipAltHand;
-	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	EUnitAnimArmsState EquippedAnimArmsMode;
-	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	FString WorldCollisionProfile;
-	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	FString ItemName;
-	
-	UPROPERTY(EditAnywhere, Category="Item Inventory Config")
+	UPROPERTY(EditDefaultsOnly, Category="Item Inventory Config")
 	int EquippedConcealment;
 
-	UPROPERTY(EditAnywhere, Category="Item Usability")
+	UPROPERTY(EditDefaultsOnly, Category="Item Usability")
 	bool Usable;
-	UPROPERTY(EditAnywhere, Category="Item Usability")
+	UPROPERTY(EditDefaultsOnly, Category="Item Usability")
 	TSubclassOf<AActor> TargetType;
-	UPROPERTY(EditAnywhere, Category="Item Usability")
+	UPROPERTY(EditDefaultsOnly, Category="Item Usability")
 	bool RequiresTarget;
-	UPROPERTY(EditAnywhere, Category="Item Usability")
+	UPROPERTY(EditDefaultsOnly, Category="Item Usability")
 	bool ImmobilizeOnUse;
-	UPROPERTY(EditAnywhere, Category="Item Usability")
+	UPROPERTY(EditDefaultsOnly, Category="Item Usability")
 	FAnimationConfig UseAnimation;
 
-	IItemHolder* CurrentHolder;
-
 protected:
+	// Isomorphic.
 	UPROPERTY(EditDefaultsOnly, Category="Item")
 	UStaticMeshComponent* VisibleComponent;
 	UPROPERTY(EditDefaultsOnly, Category="Item")
 	UBoxComponent* ColliderComponent;
 
+	UReplicatedNiagaraComponent* UseNiagara;
+	UReplicatedSoundComponent* UseSound;
+
+private:
+	UPROPERTY(ReplicatedUsing=ItemSlotNameChanged)
+	FString SlotName;
+	UPROPERTY(Replicated)
+	AActor* Holder;
+
+	// Isomorphic, non-replicated.
+	UInventoryComponent* Slot;
+
 public:
 	AItemActor();
-	virtual void Tick(float DeltaTime) override;
-
-protected:
 	virtual void BeginPlay() override;
+	virtual void Destroyed() override;
+    virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+private:
+	// Isomorphic.
+	void ItemSlotNameChanged();
 
 public:
-	virtual FString ItemGetDescriptorString();
-	virtual void ItemTake(IItemHolder* Target);
-	virtual void ItemDrop(AActor* Target);
-	virtual void ItemStartUse();
-	virtual void ItemUse(AActor* Target);
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	virtual FItemInfo ItemInfo();
+	UInventorySlotComponent* ItemSlot();
+
+	// Game logic.
+	void ItemStageSlotChange(UInventorySlotComponent* Slot);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void ItemStartUse();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void ItemUse(AActor* Target);
+
+protected:
+	// Isomorphic.
+	AActor* ItemHolder();
+	AUnitAgent* ItemHolderUnit();
+
+	void ItemPlaySoundOnce(USoundBase* Sound);
 };

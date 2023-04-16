@@ -8,7 +8,7 @@
 #include "GrassVolumePartition.generated.h"
 
 UCLASS()
-class TRANSIENT_API UGrassVolumePartition : public UBoxComponent {
+class UGrassVolumePartition : public UBoxComponent {
 	GENERATED_BODY()
 
 public:

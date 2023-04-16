@@ -16,7 +16,7 @@
 #include "PlayerUnit.generated.h"
 
 UCLASS()
-class TRANSIENT_API APlayerUnit : public AUnitPawn {
+class APlayerUnit : public AUnitPawn {
 	GENERATED_BODY()
 
 private:

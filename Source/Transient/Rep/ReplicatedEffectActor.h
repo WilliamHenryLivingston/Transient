@@ -1,7 +1,6 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
-// An actor that plays a one-shot particle system effect with sound. Not
-// replicated, so users must spawn explicitly client-side.
+// A replicated actor that plays a one-shot particle system effect with sound.
 
 #pragma once
 
@@ -10,10 +9,10 @@
 #include "NiagaraComponent.h"
 #include "Components/AudioComponent.h"
 
-#include "EffectActor.generated.h"
+#include "ReplicatedEffectActor.generated.h"
 
 UCLASS()
-class AEffectActor : public AActor {
+class AReplicatedEffectActor : public AActor {
     GENERATED_BODY()
 
 protected:
@@ -31,7 +30,7 @@ protected:
     UNiagaraComponent* NiagaraComponent;
 
 public:
-    AEffectActor();
+    AReplicatedEffectActor();
     virtual void BeginPlay() override;
     virtual void Tick(float DeltaTime) override;
 };

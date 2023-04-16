@@ -13,7 +13,7 @@
 
 // TODO: Move.
 UCLASS()
-class TRANSIENT_API AProjectileActor : public AActor {
+class AProjectileActor : public AActor {
 	GENERATED_BODY()
 
 public:

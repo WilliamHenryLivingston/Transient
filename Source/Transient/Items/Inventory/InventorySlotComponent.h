@@ -35,12 +35,13 @@ protected:
 
 public:
 	// Isomorphic.
+	FString SlotUniqueName();
 	UInventoryComponent* SlotInventory();
 	TArray<EItemInventoryType> SlotAllowedTypes();
 	AItemActor* SlotContent() const;
 
-	void SlotSetContentReplicated(AItemActor* Item); // Called by items on replicate.
+	void SlotFinallyBindContent(AItemActor* Item); // Called by items on replicate.
 
 	// Game logic.
-	void SlotSetContent(AItemActor* NewContent);
+	void SlotSetContent(AItemActor* Item);
 };

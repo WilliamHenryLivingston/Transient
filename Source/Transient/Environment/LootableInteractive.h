@@ -12,7 +12,7 @@
 #include "LootableInteractive.generated.h"
 
 UCLASS()
-class TRANSIENT_API ALootableInteractive : public AInteractiveActor {
+class ALootableInteractive : public AInteractiveActor {
 	GENERATED_BODY()
 
 private:

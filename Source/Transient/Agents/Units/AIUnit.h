@@ -33,7 +33,7 @@ public:
 };
 
 UCLASS()
-class TRANSIENT_API AAIUnit : public AUnitPawn, public IAIGroupMember {
+class AAIUnit : public AUnitPawn, public IAIGroupMember {
 	GENERATED_BODY()
 	
 public:
@@ -88,7 +88,7 @@ protected:
 
 // AUnitPawn.
 public:
-	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) override;
+	virtual void DamagableTakeDamage_Implementation(FDamageProfile Profile, AActor* Cause, AActor* Source) override;
 	virtual void UnitReload() override;
 	virtual void UnitDie() override;
 

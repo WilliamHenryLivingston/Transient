@@ -8,7 +8,7 @@
 #include "ProgressUIWidget.generated.h"
 
 UCLASS()
-class TRANSIENT_API UProgressUIWidget : public UUserWidget {
+class UProgressUIWidget : public UUserWidget {
 	GENERATED_BODY()
 	
 public:

@@ -10,7 +10,7 @@
 #include "ProgressUIInteractive.generated.h"
 
 UCLASS()
-class TRANSIENT_API AProgressUIInteractive : public AInteractiveActor {
+class AProgressUIInteractive : public AInteractiveActor {
 	GENERATED_BODY()
 
 protected:

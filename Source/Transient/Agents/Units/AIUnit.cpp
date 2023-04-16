@@ -198,7 +198,7 @@ void AAIUnit::UnitReload() {
     Super::UnitReload();
 }
 
-void AAIUnit::DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) {
+void AAIUnit::DamagableTakeDamage_Implementation(FDamageProfile Profile, AActor* Cause, AActor* Source) {
     if (Source != nullptr) {
         AUnitPawn* AsUnit = Cast<AUnitPawn>(Source);
 
@@ -210,7 +210,7 @@ void AAIUnit::DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor*
     }
 
     Profile.Energy *= 3.0f; // TODO: Better number.
-    Super::DamagableTakeDamage(Profile, Cause, Source);
+    Super::DamagableTakeDamage_Implementation(Profile, Cause, Source);
 }
 
 AActor* AAIUnit::AICheckDetection() {

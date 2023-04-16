@@ -8,7 +8,7 @@
 #include "StatusUIWidget.generated.h"
 
 UCLASS()
-class TRANSIENT_API UStatusUIWidget : public UUserWidget {
+class UStatusUIWidget : public UUserWidget {
 	GENERATED_BODY()
 
 public:

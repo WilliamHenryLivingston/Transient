@@ -8,7 +8,7 @@
 #include "BooleanAnimInstance.generated.h"
 
 UCLASS()
-class TRANSIENT_API UBooleanAnimInstance : public UAnimInstance {
+class UBooleanAnimInstance : public UAnimInstance {
 	GENERATED_BODY()
 	
 public:

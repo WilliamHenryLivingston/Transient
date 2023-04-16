@@ -11,7 +11,7 @@
 #include "LegIKInstance.generated.h"
 
 UCLASS()
-class TRANSIENT_API ULegIKInstance : public UAnimInstance {
+class ULegIKInstance : public UAnimInstance {
 	GENERATED_BODY()
 
 protected:

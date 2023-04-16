@@ -8,19 +8,6 @@ ATrapAgent::ATrapAgent() {
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-void ATrapAgent::Destroyed() {
-	Super::Destroyed();
-
-	if (this->DetonateEffect != nullptr) {
-		this->GetWorld()->SpawnActor<AActor>(
-			this->DetonateEffect,
-			Location,
-			FRotator(0.0f, 0.0f, 0.0f),
-			FActorSpawnParameters()
-		);
-	}
-}
-
 void ATrapAgent::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
@@ -50,6 +37,15 @@ void ATrapAgent::Tick(float DeltaTime) {
 			AsDamagable->DamagableTakeDamage(this->Damage, this, this);
 		}
 
+		if (this->DetonateEffect != nullptr) {
+			this->GetWorld()->SpawnActor<AActor>(
+				this->DetonateEffect,
+				Location,
+				FRotator(0.0f, 0.0f, 0.0f),
+				FActorSpawnParameters()
+			);
+		}
+
 		this->Destroy();
 	}
 }
@@ -60,7 +56,7 @@ void ATrapAgent::AgentAddTarget(AAgentActor* Target) {
 	this->ProximityTrapDetonate();
 }
 
-void ATrapAgent::DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) {
+void ATrapAgent::DamagableTakeDamage_Implementation(FDamageProfile Profile, AActor* Cause, AActor* Source) {
 	this->KineticHealth -= Profile.Kinetic;
 
 	if (this->KineticHealth <= 0.0f) this->ProximityTrapDetonate();

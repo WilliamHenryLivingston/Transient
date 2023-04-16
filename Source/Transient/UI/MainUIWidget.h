@@ -10,7 +10,7 @@
 #include "MainUIWidget.generated.h"
 
 UCLASS()
-class TRANSIENT_API UMainUIWidget : public UUserWidget {
+class UMainUIWidget : public UUserWidget {
 	GENERATED_BODY()
 
 public:

@@ -8,7 +8,7 @@
 #include "AnimationDebugPawn.generated.h"
 
 UCLASS()
-class TRANSIENT_API AAnimationDebugPawn : public APawn {
+class AAnimationDebugPawn : public APawn {
 	GENERATED_BODY()
 
 private:

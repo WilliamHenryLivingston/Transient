@@ -52,5 +52,5 @@ private:
 
 public:
 	// Game logic.
-	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source);
+	virtual void DamagableTakeDamage_Implementation(FDamageProfile Profile, AActor* Cause, AActor* Source);
 };

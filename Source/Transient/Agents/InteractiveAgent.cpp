@@ -23,6 +23,8 @@ void AInteractiveAgent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
     DOREPLIFETIME(AInteractiveAgent, this->Available);
 }
 
+void AInteractiveAgent::InteractiveAvailableChanged() { }
+
 bool AInteractiveAgent::InteractiveAvailable() { return this->Available; }
 
 void AInteractiveAgent::InteractiveUse_Implementation(AUnitAgent* User) {

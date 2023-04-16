@@ -1098,7 +1098,7 @@ void AUnitPawn::UnitHealDamage(FDamageProfile Healing) {
 	this->Energy = FMath::Min(this->MaxEnergy, this->Energy + Healing.Energy);
 }
 
-void AUnitPawn::DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) {
+void AUnitPawn::DamagableTakeDamage_Implementation(FDamageProfile Profile, AActor* Cause, AActor* Source) {
 	float Kinetic = Profile.Kinetic;
 
 	//	Absorb damage with armor.

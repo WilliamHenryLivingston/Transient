@@ -9,16 +9,13 @@
 #include "KeycardItem.generated.h"
 
 UCLASS()
-class TRANSIENT_API AKeycardItem : public AItemActor {
+class AKeycardItem : public AItemActor {
 	GENERATED_BODY()
 
-public:
+private:
 	UPROPERTY(EditAnywhere, Category="Keycard")
 	int LockID;
 
 public:
-	AKeycardItem();
-
-public:
-	virtual void ItemUse(AActor* Target) override;
+	virtual void ItemUse_Implementation(AActor* Target) override;
 };

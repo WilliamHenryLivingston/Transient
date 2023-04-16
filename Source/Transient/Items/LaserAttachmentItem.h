@@ -10,16 +10,10 @@
 #include "LaserAttachmentItem.generated.h"
 
 UCLASS()
-class TRANSIENT_API ALaserAttachmentItem : public AItemActor {
+class ALaserAttachmentItem : public AItemActor {
 	GENERATED_BODY()
-
-private:
-	UNiagaraComponent* LaserFX;
 
 public:
 	ALaserAttachmentItem();
 	virtual void Tick(float DeltaTime) override;
-
-protected:
-	virtual void BeginPlay() override;
 };

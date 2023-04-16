@@ -10,7 +10,7 @@
 #include "DoorActor.generated.h"
 
 UCLASS()
-class TRANSIENT_API ADoorActor : public AActor {
+class ADoorActor : public AActor {
 	GENERATED_BODY()
 	
 private:

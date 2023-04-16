@@ -11,7 +11,7 @@
 #include "AINavNode.generated.h"
 
 UCLASS()
-class TRANSIENT_API AAINavNode : public ADebugViewActor {
+class AAINavNode : public ADebugViewActor {
 	GENERATED_BODY()
 
 public:

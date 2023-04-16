@@ -37,7 +37,7 @@ public:
 };
 
 UCLASS()
-class TRANSIENT_API AUnitPawn : public APawn, public IItemHolder, public IDamagable {
+class AUnitPawn : public APawn, public IItemHolder, public IDamagable {
 	GENERATED_BODY()
 
 // Variables.
@@ -199,7 +199,7 @@ public:
 
 // IDamagable.
 public:
-	virtual void DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) override;
+	virtual void DamagableTakeDamage_Implementation(FDamageProfile Profile, AActor* Cause, AActor* Source) override;
 
 // Internals.
 private:

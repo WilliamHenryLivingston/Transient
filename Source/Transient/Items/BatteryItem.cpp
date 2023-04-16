@@ -4,26 +4,23 @@
 
 #include "Kismet/KismetMathLibrary.h"
 
-#include "../UnitPawn.h"
+#include "Transient/Agents/Units/UnitAgent.h"
 
-void ABatteryItem::ItemUse(AActor* Target) {
-    // TODO: Why does IItemHolder even exist?
-    AUnitPawn* AsUnit = Cast<AUnitPawn>(this->CurrentHolder);
+void ABatteryItem::ItemUse_Implementation(AActor* Target) {
+    Super::ItemUse(Target);
 
-    AsUnit->UnitHealDamage(this->Healing);
+    AUnitAgent* Holder = this->ItemHolderUnit();
+
+    Holder->UnitHealDamage(this->Healing);
     if (this->FinishEffect != nullptr) {
         FVector CurrentLocation = this->GetActorLocation();
         this->GetWorld()->SpawnActor<AActor>(
             this->FinishEffect,
             CurrentLocation,
-            UKismetMathLibrary::FindLookAtRotation(AsUnit->GetActorLocation(), CurrentLocation),
+            UKismetMathLibrary::FindLookAtRotation(Holder->GetActorLocation(), CurrentLocation),
             FActorSpawnParameters()
         );
     }
-
-    AsUnit->OverrideArmsState = true;
-    AsUnit->UnitDropItem(this);
-    AsUnit->OverrideArmsState = false;
 
     this->Destroy();
 }

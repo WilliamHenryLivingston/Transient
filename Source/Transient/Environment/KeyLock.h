@@ -10,7 +10,7 @@
 #include "KeyLock.generated.h"
 
 UCLASS()
-class TRANSIENT_API AKeyLock : public AActor {
+class AKeyLock : public AActor {
 	GENERATED_BODY()
 	
 public:

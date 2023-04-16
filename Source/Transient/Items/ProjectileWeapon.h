@@ -9,7 +9,7 @@
 #include "ProjectileWeapon.generated.h"
 
 UCLASS()
-class TRANSIENT_API AProjectileWeapon : public AWeaponItem {
+class AProjectileWeapon : public AWeaponItem {
 	GENERATED_BODY()
 
 private:

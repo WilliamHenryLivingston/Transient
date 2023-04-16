@@ -11,7 +11,7 @@
 #include "RepairItem.generated.h"
 
 UCLASS()
-class TRANSIENT_API ARepairItem : public AItemActor {
+class ARepairItem : public AItemActor {
 	GENERATED_BODY()
 
 private:

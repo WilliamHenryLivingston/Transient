@@ -2,61 +2,61 @@
 
 #include "LaserAttachmentItem.h"
 
-#include "../UnitSlotComponent.h"
-#include "../UnitPawn.h"
+#include "Inventory/InventorySlotComponent.h"
+#include "Inventory/UnitPawn.h"
 #include "WeaponItem.h"
 
 ALaserAttachmentItem::ALaserAttachmentItem() {
     PrimaryActorTick.bCanEverTick = true;
 }
 
-void ALaserAttachmentItem::BeginPlay() {
-    Super::BeginPlay();
-
-    this->LaserFX = this->FindComponentByClass<UNiagaraComponent>();
-}
-
 void ALaserAttachmentItem::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
-    bool Active = false;
-    AUnitPawn* HolderUnit = nullptr;
-    if (this->CurrentHolder != nullptr) {
-        HolderUnit = Cast<AUnitPawn>(this->CurrentHolder);
-        AWeaponItem* Weapon = HolderUnit->UnitGetActiveWeapon();
-        if (Weapon != nullptr) {
-            TArray<UUnitSlotComponent*> Slots;
-            Weapon->GetComponents(Slots, true);
+    AUnitAgent* Holder = nullptr;
+    AWeaponItem* ParentWeapon = nullptr;
 
-            for (int i = 0; i < Slots.Num(); i++) {
-                if (Slots[i]->SlotGetContent() == this) {
-                    Active = true;
-                    break;
+    if (this->HasAuthority()) {
+        bool Active = false;
+        UInventorySlotComponent* ParentSlot = this->ItemSlot();
+        if (ParentSlot != nullptr) {
+            Holder = this->ItemHolderUnit();
+            if (Holder != nullptr) {
+                ParentWeapon = Holder->UnitActiveWeapon();
+                if (ParentWeapon != nullptr) {
+                    Active = ParentSlot->GetOwner() == ParentWeapon;
                 }
             }
         }
+
+        if (Active) this->UseNiagara->PlayableStart();
+        else this->UseNiagara->PlayableStop();
     }
 
-    this->LaserFX->SetVisibility(Active);
-    if (Active) {
-        FVector FXBase = this->LaserFX->GetComponentLocation();
-        FRotator OuterRotation = HolderUnit->ItemHolderGetRotation();
+    if (!this->UseNiagara->PlayableState()) return;
 
-        FVector LaserMax = FXBase + OuterRotation.RotateVector(FVector(3000.0f, 0.0f, 0.0f));
+    UNiagaraComponent* NiagaraComponent = this->UseNiagara->ReplicatedNiagaraComponent();
 
-        FCollisionQueryParams Params;
-        Params.AddIgnoredActor(HolderUnit);
+    FVector BaseLocation = this->UseNiagara->GetComponentLocation();
+    FRotator Rotation = Holder->GetActorRotation();
 
-        FHitResult HitResult;
-        bool Hit = this->GetWorld()->LineTraceSingleByChannel(
-            HitResult,
-            FXBase, LaserMax,
-            ECollisionChannel::ECC_Visibility,
-            Params
-        );
+    FVector LaserMaxLocation = BaseLocation + Rotation.RotateVector(FVector(3000.0f, 0.0f, 0.0f));
 
-        FVector LaserEnd = Hit ? HitResult.ImpactPoint : LaserMax;
+    FCollisionQueryParams Params;
+    Params.AddIgnoredActor(Holder);
 
-        this->LaserFX->SetVectorParameter(FName("Beam End"), (OuterRotation + HolderUnit->UnitGetActiveWeapon()->LaserCorrection).UnrotateVector(LaserEnd - FXBase));
-    }
+    FHitResult HitResult;
+    bool Hit = this->GetWorld()->LineTraceSingleByChannel(
+        HitResult,
+        BaseLocation, LaserMaxLocation,
+        ECollisionChannel::ECC_Visibility,
+        Params
+    );
+
+    FVector LaserEndLocation = Hit ? HitResult.ImpactPoint : LaserMaxLocation;
+
+    FVector LocalLaserVector = (
+        Rotation + ParentWeapon->LaserCorrection
+    ).UnrotateVector(LaserEndLocation - BaseLocation);
+    NiagaraComponent->SetVectorParameter(FName("Beam End"), LocalLaserVector);
 }

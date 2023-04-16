@@ -17,22 +17,34 @@ class UInventoryComponent : public USceneComponent {
     GENERATED_BODY()
 
 private:
+    UPROPERTY(EditDefaultsOnly, Category="Inventory")
+    float ItemDropRadius = 150.0f;
+
 	// Isomorphic, non-replicated.
     TArray<UInventorySlotComponent*> Slots;
 
 protected:
     virtual void BeginPlay() override;
+    virtual void OnComponentDestroyed(bool FullHierarchy) override;
+
+private:
+    // Isomorphic.
+    float InventoryItemDropRadius();
+
+    UInventorySlotComponent* InventoryFindSlot(bool (*CheckFn)(UInventoryComponent*, AItemActor*));
+    UInventorySlotComponent* InventoryFindBestSlotByScore(int MinScore, int (*ScoreFn)(UInventoryComponent*, AItemActor*));
+    TArray<UInventorySlotComponent*> InventoryFindSlots(bool (*CheckFn)(UInventoryComponent*, AItemActor*));
 
 public:
-    // Isomorphic.
     TArray<UInventorySlotComponent*> InventorySlots();
-	TArray<UInventorySlotComponent*> InventoryEquippableSlots();
 
+	TArray<UInventorySlotComponent*> InventoryFindOrderedEquippableSlots();
 	TArray<UInventorySlotComponent*> InventoryFindSlotsByItemTag(FString Tag);
 	TArray<UInventorySlotComponent*> InventoryFindSlotsByItemClass(TSubclassOf<AItemActor> ItemClass);
 
+	UInventorySlotComponent* InventoryFindSlotByName(FString SlotName);
 	UInventorySlotComponent* InventoryFindSlotWithItem(AItemActor* Target);
 
-	UUnitSlotComponent* InventoryFindBestEmptySlotAllowing(EItemInventoryType Type);
-	UUnitSlotComponent* InventoryFindBestSlotAllowing(EItemInventoryType Type);
+	UInventorySlotComponent* InventoryFindBestEmptySlotAllowing(EItemInventoryType Type);
+	UInventorySlotComponent* InventoryFindBestSlotAllowing(EItemInventoryType Type);
 };

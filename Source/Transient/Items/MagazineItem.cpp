@@ -2,23 +2,33 @@
 
 #include "MagazineItem.h"
 
-AMagazineItem::AMagazineItem() {
-	this->PrimaryActorTick.bCanEverTick = true;
+void AMagazineItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	this->InventoryType = EItemInventoryType::Magazine;
+    DOREPLIFETIME(AMagazineItem, this->Ammo);
 }
 
-void AMagazineItem::Tick(float DeltaTime) {
-	Super::Tick(DeltaTime);
-	
+int AMagazineItem::MagazineAmmo() { return this->Ammo; }
+
+void AMagazineItem::MagazineDeplete(int Amount) {
+	this->Ammo -= Amount;
+	if (this->Ammo <= 0) {
+		this->Destroy();
+		return;
+	}
+
+	this->MagazineAmmoChanged();
+}
+
+void AMagazineItem::MagazineAmmoChanged() {	
 	int StateCount = this->StateVariants.Num();
-	if (StateCount > 0) {
-		int Stop = this->Capacity / StateCount;
-		for (int i = StateCount - 1; i >= 0; i--) {
-			if (this->Ammo >= (i * Stop)) {
-				this->VisibleComponent->SetStaticMesh(this->StateVariants[i]);
-				break;
-			}
+	if (StateCount == 0) return;
+
+	int Stop = this->Capacity / StateCount;
+	for (int i = StateCount - 1; i >= 0; i--) {
+		if (this->Ammo >= (i * Stop)) {
+			this->VisibleComponent->SetStaticMesh(this->StateVariants[i]);
+			break;
 		}
 	}
 }

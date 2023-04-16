@@ -1,13 +1,12 @@
+// Copyright: R. Saxifrage, 2023. All rights reserved.
+
 #include "KeycardItem.h"
 
-#include "../Environment/KeyLock.h"
+#include "Transient/Environment/KeyLock.h"
 
-AKeycardItem::AKeycardItem() {
-    this->TargetType = AKeyLock::StaticClass();
-    this->RequiresTarget = true;
-}
+void AKeycardItem::ItemUse_Implementation(AActor* Target) {
+    Super::ItemUse_Implementation(Target);
 
-void AKeycardItem::ItemUse(AActor* Target) {
     AKeyLock* AsLock = Cast<AKeyLock>(Target);
 
     if (AsLock->LockID == this->LockID) AsLock->LockSwipeValid();

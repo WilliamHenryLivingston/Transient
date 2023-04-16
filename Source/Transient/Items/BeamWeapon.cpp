@@ -4,68 +4,79 @@
 
 #include "Kismet/KismetMathLibrary.h"
 
-void ABeamWeapon::BeginPlay() {
-    Super::BeginPlay();
+ABeamWeapon::ABeamWeapon() {
+    PrimaryActorTick.bCanEverTick = true;
+}
 
-    this->BeamFX = this->FindComponentByClass<UNiagaraComponent>();
-    this->BeamFX->SetVisibility(false);
+void ABeamWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+    DOREPLIFETIME(ABeamWeapon, this->BeamEndLocation);
 }
 
 void ABeamWeapon::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
-    if (this->CurrentHolder == nullptr) this->TriggerPulled = false;
+    if (this->WeaponEmpty()) this->WeaponSetTriggerPulled(false);
 
-    if (this->TriggerPulled && this->ActiveMagazine != nullptr && this->ActiveMagazine->Ammo > 0) {
-        this->BeamFX->SetVisibility(true);
+    if (!this->WeaponTriggerPulled()) {
+        if (this->HasAuthority()) {
+            this->UseNiagara->PlayableStop();
+            this->UseSound->PlayableStop();
+        }
+        return;
+    }
 
-        AActor* HolderActor = Cast<AActor>(this->CurrentHolder);
+    UNiagaraComponent* BeamNiagaraComponent = this->UseNiagara->ReplicatedNiagaraComponent();
 
-        FRotator FireRotation = this->CurrentHolder->ItemHolderGetRotation();
-        FVector WorldMuzzle = this->WeaponGetMuzzlePosition();
-        FVector BeamMax = WorldMuzzle + FireRotation.RotateVector(FVector(this->MaxDistance, 0.0f, 0.0f));
+    AActor* Holder = this->ItemHolder();
+    FRotator FireRotation = Holder->GetActorRotation();
+    FVector MuzzleLocation = this->WeaponMuzzleLocation();
 
-        FCollisionQueryParams Params;
-        Params.AddIgnoredActor(HolderActor);
+    if (!this->HasAuthority()) {
+        FVector LocalBeamVector = FireRotation.UnrotateVector(this->BeamEndLocation - MuzzleLocation);
+        BeamNiagaraComponent->SetVectorParameter(FName("Beam End"), LocalBeamVector);
+        return;
+    }
 
-        FHitResult HitResult;
-        bool Hit = this->GetWorld()->LineTraceSingleByChannel(
-            HitResult,
-            WorldMuzzle, BeamMax,
-            ECollisionChannel::ECC_Visibility,
-            Params
-        );
+    this->UseNiagara->PlayableStart();
+    this->UseSound->PlayableStart();
 
-        IDamagable* Victim = Cast<IDamagable>(HitResult.GetActor());
-        if (Victim != nullptr) {
-            FDamageProfile PITProfile;
-            PITProfile.Energy = this->DamageProfile.Energy * DeltaTime;
-            PITProfile.Kinetic = this->DamageProfile.Kinetic * DeltaTime;
+    FVector BeamMaxLocation = MuzzleLocation + FireRotation.RotateVector(FVector(this->MaxDistance, 0.0f, 0.0f));
 
-            if (this->HitEffect != nullptr && FMath::RandRange(0.0f, 1.0f) < 0.3f) {
-                this->GetWorld()->SpawnActor<AActor>(
-                    this->HitEffect,
-                    HitResult.ImpactPoint,
-                    UKismetMathLibrary::FindLookAtRotation(HitResult.GetActor()->GetActorLocation(), HitResult.ImpactPoint),
-                    FActorSpawnParameters()
-                );
-            }
+    FCollisionQueryParams Params;
+    Params.AddIgnoredActor(HolderActor);
 
-            Victim->DamagableTakeDamage(PITProfile, HolderActor, HolderActor);
+    FHitResult HitResult;
+    bool Hit = this->GetWorld()->LineTraceSingleByChannel(
+        HitResult,
+        WorldMuzzle, BeamMaxLocation,
+        ECollisionChannel::ECC_Visibility,
+        Params
+    );
+
+    AActor* HitActor = HitResult.GetActor();
+    IDamagable* Victim = Cast<IDamagable>(HitActor);
+    if (Victim != nullptr) {
+        FDamageProfile ContinuousProfile;
+        ContinuousProfile.Energy = this->DamageProfile.Energy * DeltaTime;
+        ContinuousProfile.Kinetic = this->DamageProfile.Kinetic * DeltaTime;
+
+        if (this->HitEffect != nullptr && FMath::RandRange(0.0f, 1.0f) < 0.3f) {
+            this->GetWorld()->SpawnActor<AActor>(
+                this->HitEffect,
+                HitResult.ImpactPoint,
+                UKismetMathLibrary::FindLookAtRotation(HitActor->GetActorLocation(), HitResult.ImpactPoint),
+                FActorSpawnParameters()
+            );
         }
 
-        FVector BeamEnd = Hit ? HitResult.ImpactPoint : BeamMax;
-        this->BeamFX->SetVectorParameter(FName("Beam End"), FireRotation.UnrotateVector(BeamEnd - WorldMuzzle));
+        Victim->DamagableTakeDamage(ContinuousProfile, HolderActor, HolderActor);
+    }
 
-        this->ActiveMagazine->Ammo -= this->BurnRate * DeltaTime;
-        if (this->ActiveMagazine->Ammo <= 0) {
-            this->TriggerPulled = false;
-            this->ActiveMagazine->Destroy();
-            this->ActiveMagazine = nullptr;
-        }
-    }
-    else {
-        this->BeamFX->SetVisibility(false);
-        this->TriggerPulled = false;
-    }
+    this->BeamEndLocation = Hit ? HitResult.ImpactPoint : BeamMaxLocation;
+    FVector BeamLocalVector = FireRotation.UnrotateVector(this->BeamEndLocation - MuzzleLocation);
+    BeamNiagaraComponent->SetVectorParameter(FName("Beam End"), BeamLocalVector);
+
+    this->ActiveMagazine->MagazineDeplete(this->BurnRate * DeltaTime);
 }

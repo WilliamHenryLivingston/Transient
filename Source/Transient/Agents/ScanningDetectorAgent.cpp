@@ -45,7 +45,7 @@ void AScanningDetectorAgent::SimpleDetectorRotationChanged() {
 	this->Animation->Script_Rotation = this->CurrentRotation;
 }
 
-void AScanningDetectorAgent::DamagableTakeDamage(FDamageProfile Profile, AActor* Cause, AActor* Source) {
+void AScanningDetectorAgent::DamagableTakeDamage_Implementation(FDamageProfile Profile, AActor* Cause, AActor* Source) {
 	this->EnergyHealth -= Profile.Energy;
 
 	if (this->EnergyHealth <= 0.0f) {
