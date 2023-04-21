@@ -3,7 +3,7 @@
 #include "AIUnit.h"
 
 #include "AIManager.h"
-#include "Actions/AgroAction.h"
+#include "Actions/AttackAction.h"
 #include "Actions/BaseBehavior.h"
 
 //#define DEBUG_DRAWS true
@@ -39,8 +39,8 @@ void AAIUnit::BeginPlay() {
         }
 	}
 
-    this->ActionExecutorStack = TArray<IAIActionExecutor*>();
-    this->ActionExecutorStack.Push(new CBaseBehavior(&this->Patrol));
+    this->ActionExecutorStack = TArray<CAction*>();
+    this->ActionExecutorStack.Push(new CBaseAction(&this->Patrol));
 
     this->OverrideArmsState = true;
     this->UnitReload();
@@ -74,7 +74,7 @@ AActor* AAIUnit::AIAgroTarget() {
     AActor* Target = nullptr;
 
     for (int i = 0; i < this->ActionExecutorStack.Num(); i++) {
-        AActor* Check = this->ActionExecutorStack[i]->AIActionAgroTarget();
+        AActor* Check = this->ActionExecutorStack[i]->ActionAttackTarget();
 
         if (Check != nullptr) Target = Check;
     }
@@ -91,14 +91,14 @@ void AAIUnit::AIPushAttack(AActor* Target, bool AlertGroup) {
 
     bool IsDuplicate = false;
     for (int i = 0; i < this->ActionExecutorStack.Num(); i++) {
-        if (this->ActionExecutorStack[i]->AIActionAgroTarget() == Target) {
+        if (this->ActionExecutorStack[i]->ActionAttackTarget() == Target) {
             IsDuplicate = true;
             break;
         }
     }
 
     if (!IsDuplicate) {
-        IAIActionExecutor* Attack = new CAgroAction(Target);
+        CAction* Attack = new CAttackAction(Target);
         BEHAVIOR_LOG_START(Attack);
         this->ActionExecutorStack.Push(Attack);
     }
@@ -120,12 +120,12 @@ void AAIUnit::Tick(float DeltaTime) {
     }
 
     int StopBeyond = -1;
-    IAIActionExecutor* DeferredPush = nullptr;
+    CAction* DeferredPush = nullptr;
     for (int i = 0; i < this->ActionExecutorStack.Num(); i++) {
-        IAIActionExecutor* Executor = this->ActionExecutorStack[i];
+        CAction* Executor = this->ActionExecutorStack[i];
 
         if (i == this->ActionExecutorStack.Num() - 1) {
-            FAIActionTickResult Result = Executor->AIActionTick(this, DeltaTime);
+            FActionTickResult Result = Executor->ActionTick(this, DeltaTime);
 
             if (Result.Finished) {
                 BEHAVIOR_LOG_END(Executor);
@@ -140,7 +140,7 @@ void AAIUnit::Tick(float DeltaTime) {
             }
         }
         else {
-            FAIParentActionTickResult Result = Executor->AIParentActionTick(this, DeltaTime);
+            FActionParentTickResult Result = Executor->ActionParentTick(this, DeltaTime);
 
             if (Result.PushChild != nullptr) {
                 DeferredPush = Result.PushChild;
@@ -171,9 +171,9 @@ void AAIUnit::Tick(float DeltaTime) {
 }
 
 void AAIUnit::UnitReload() {
-    if (this->UnitAreArmsOccupied()) return;
+    if (this->UnitArmsOccupied()) return;
 
-    AWeaponItem* CurrentWeapon = this->UnitGetActiveWeapon();
+    AWeaponItem* CurrentWeapon = this->UnitActiveWeapon();
     if (CurrentWeapon == nullptr) return;
 
     this->OverrideArmsState = true;

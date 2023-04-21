@@ -50,7 +50,13 @@ public:
 
     // Game logic.
     UFUNCTION(BlueprintCallable)
-    TArray<AAgentActor*> AgentTargets() const;
+    const TArray<AAgentActor*>* AgentTargets() const;
+    UFUNCTION(BlueprintCallable)
+    const TArray<AAgentGroup*>* AgentGroups() const;
+    UFUNCTION(BlueprintCallable)
+    TArray<AInteractiveAgent*> AgentGroupsAlerters() const;
+    UFUNCTION(BlueprintCallable)
+    int AgentGroupsMembersCount() const;
 
     UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
     void AgentDistributeTarget(AAgentActor* Target);

@@ -24,7 +24,31 @@ int AAgentActor::AgentFactionID() const { return this->FactionID; }
 
 bool AAgentActor::AgentHasTargets() const { return this->HasTargets; }
 
-TArray<AAgentActor*> AAgentActor::AgentTargets() const { return this->Targets; }
+const TArray<AAgentActor*>* AAgentActor::AgentTargets() const { return &this->Targets; }
+
+const TArray<AAgentGroup*>* AAgentActor::AgentGroups() const { return &this->Groups; }
+
+TArray<AInteractiveAgent*> AAgentActor::AgentGroupAlerters() const {
+    TArray<AInteractiveAgent*> AllAlerters;
+    
+    for (int i = 0; i < this->Groups.Num(); i++) {
+        const TArray<AInteractiveAgent*>* Alerters = this->Groups[i]->AgentGroupAlerters();
+
+        AllAlerters.Append(Alerters);
+    }
+
+    return AllAlerters;
+}
+
+int AAgentActor::AgentGroupsMembersCount() const {
+    int Count = 0;
+
+    for (int i = 0; i < this->Groups.Num(); i++) {
+        Count += this->Groups[i]->AgentGroupMembersCount();
+    }
+
+    return Count;
+}
 
 void AAgentActor::AgentClearReferences() {
     for (int i = 0; i < this->Groups.Num(); i++) {

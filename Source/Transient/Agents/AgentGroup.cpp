@@ -4,11 +4,11 @@
 
 #include "AgentActor.h"
 
-TArray<AAlertTowerAgent*> AAgentGroup::AgentGroupAlerters() {
-	return this->Alerters;
-}
+const TArray<AAlertTowerAgent*>* AAgentGroup::AgentGroupAlerters() const { return this->Alerters; }
 
-void AAgentGroup::AgentGroupDistributeTarget(AAgentActor* Target) {
+int AAgentGroup::AgentGroupMembersCount() const { return this->Members.Num(); }
+
+void AAgentGroup::AgentGroupDistributeTarget(AAgentActor* Target) const {
 	for (int i = 0; i < this->Members.Num(); i++) {
 		this->Members[i]->AgentAddTarget(Target);
 	}

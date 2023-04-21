@@ -215,7 +215,7 @@ void AUnitPawn::UnitPostTick(float DeltaTime) {
 		}
 	}
 	else {
-		AWeaponItem* CurrentWeapon = this->UnitGetActiveWeapon();
+		AWeaponItem* CurrentWeapon = this->UnitActiveWeapon();
 		if (CurrentWeapon != nullptr && CurrentWeapon->WeaponGetTriggerPulled() && !CurrentWeapon->WeaponEmpty()) {
 			this->Animation->Script_ArmsModifier = EUnitAnimArmsModifier::Fire;
 		}
@@ -388,7 +388,7 @@ void AUnitPawn::ThenFinishUse() {
 }
 
 void AUnitPawn::ThenStartReload() {
-	AWeaponItem* Weapon = this->UnitGetActiveWeapon();
+	AWeaponItem* Weapon = this->UnitActiveWeapon();
 	
 	Weapon->WeaponSwapMagazines(nullptr);
 
@@ -421,7 +421,7 @@ void AUnitPawn::ThenStartReload() {
 }
 
 void AUnitPawn::ThenEarlyReload() {
-	AWeaponItem* Weapon = this->UnitGetActiveWeapon();
+	AWeaponItem* Weapon = this->UnitActiveWeapon();
 
 	if (this->UnloadingMagazine != nullptr) {
 		UUnitSlotComponent* AvailSlot = this->UnitGetEmptySlotAllowing(this->UnloadingMagazine->InventoryType);
@@ -455,7 +455,7 @@ void AUnitPawn::ThenEarlyReload() {
 }
 
 void AUnitPawn::ThenMidReload() {
-	AWeaponItem* Weapon = this->UnitGetActiveWeapon();
+	AWeaponItem* Weapon = this->UnitActiveWeapon();
 
 	Weapon->WeaponSwapMagazines(this->LoadingMagazine);
 	this->LoadingMagazine = nullptr;
@@ -472,7 +472,7 @@ void AUnitPawn::ThenPostReload() {
 // Getters.
 bool AUnitPawn::UnitIsCrouched() { return this->Crouching; }
 bool AUnitPawn::UnitIsExerted() { return this->Exerted; }
-AItemActor* AUnitPawn::UnitGetActiveItem() { return this->ActiveItem; }
+AItemActor* AUnitPawn::UnitActiveItem() { return this->ActiveItem; }
 AArmorItem* AUnitPawn::UnitGetArmor() { return this->ArmorItem; }
 
 float AUnitPawn::UnitGetEnergy() {
@@ -524,13 +524,13 @@ void AUnitPawn::UnitRemoveConcealment(AActor* Source) {
 	if (RemoveIndex >= 0) this->ActiveConcealments.RemoveAt(RemoveIndex);
 }
 
-AWeaponItem* AUnitPawn::UnitGetActiveWeapon() {
+AWeaponItem* AUnitPawn::UnitActiveWeapon() {
 	if (this->ActiveItem == nullptr) return nullptr;
 
 	return Cast<AWeaponItem>(this->ActiveItem);
 }
 
-bool AUnitPawn::UnitAreArmsOccupied() {
+bool AUnitPawn::UnitArmsOccupied() {
 	return !this->OverrideArmsState && (
 		this->ArmsAnimationTimer > 0.0f ||
 		this->ArmsAnimationCooldownTimer > 0.0f ||
@@ -575,7 +575,7 @@ void AUnitPawn::UnitRawSetActiveItem(AItemActor* Item) {
 
 void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 	if (TargetItem == nullptr) return;
-	if (this->UnitAreArmsOccupied()) return;
+	if (this->UnitArmsOccupied()) return;
 
 	// If armor; equip.
 	AArmorItem* AsArmor = Cast<AArmorItem>(TargetItem);
@@ -669,7 +669,7 @@ void AUnitPawn::UnitTakeItem(AItemActor* TargetItem) {
 
 void AUnitPawn::UnitDropActiveItem() {
 	if (this->ActiveItem == nullptr) return;
-	if (this->UnitAreArmsOccupied()) return;
+	if (this->UnitArmsOccupied()) return;
 
 	this->UnitPlayInteractAnimation();
 
@@ -679,7 +679,7 @@ void AUnitPawn::UnitDropActiveItem() {
 }
 
 void AUnitPawn::UnitDropItem(AItemActor* Target) {
-	if (this->UnitAreArmsOccupied()) return;
+	if (this->UnitArmsOccupied()) return;
 	
 	if (Target == this->ActiveItem) {
 		this->UnitDropActiveItem();
@@ -741,7 +741,7 @@ AItemActor* AUnitPawn::UnitGetItemByClass(TSubclassOf<AItemActor> ItemClass) {
 
 void AUnitPawn::UnitDropArmor() {
 	if (this->ArmorItem == nullptr) return;
-	if (this->UnitAreArmsOccupied()) return;
+	if (this->UnitArmsOccupied()) return;
 
 	this->UnitPlayInteractAnimation();
 
@@ -771,7 +771,7 @@ void AUnitPawn::UnitDequipActiveItem() {
 
 void AUnitPawn::UnitEquipItem(AItemActor* Target) {
 	if (Target == nullptr) return;
-	if (this->UnitAreArmsOccupied()) return;
+	if (this->UnitArmsOccupied()) return;
 
 	for (int i = 0; i < this->Slots.Num(); i++) {
 		UUnitSlotComponent* Check = this->Slots[i];
@@ -796,7 +796,7 @@ void AUnitPawn::UnitEquipItem(AItemActor* Target) {
 }
 
 void AUnitPawn::UnitEquipFromSlot(int Index) {
-	if (this->UnitAreArmsOccupied()) return;
+	if (this->UnitArmsOccupied()) return;
 
 	TArray<UUnitSlotComponent*> EquippableSlots = this->UnitGetEquippableSlots();
 	if (Index >= EquippableSlots.Num()) return;
@@ -913,7 +913,7 @@ void AUnitPawn::UnitInteractWith(AActor* Target) {
 	AInteractiveActor* AsInteractive = Cast<AInteractiveActor>(Target);
 	if (AsInteractive == nullptr || !AsInteractive->InteractEnabled) return;
 
-	if (this->UnitAreArmsOccupied()) return;
+	if (this->UnitArmsOccupied()) return;
 
 	if (AsInteractive->InteractTime > 0.0f) {
 		this->CurrentInteractActor = AsInteractive;
@@ -933,7 +933,7 @@ void AUnitPawn::UnitInteractWith(AActor* Target) {
 
 void AUnitPawn::UnitSetCheckingStatus(bool NewChecking) {
 	if (NewChecking) {
-		if (this->UnitAreArmsOccupied()) return;
+		if (this->UnitArmsOccupied()) return;
 
 		this->UnitSetTriggerPulled(false);
 	}
@@ -942,7 +942,7 @@ void AUnitPawn::UnitSetCheckingStatus(bool NewChecking) {
 }
 
 void AUnitPawn::UnitUseActiveItem(AActor* Target) {
-	if (this->UnitAreArmsOccupied()) return;
+	if (this->UnitArmsOccupied()) return;
 
 	if (this->ActiveItem == nullptr || !this->ActiveItem->Usable) return;
 
@@ -985,7 +985,7 @@ void AUnitPawn::UnitFaceTowards(FVector Target) {
 	this->HasFaceTarget = true;
 }
 
-void AUnitPawn::UnitUpdateTorsoPitch(float TargetValue) {
+void AUnitPawn::UnitSetTorsoPitch(float TargetValue) {
 	this->TargetTorsoPitch = TargetValue;
 }
 
@@ -1012,9 +1012,9 @@ void AUnitPawn::UnitJump() {
 }
 
 void AUnitPawn::UnitReload() {
-	if (this->UnitAreArmsOccupied()) return;
+	if (this->UnitArmsOccupied()) return;
 
-	AWeaponItem* Weapon = this->UnitGetActiveWeapon();
+	AWeaponItem* Weapon = this->UnitActiveWeapon();
 	if (Weapon == nullptr) return;
 
 	// Find compatible magazine with most ammo.
@@ -1050,9 +1050,9 @@ void AUnitPawn::UnitReload() {
 }
 
 void AUnitPawn::UnitSetTriggerPulled(bool NewTriggerPulled) {
-	if (this->UnitAreArmsOccupied()) return;
+	if (this->UnitArmsOccupied()) return;
 
-	AWeaponItem* Weapon = this->UnitGetActiveWeapon();
+	AWeaponItem* Weapon = this->UnitActiveWeapon();
 	if (Weapon == nullptr) return;
 
 	Weapon->WeaponSetTriggerPulled(NewTriggerPulled);

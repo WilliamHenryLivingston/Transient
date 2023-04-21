@@ -1,65 +1,61 @@
+// Copyright: R. Saxifrage, 2023. All rights reserved.
+
 #include "UseItemAction.h"
 
 #include "Kismet/KismetMathLibrary.h"
 
-#include "../../Items/WeaponItem.h"
-#include "../AIUnit.h"
-#include "EquipItemAction.h"
-#include "AIState.h"
+#include "Transient/Items/WeaponItem.h"
 
-CUseItemAction::CUseItemAction(AItemActor* InitTarget, AActor* InitUseTarget) {
-    this->Target = InitTarget;
+#include "EquipItemAction.h"
+
+#define TARGETED_SETUP_TIME 1.0f
+
+CUseItemAction::CUseItemAction(AItemActor* InitItem, AActor* InitUseTarget) {
+    this->Item = InitItem;
     this->UseTarget = InitUseTarget;
-    this->Timer = InitUseTarget != nullptr ? 1.0f : -1.0f;
+
+    this->SetupTimer = 0.0f;
     this->UseStarted = false;
 
+#if DEBUG_ACTIONS
     FString Name = TEXT("<current>");
-    if (this->Target != nullptr) {
-        Name = this->Target->GetName();
-    }
+    if (this->Item != nullptr) Name = this->Item->GetName();
     this->DebugInfo = FString::Printf(TEXT("use %s"), *Name);
+#endif
 }
 
 CUseItemAction::~CUseItemAction() {}
 
-FAIActionTickResult CUseItemAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
-    AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
+FActionTickResult CUseItemAction::ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) {
+    if (this->Item == nullptr) {
+        this->Item = Owner->UnitActiveItem();
 
-    if (this->Target == nullptr) this->Target = Owner->UnitGetActiveItem();
-
-    if (Owner->UnitAreArmsOccupied()) return this->Unfinished;
-
-    Owner->UnitSetCrouched(false);
-
-    if (!this->UseStarted) {
-        if (Owner->UnitGetActiveItem() != this->Target) {
-            return FAIActionTickResult(false, new CEquipItemAction(this->Target));
-        }
-
-        if (this->Timer > 0.0f) {
-            this->Timer -= DeltaTime;
-            
-            if (this->UseTarget != nullptr) {
-                FVector TargetLocation = this->UseTarget->GetActorLocation();
-                FVector OwnerHeadLocation = Owner->DetectionSourceComponent->GetComponentLocation();
-                Owner->UnitUpdateTorsoPitch(UKismetMathLibrary::FindLookAtRotation(OwnerHeadLocation, TargetLocation).Pitch);
-                Owner->UnitFaceTowards(TargetLocation);
-            }
-            return this->Unfinished;
-        }
-
-        AWeaponItem* AsWeapon = Cast<AWeaponItem>(this->Target);
-        if (AsWeapon != nullptr) Owner->UnitReload();
-        else Owner->UnitUseActiveItem(this->UseTarget);
-
-        if (Owner->AIAgroTarget() != nullptr && Owner->AIState.FindOrAdd(STATE_IN_COVER, 0) != 0) {
-            Owner->UnitSetCrouched(true);
-        }
-
-        this->UseStarted = true;
-        return this->Unfinished;
+        if (this->Item == nullptr) return FActionTickResult::Error(0);
     }
 
-    Owner->UnitUpdateTorsoPitch(0.0f);
-    return this->Finished;
+    if (Owner->UnitArmsOccupied()) return this->Unfinished;
+
+    if (Owner->UnitActiveItem() != this->Item) {
+        return FActionTickResult::UnfinishedAnd(new CEquipItemAction(this->Item));
+    }
+
+    if (this->UseTarget != nullptr && this->SetupTimer < TARGETED_SETUP_TIME) {
+        this->SetupTimer += DeltaTime;
+
+        FVector TargetLocation = this->UseTarget->GetActorLocation();
+        Owner->UnitTorsoPitchTowards(TargetLocation);
+        Owner->UnitFaceTowards(TargetLocation);
+        return FActionTickResult::Unfinished;
+    }
+
+    if (!this->UseStarted) {
+        if (this->Item->IsA(AWeaponItem::StaticClass())) Owner->UnitReloadActiveWeapon();
+        else Owner->UnitUseActiveItem(this->UseTarget);
+
+        this->UseStarted = true;
+        return FActionTickResult::Unfinished;
+    }
+    
+    Owner->UnitSetTorsoPitch(0.0f);
+    return FActionTickResult::Finished;
 }

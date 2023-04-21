@@ -1,24 +1,28 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
+// Uses an item in the units inventory. If the item is a weapon, it is reloaded. Applies
+// to the active item if none is specified.
+
 #pragma once
 
 #include "CoreMinimal.h"
 
-#include "../../Items/ItemActor.h"
-#include "AIActionExecutor.h"
+#include "Transient/Items/ItemActor.h"
 
-class CUseItemAction : public IAIActionExecutor {
+#include "Action.h"
+
+class CUseItemAction : public CAction {
 private:
-    AItemActor* Target;
+    AItemActor* Item;
     AActor* UseTarget;
 
     bool UseStarted;
-    float Timer;
+    float SetupTimer;
 
 public:
-    CUseItemAction(AItemActor* Target, AActor* UseTarget);
+    CUseItemAction(AItemActor* Item, AActor* UseTarget);
     virtual ~CUseItemAction() override;
 
 public:
-	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;
+	virtual FActionTickResult ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) override;
 };

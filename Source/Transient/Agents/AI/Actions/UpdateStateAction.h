@@ -1,22 +1,22 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
+// Updates a single entry in AI state. Useful when composing multi-actions.
+
 #pragma once
 
 #include "CoreMinimal.h"
 
-#include "../../Items/ItemActor.h"
-#include "AIActionExecutor.h"
-#include "AIState.h"
+#include "Action.h"
 
-class CUpdateStateAction : public IAIActionExecutor {
+class CUpdateStateAction : public CAction {
 private:
-    AI_STATE_T Key;
-    int Value;
+    TAIStateKey Key;
+    TAIStateVal Value;
 
 public:
-    CUpdateStateAction(AI_STATE_T Key, int Value);
+    CUpdateStateAction(TAIStateKey Key, TAIStateVal Value);
     virtual ~CUpdateStateAction() override;
 
 public:
-	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;
+	virtual FActionTickResult ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) override;
 };

@@ -1,24 +1,24 @@
+// Copyright: R. Saxifrage, 2023. All rights reserved.
+
 #include "MultiAction.h"
 
-#include "../AIUnit.h"
-
-CMultiAction::CMultiAction(TArray<IAIActionExecutor*> InitParts) {
+CMultiAction::CMultiAction(TArray<CAction*> InitParts) {
     this->Parts = InitParts;
     this->PartIndex = 0;
 
+#if DEBUG_ACTIONS
     this->DebugInfo = FString::Printf(TEXT("multi %d"), this->Parts.Num());
+#endif
 }
 
 CMultiAction::~CMultiAction() {
     // TODO: Memory leak; delete all unused parts.
 }
 
-FAIActionTickResult CMultiAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
-    AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
-
+FActionTickResult CMultiAction::ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) {
     if (this->PartIndex < this->Parts.Num()) {
-        return FAIActionTickResult(false, this->Parts[this->PartIndex++]);
+        return FActionTickResult::UnfinishedAnd(this->Parts[this->PartIndex++]);
     }
 
-    return this->Finished;
+    return FActionTickResult::Finished;
 }

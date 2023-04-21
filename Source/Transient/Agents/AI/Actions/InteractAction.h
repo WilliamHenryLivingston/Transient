@@ -1,23 +1,25 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
+// Moves to and interacts with the given target.
+
 #pragma once
 
 #include "CoreMinimal.h"
 
-#include "../../Environment/InteractiveActor.h"
-#include "AIActionExecutor.h"
+#include "Transient/Agents/InteractiveAgent.h"
+#include "Action.h"
 
-class CInteractAction : public IAIActionExecutor {
+class CInteractAction : public CAction {
 private:
-    AInteractiveActor* Target;
+    AInteractiveAgent* Target;
 
     bool TravelStarted;
     bool InteractStarted;
 
 public:
-    CInteractAction(AInteractiveActor* Target);
+    CInteractAction(AInteractiveAgent* Target);
     virtual ~CInteractAction() override;
 
 public:
-	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;
+	virtual FActionTickResult ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) override;
 };

@@ -1,48 +1,58 @@
+// Copyright: R. Saxifrage, 2023. All rights reserved.
+
 #include "SubjugateAction.h"
 
-#include "../AIUnit.h"
+#include "Transient/Items/WeaponItem.h"
+
 #include "MoveToPointAction.h"
-#include "EngageAction.h"
+#include "EquipItemAction.h"
+#include "UseItemAction.h"
 
-CSubjugateAction::CSubjugateAction(AActor* InitTarget) {
+#define HURT_MOTION_TIME = 2.0f;
+#define HURT_FIRE_TIME = 0.5f;
+#define HURT_DIST = 200.0f;
+
+CSubjugateAction::CSubjugateAction(AAgentActor* InitTarget) {
     this->Target = InitTarget;
-    this->TravelStarted = false;
-    this->HurtTimer = 2.0f;
 
+    this->TravelStarted = false;
+    this->HurtTimer = 0.0f;
+
+#if DEBUG_ACTIONS
     FString Name = TEXT("<missing>");
-    if (this->Target != nullptr) {
-        Name = this->Target->GetName();
-    }
+    if (this->Target != nullptr) Name = this->Target->GetName();
     this->DebugInfo = FString::Printf(TEXT("subjugate %s"), *Name);
+#endif
 }
 
 CSubjugateAction::~CSubjugateAction() {}
 
-FAIActionTickResult CSubjugateAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
-    AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
+FActionTickResult CSubjugateAction::ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) {
+    if (!IsValid(this->Target)) return FActionTickResult::Finished;
 
-    if (this->Target == nullptr || !IsValid(this->Target)) return this->Finished;
+    if (Owner->UnitArmsOccupied()) return FActionTickResult::Unfinished;
 
-    if (Owner->UnitAreArmsOccupied()) return this->Unfinished;
+    if (Owner->UnitActiveWeapon() == nullptr) {
+        AWeaponItem* Weapon = Owner->UnitInventory()->InventoryFindBestItemOfClass(AWeaponItem::StaticClass());
+        if (Weapon == nullptr) return FActionTickResult::Error(0);
+
+        return FActionTickResult::UnfinishedAnd(new CEquipItemAction(Weapon));
+    }
 
     if (!this->TravelStarted) {
         this->TravelStarted = true;
 
-        return FAIActionTickResult(false, new CMoveToPointAction(this->Target, 200.0f));
+        return FActionTickResult::UnfinishedAnd(new CMoveToPointAction(this->Target, HURT_DIST, false));
     }
 
-    if (this->HurtTimer > 0.0f) {
+    if (this->HurtTimer < HURT_MOTION_TIME) {
+        this->HurtTimer += DeltaTime;
         Owner->UnitFaceTowards(this->Target->GetActorLocation());
-        Owner->UnitSetTriggerPulled(this->HurtTimer < 0.5f);
+        Owner->UnitSetTriggerPulled(this->HurtTimer > HURT_MOTION_TIME - HURT_FIRE_TIME);
 
-        this->HurtTimer -= DeltaTime;
-        if (this->HurtTimer <= 0.0f) {
-            Owner->UnitSetTriggerPulled(false);
-            Owner->UnitReload();
-        }
-
-        return this->Unfinished;
+        return FActionTickResult::Unfinished;
     }
 
-    return this->Finished;
+    Owner->UnitSetTriggerPulled(false);
+    return FActionTickResult::FinishedAnd(new CUseItemAction(nullptr));
 }

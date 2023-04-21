@@ -1,37 +1,40 @@
+// Copyright: R. Saxifrage, 2023. All rights reserved.
+
 #include "InteractAction.h"
 
-#include "../AIUnit.h"
 #include "MoveToPointAction.h"
 
-CInteractAction::CInteractAction(AInteractiveActor* InitTarget) {
+#define INTERACT_DIST 50.0f
+
+CInteractAction::CInteractAction(AInteractiveAgent* InitTarget) {
     this->Target = InitTarget;
+
     this->TravelStarted = false;
     this->InteractStarted = false;
 
+#if DEBUG_ACTIONS
     this->DebugInfo = FString::Printf(TEXT("interact %s"), *this->Target->GetName());
+#endif
 }
 
 CInteractAction::~CInteractAction() {}
 
-FAIActionTickResult CInteractAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
-    AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
+FActionTickResult CInteractAction::ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) {
+    if (Owner->UnitArmsOccupied()) return FActionTickResult::Unfinished;
 
-    if (Owner->UnitAreArmsOccupied()) return this->Unfinished;
-
-    if (!this->Target->InteractEnabled) return this->Finished;
+    if (!this->Target->InteractEnabled) return FActionTickResult::Error(0);
 
     if (!this->TravelStarted) {
         this->TravelStarted = true;
-
-        return FAIActionTickResult(false, new CMoveToPointAction(this->Target, 50.0f));
+        return FActionTickResult::UnfinishedAnd(new CMoveToPointAction(this->Target, INTERACT_DIST, false));
     }
 
     if (!this->InteractStarted) {
         this->InteractStarted = true;
 
         Owner->UnitInteractWith(this->Target);
-        return this->Unfinished;
+        return FActionTickResult::Unfinished;
     }
 
-    return this->Finished;
+    return FActionTickResult::Finished;
 }

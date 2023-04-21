@@ -111,7 +111,7 @@ void APlayerUnit::Tick(float DeltaTime) {
 	this->UnitImmobilize(this->InventoryView);
 	this->IgnoreTorsoYaw = this->InventoryView;
 
-	AItemActor* CurrentEquippedItem = this->UnitGetActiveItem();
+	AItemActor* CurrentEquippedItem = this->UnitActiveItem();
 	if ((this->InventoryView || this->CheckingStatus) && CurrentEquippedItem != nullptr && CurrentEquippedItem->EquipStateOnly) {
 		this->OverrideArmsState = true;
 		this->UnitDropActiveItem();
@@ -213,7 +213,7 @@ void APlayerUnit::Tick(float DeltaTime) {
 	this->MainUI->Script_CurrentItemExtra = TEXT("");
 	this->ForceArmsEmptyAnimation = this->InventoryView;
 	if (this->InventoryView) {
-		this->UnitUpdateTorsoPitch(0.0f);
+		this->UnitSetTorsoPitch(0.0f);
 
 		bool DropCurrent = this->DropInventoryFocused;
 		this->DropInventoryFocused = false;
@@ -243,13 +243,13 @@ void APlayerUnit::Tick(float DeltaTime) {
 				TargetedItem = HitSlot->SlotGetContent();
 			}
 			else if (HitComponent->GetName().Equals(TEXT("InvViewActive"))) {
-				TargetedItem = this->UnitGetActiveItem();
+				TargetedItem = this->UnitActiveItem();
 				if (TargetedItem != nullptr && TargetedItem->EquipAltHand) {
 					TargetedItem = nullptr;
 				}
 			}
 			else if (HitComponent->GetName().Equals(TEXT("InvViewAltActive"))) {
-				TargetedItem = this->UnitGetActiveItem();
+				TargetedItem = this->UnitActiveItem();
 				if (TargetedItem != nullptr && !TargetedItem->EquipAltHand) {
 					TargetedItem = nullptr;
 				}
@@ -270,7 +270,7 @@ void APlayerUnit::Tick(float DeltaTime) {
 			if (TargetedItem != nullptr) {
 				this->MainUI->Script_CurrentItemDescriptor = TargetedItem->ItemGetDescriptorString();
 
-				AItemActor* CurrentItem = this->UnitGetActiveItem();
+				AItemActor* CurrentItem = this->UnitActiveItem();
 				bool WouldEquip = TargetedItem->Equippable && TargetedItem != CurrentItem;
 				UUnitSlotComponent* NextSlot = this->UnitGetEmptySlotAllowing(TargetedItem->InventoryType);
 				bool WouldMove = NextSlot != nullptr;
@@ -319,20 +319,20 @@ void APlayerUnit::Tick(float DeltaTime) {
 		if (HitActor == this) {
 			this->CurrentAimHit = nullptr;
 
-			this->UnitUpdateTorsoPitch(0.0f);
+			this->UnitSetTorsoPitch(0.0f);
 		}
 		else {
 			this->CurrentAimHit = HitActor;
 
 			if (HitActor == nullptr || HitActor->Tags.Contains(FName("Ground"))) {
-				this->UnitUpdateTorsoPitch(0.0f);
+				this->UnitSetTorsoPitch(0.0f);
 			}
 			else {
 				FRotator LookRotation = UKismetMathLibrary::FindLookAtRotation(
 					this->AimRootComponent->GetComponentLocation(),
 					MouseHit.ImpactPoint
 				);
-				this->UnitUpdateTorsoPitch(LookRotation.Pitch);
+				this->UnitSetTorsoPitch(LookRotation.Pitch);
 			}
 
 			this->UnitFaceTowards(MouseHit.ImpactPoint);
@@ -369,7 +369,7 @@ void APlayerUnit::Tick(float DeltaTime) {
 
 		// TODO: no lol.
 		AItemActor* Scope = this->UnitGetItemByName(FString("tac-x field optic"));
-		AWeaponItem* Weapon = this->UnitGetActiveWeapon();
+		AWeaponItem* Weapon = this->UnitActiveWeapon();
 		if (Scope != nullptr && Weapon != nullptr && Weapon->WeaponHasItemEquipped(Scope)) {
 			CurrentAimMax *= 1.5;
 		}
@@ -458,7 +458,7 @@ void APlayerUnit::InputStartFire() {
 	if (this->InventoryView) {
 		this->EquipInventoryFocused = true;
 	}
-	else if (this->UnitGetActiveWeapon() != nullptr) {
+	else if (this->UnitActiveWeapon() != nullptr) {
 		this->UnitSetTriggerPulled(true);
 	}
 	else {

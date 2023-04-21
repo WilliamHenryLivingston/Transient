@@ -18,6 +18,8 @@
 
 #include "UnitPawn.generated.h"
 
+// TODO: >>>>CONST<<< UnitInventory()
+
 // TODO: Shrink significantly, lots of biped specific stuff in here.
 
 USTRUCT() // TODO: Move.
@@ -227,7 +229,7 @@ protected:
 
 public:
 	// State exposures.
-	bool UnitAreArmsOccupied();
+	bool UnitArmsOccupied();
 	bool UnitIsJumping();
 	bool UnitIsCrouched();
 	bool UnitIsMoving();
@@ -235,8 +237,8 @@ public:
 	float UnitGetEnergy();
 	float UnitGetKineticHealth();
 	int UnitGetConcealmentScore();
-	AItemActor* UnitGetActiveItem();
-	AWeaponItem* UnitGetActiveWeapon();
+	AItemActor* UnitActiveItem();
+	AWeaponItem* UnitActiveWeapon();
 	AArmorItem* UnitGetArmor();
 
 	// Inventory.
@@ -258,7 +260,7 @@ public:
 	// Actions.
 	bool UnitDrainStamina(float Amount);
 	bool UnitDrainEnergy(float Amount);
-	void UnitUpdateTorsoPitch(float TargetValue);
+	void UnitSetTorsoPitch(float TargetValue);
 
 	void UnitMoveTowards(FVector Target);
 	void UnitFaceTowards(FVector Target);

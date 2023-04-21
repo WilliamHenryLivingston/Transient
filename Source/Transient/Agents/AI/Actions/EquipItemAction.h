@@ -1,13 +1,16 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
+// Equips an item present in the units inventory.
+
 #pragma once
 
 #include "CoreMinimal.h"
 
-#include "../../Items/ItemActor.h"
-#include "AIActionExecutor.h"
+#include "Transient/Items/ItemActor.h"
 
-class CEquipItemAction : public IAIActionExecutor {
+#include "Action.h"
+
+class CEquipItemAction : public CAction {
 private:
     AItemActor* Target;
 
@@ -18,5 +21,5 @@ public:
     virtual ~CEquipItemAction() override;
 
 public:
-	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;
+	virtual FActionTickResult ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) override;
 };

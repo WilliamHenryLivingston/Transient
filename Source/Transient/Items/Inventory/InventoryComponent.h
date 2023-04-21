@@ -38,6 +38,7 @@ private:
 public:
     TArray<UInventorySlotComponent*> InventorySlots();
 
+    // TODO: Problem with these is external stuff needs to indirectly interact with the inventory (wants items not slots).
 	TArray<UInventorySlotComponent*> InventoryFindOrderedEquippableSlots();
 	TArray<UInventorySlotComponent*> InventoryFindSlotsByItemTag(FString Tag);
 	TArray<UInventorySlotComponent*> InventoryFindSlotsByItemClass(TSubclassOf<AItemActor> ItemClass);
@@ -47,4 +48,6 @@ public:
 
 	UInventorySlotComponent* InventoryFindBestEmptySlotAllowing(EItemInventoryType Type);
 	UInventorySlotComponent* InventoryFindBestSlotAllowing(EItemInventoryType Type);
+
+    AItemActor* InventoryFindBestItemOfClass(TSubclassOf<AItemActor> ItemClass);
 };

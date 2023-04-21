@@ -108,3 +108,4 @@ map testing:
 
 
 REMOVING INVENTORY SLOT COLLIDERS; items have their own look collider.
+better nav node claim system

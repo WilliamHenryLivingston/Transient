@@ -1,20 +1,20 @@
+// Copyright: R. Saxifrage, 2023. All rights reserved.
+
 #include "UpdateStateAction.h"
 
-#include "../AIUnit.h"
-
-CUpdateStateAction::CUpdateStateAction(AI_STATE_T InitKey, int InitValue) {
+CUpdateStateAction::CUpdateStateAction(TAIStateKey InitKey, TAIStateVal InitValue) {
     this->Key = InitKey;
     this->Value = InitValue;
 
-    this->DebugInfo = FString::Printf(TEXT("stateup %d=%d"), this->Key, this->Value);
+#if DEBUG_ACTIONS
+    this->DebugInfo = FString::Printf(TEXT("state update %d=%d"), this->Key, this->Value);
+#endif
 }
 
 CUpdateStateAction::~CUpdateStateAction() {}
 
-FAIActionTickResult CUpdateStateAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
-    AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
+FActionTickResult CUpdateStateAction::ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) {
+    State->StateWrite(this->Key, this->Value);
 
-    Owner->AIState.Emplace(this->Key, this->Value);
-
-    return this->Finished;
+    return FActionTickResult::Finished;
 }

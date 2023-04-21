@@ -1,95 +1,68 @@
+// Copyright: R. Saxifrage, 2023. All rights reserved.
+
 #include "MoveToPointAction.h"
 
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
 
-#include "../../Debug.h"
-#include "../AIManager.h"
-#include "../AIUnit.h"
-#include "../AINavNode.h"
+#include "Transient/Agents/AgentManager.h"
+#include "Transient/Agents/AI/AINavNode.h"
 
-// TODO: Take vector as target.
-CMoveToPointAction::CMoveToPointAction(AActor* InitTarget, float InitReachDistance) {
+CMoveToPointAction::CMoveToPointAction(FVector InitTarget, float InitReachDistance, bool InitIntoCover) {
     this->Target = InitTarget;
     this->ReachDistance = InitReachDistance;
+    this->IntoCover = InitIntoCover;
 
     this->Planned = false;
     this->Steps = TArray<FVector>();
 
+#if DEBUG_ACTIONS
     this->DebugInfo = FString::Printf(TEXT("moveto %s"), *this->Target->GetName());
+#endif
 }
 
 CMoveToPointAction::~CMoveToPointAction() {}
 
-FAIActionTickResult CMoveToPointAction::AIActionTick(AActor* RawOwner, float DeltaTime) {
-    if (this->Target == nullptr || !IsValid(this->Target)) return this->Finished;
-
-    AAIUnit* Owner = Cast<AAIUnit>(RawOwner);
-
-    Owner->UnitUpdateTorsoPitch(0.0f);
-    Owner->AIState.Emplace(STATE_IN_COVER, 0);
-    Owner->UnitSetExerted(Owner->AIAgroTarget() != nullptr);
-
+FActionTickResult CMoveToPointAction::ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) {
     if (!this->Planned) {
-        this->PlanMove(Owner);
+        this->ActionPlanMove(Owner);
+        if (this->Steps.Num() == 0) return FActionTickResult::Error(0);
+
         this->Planned = true;
     }
+
+    Owner->UnitSetLegState(EUnitLegState::Normal);
+    State->StateWrite(SK_IN_COVER, 0);
+
+    FVector NextLocation = this->Steps[0];
+    Owner->UnitMoveTowards(NextLocation);
+    if (AIState->StateRead(SK_ATTACK_ACTIVE) == 0) {
+        Owner->UnitFaceTowards(NextLocation);
+    }
+
+    float Distance = (NextLocation - OwnerLocation).Size2D();
+    if (Distance > this->ReachDistance) return FActionTickResult::Unfinished;
     
-    Owner->UnitSetCrouched(false);
+    this->Steps.RemoveAt(0);
+    if (this->Steps.Num() > 1) return FActionTickResult::Unfinished;
 
-    if (this->Steps.Num() == 0) {
-        ERR_LOG(Owner, "pathfind fail");
-        return this->Finished;
-    }
-
-    FVector TargetLocation = this->Steps[0];
-
-    Owner->UnitMoveTowards(TargetLocation);
-    if (Owner->AIState.FindOrAdd(STATE_AGRO_CONTROL, 0) == 0) {
-        Owner->UnitFaceTowards(TargetLocation);
-    }
-
-    FVector OwnerLocation = Owner->GetActorLocation();
-    OwnerLocation.Z = 0;
-    TargetLocation.Z = 0;
-
-    float Distance = (TargetLocation - OwnerLocation).Size();
-
-    bool Reached = Distance < this->ReachDistance;
-    if (Reached) {
-        if (this->Steps.Num() == 1) {
-            Owner->UnitSetExerted(false);
-
-            bool Cover = (
-                this->Target->IsA(AAINavNode::StaticClass()) &&
-                Cast<AAINavNode>(this->Target)->CoverPosition
-            );
-            
-            Owner->AIState.Emplace(STATE_IN_COVER, Cover ? 1 : 0);
-            return this->Finished;
-        }
-
-        this->Steps.RemoveAt(0);
-    }
-
-    return this->Unfinished;
+    State->StateWrite(SK_IN_COVER, this->IntoCover ? 1 : 0);
+    return FActionTickResult::Finished;
 }
 
-void CMoveToPointAction::PlanMove(AActor* Owner) {
-    UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(Owner->GetWorld());
-    AAIManager* Manager = AAIManager::AIGetManagerInstance(Owner->GetWorld());
+void CMoveToPointAction::ActionPlanMove(AUnitAgent* Owner) {
+    UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(Owner->GetWorld());
+    AAgentManager* Manager = AAgentManager::AgentsGetManager(Owner->GetWorld());
 
-    FSharedConstNavQueryFilter Filter;
-    FNavPathSharedPtr PathPtr;
-    FPathFindingQuery Query(
+    FPathFindingQuery Query = FPathFindingQuery(
         Owner,
         *Manager->NavData,
         Owner->GetActorLocation(),
-        this->Target->GetActorLocation(),
-        Filter,
-        PathPtr
+        this->Target,
+        FSharedConstNavQueryFilter(),
+        FNavPathSharedPtr()
     );
-    FPathFindingResult Result = NavSys->FindPathSync(Query, EPathFindingMode::Type::Regular);
+    FPathFindingResult Result = NavSystem->FindPathSync(Query, EPathFindingMode::Type::Regular);
 
     TArray<FNavPathPoint> PathPoints = Result.Path->GetPathPoints();
     for (int i = 0; i < PathPoints.Num(); i++) {

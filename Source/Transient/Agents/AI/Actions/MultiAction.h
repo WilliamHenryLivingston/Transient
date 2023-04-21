@@ -1,22 +1,23 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
+// Executes a set of actions in order.
+
 #pragma once
 
 #include "CoreMinimal.h"
 
-#include "../../Items/ItemActor.h"
-#include "AIActionExecutor.h"
+#include "Action.h"
 
-class CMultiAction : public IAIActionExecutor {
+class CMultiAction : public CAction {
 private:
-    TArray<IAIActionExecutor*> Parts;
+    TArray<CAction*> Parts;
 
     int PartIndex;
 
 public:
-    CMultiAction(TArray<IAIActionExecutor*> Parts);
+    CMultiAction(TArray<CAction*> Parts);
     virtual ~CMultiAction() override;
 
 public:
-	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;
+	virtual FActionTickResult ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) override;
 };

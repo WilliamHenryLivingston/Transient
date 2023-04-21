@@ -1,14 +1,16 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
+// Performs all actions related to a single step of a patrol.
+
 #pragma once
 
 #include "CoreMinimal.h"
 
-#include "../../Items/ItemActor.h"
-#include "../AINavNode.h"
-#include "AIActionExecutor.h"
+#include "Transient/AI/AINavNode.h"
 
-class CPatrolStepAction : public IAIActionExecutor {
+#include "Action.h"
+
+class CPatrolStepAction : public CAction {
 private:
     AAINavNode* Node;
 
@@ -24,5 +26,5 @@ public:
     virtual ~CPatrolStepAction() override;
 
 public:
-	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;
+	virtual FActionTickResult ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) override;
 };

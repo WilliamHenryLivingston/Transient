@@ -29,10 +29,12 @@ private:
 public:
 	// Game logic.
     UFUNCTION(BlueprintCallable)
-	TArray<AInteractiveAgent*> AgentGroupAlerters();
+	const TArray<AInteractiveAgent*>* AgentGroupAlerters() const;
+	UFUNCTION(BlueprintCallable)
+	int AgentGroupMembersCount() const;	
 
     UFUNCTION(BlueprintCallable)
-	void AgentGroupDistributeTarget(AAgentActor* Target);
+	void AgentGroupDistributeTarget(AAgentActor* Target) const;
     UFUNCTION(BlueprintCallable)
 	void AgentGroupRemoveMember(AAgentActor* Member);
 };

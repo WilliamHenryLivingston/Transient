@@ -1,27 +1,29 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
+// Moves the unit to the given target point with pathfinding.
+
 #pragma once
 
 #include "CoreMinimal.h"
 
-#include "AIActionExecutor.h"
-#include "PatrolStepAction.h"
+#include "Action.h"
 
-class CMoveToPointAction : public IAIActionExecutor {
+class CMoveToPointAction : public CAction {
 private:
-    AActor* Target;
+    FVector Target;
     float ReachDistance;
+    bool IntoCover;
 
     bool Planned;
     TArray<FVector> Steps;
 
 public:
-    CMoveToPointAction(AActor* Target, float ReachDistance);
+    CMoveToPointAction(FVector Target, float ReachDistance, bool IntoCover);
     virtual ~CMoveToPointAction() override;
 
 public:
-	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;
+	virtual FActionTickResult ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) override;
 
 private:
-    void PlanMove(AActor* Owner);
+    void ActionPlanMove(AUnitAgent* Owner);
 };

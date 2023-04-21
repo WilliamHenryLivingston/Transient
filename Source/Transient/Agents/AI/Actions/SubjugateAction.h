@@ -1,23 +1,24 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
+// Briefly attacks the given target.
+
 #pragma once
 
 #include "CoreMinimal.h"
 
-#include "../../Items/ItemActor.h"
-#include "AIActionExecutor.h"
+#include "Action.h"
 
-class CSubjugateAction : public IAIActionExecutor {
+class CSubjugateAction : public CAction {
 private:
-    AActor* Target;
+    AAgentActor* Target;
 
     bool TravelStarted;
     float HurtTimer;
 
 public:
-    CSubjugateAction(AActor* Target);
+    CSubjugateAction(AAgentActor* Target);
     virtual ~CSubjugateAction() override;
 
 public:
-	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;
+	virtual FActionTickResult ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) override;
 };

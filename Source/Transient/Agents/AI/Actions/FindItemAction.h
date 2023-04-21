@@ -1,27 +1,38 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
+// Finds and takes an item in the world, optionally spawning it if it wasn't found.
+
 #pragma once
 
 #include "CoreMinimal.h"
 
-#include "../../Items/ItemActor.h"
-#include "AIActionExecutor.h"
+#include "Transient/Items/ItemActor.h"
 
-class CFindItemAction : public IAIActionExecutor {
-public:
-    AItemActor* Target;
+#include "Action.h"
 
+class CFindItemAction : public CAction {
 private:
     TSubclassOf<AItemActor> TargetType;
+
+    AItemActor* Target;
+
+    float MaxDistance;
+    bool AllowSpawn;
+
+    bool FindAttempted;
 
     bool Started;
     bool TakeStarted;
     bool EquipStarted;
 
 public:
-    CFindItemAction(AActor* Owner, TSubclassOf<AItemActor> TargetType, float MaxDistance, bool EquipAfter);
+    static CFindItemAction* FindInWorldOrFail(AUnitAgent* Owner, TSubclassOf<AItemActor> TargetType, float MaxDistance, bool EquipAfter);
+    CFindItemAction(TSubclassOf<AItemActor> TargetType, float MaxDistance, bool AllowSpawn, bool EquipAfter);
     virtual ~CFindItemAction() override;
 
 public:
-	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;
+	virtual FActionTickResult ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) override;
+
+private:
+    AItemActor* FindTargetInWorld(AUnitAgent* Owner);
 };

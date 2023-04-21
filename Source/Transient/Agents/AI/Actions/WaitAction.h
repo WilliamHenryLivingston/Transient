@@ -1,13 +1,15 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
+// Waits in the current location for given duration, optionally visually scanning
+// the area.
+
 #pragma once
 
 #include "CoreMinimal.h"
 
-#include "../../Items/ItemActor.h"
-#include "AIActionExecutor.h"
+#include "Action.h"
 
-class CWaitAction : public IAIActionExecutor {
+class CWaitAction : public CAction {
 private:
     float Timer;
 	float ScanTimer;
@@ -21,5 +23,5 @@ public:
     virtual ~CWaitAction() override;
 
 public:
-	virtual FAIActionTickResult AIActionTick(AActor* Owner, float DeltaTime) override;
+	virtual FActionTickResult ActionTick(AUnitAgent* Owner, CAIState* State, float DeltaTime) override;
 };

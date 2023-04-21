@@ -7,7 +7,7 @@
 #include "../UnitPawn.h"
 #include "AINavNode.h"
 #include "AIGroup.h"
-#include "Actions/AIActionExecutor.h"
+#include "Actions/Action.h"
 #include "Actions/AIState.h"
 
 #include "AIUnit.generated.h"
@@ -72,7 +72,7 @@ private:
 	UPROPERTY(EditAnywhere, Category="AI Behavior")
 	int Detection;
 
-	TArray<IAIActionExecutor*> ActionExecutorStack;
+	TArray<CAction*> ActionExecutorStack;
 
 	int PatrolStep;
 

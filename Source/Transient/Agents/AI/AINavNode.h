@@ -5,19 +5,17 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
-#include "../DebugViewActor.h"
-#include "../Items/ItemActor.h"
+#include "Transient/MetadataActor.h"
+#include "Transient/Items/ItemActor.h"
+#include "Transient/Agents/InteractiveAgent.h"
 
 #include "AINavNode.generated.h"
 
 UCLASS()
-class AAINavNode : public ADebugViewActor {
+class AAINavNode : public AMetadataActor {
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, Category="AI Nav")
-	TArray<AAINavNode*> Neighbors;
-
 	UPROPERTY(EditAnywhere, Category="AI Nav")
 	bool CoverPosition;
 	UPROPERTY(EditAnywhere, Category="AI Nav")
@@ -46,7 +44,7 @@ public:
     AActor* UseItemTarget;
 
 	UPROPERTY(EditAnywhere, Category="Patrol")
-	AActor* InteractTarget;
+	AInteractiveAgent* InteractTarget;
 
 	UPROPERTY(EditAnywhere, Category="Patrol")
 	float WaitTimeMin = 0.5f;
@@ -54,7 +52,4 @@ public:
 	float WaitTimeMax = 1.0f;
 	UPROPERTY(EditAnywhere, Category="Patrol")
 	bool ScanWhileWaiting = true;
-
-public:
-	AAINavNode();
 };
