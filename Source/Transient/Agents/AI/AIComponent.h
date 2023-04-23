@@ -7,18 +7,17 @@
 
 #include "CoreMinimal.h"
 
-#include "Transient/Agents/Units/UnitAgent.h"
+#include "Transient/Agents/Components/UnitComponent.h"
 
 #include "Actions/Action.h"
 #include "AIState.h"
 
 UCLASS(ClassGroup=Transient, meta=BlueprintSpawnableComponent)
-class AIComponent : public USceneComponent {
+class UAIComponent : public UUnitComponent {
     GENERATED_BODY()
 
 private:
     // Game logic.
-    AUnitAgent* ParentAgent;
     TArray<CAction*> ActionStack;
     CAIState* State;
 
@@ -30,5 +29,5 @@ public:
     virtual void TickComponent(float DeltaTime, ELevelTick Type, FActorComponentTickFunction* TickSelf) override;
 
 public:
-    void PushAction(CAction* Action);
+    void AIPushAction(CAction* Action);
 };

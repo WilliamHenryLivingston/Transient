@@ -16,10 +16,8 @@
 #define DEBUG_LOG_END(S) do {} while (false);
 #endif
 
-void AIComponent::BeginPlay() {
+void UAIComponent::BeginPlay() {
     Super::BeginPlay();
-
-    this->ParentAgent = Cast<AUnitAgent>(this->GetOwner());
 
     this->State = new CAIState();
 
@@ -27,7 +25,7 @@ void AIComponent::BeginPlay() {
     this->ActionStack.Push(new CBaseAction());
 }
 
-void AIComponent::OnComponentDestroyed(bool FullHierarchy) {
+void UAIComponent::OnComponentDestroyed(bool FullHierarchy) {
     Super::OnComponentDestroyed(FullHierarchy);
 
     delete this->State;
@@ -38,7 +36,9 @@ void AIComponent::OnComponentDestroyed(bool FullHierarchy) {
     this->ActionStack = TArray<CAction*>();
 }
 
-void AIComponent::TickComponent(float DeltaTime, ELevelTick Type, FActorComponentTickFunction* TickSelf) {
+void UAIComponent::TickComponent(float DeltaTime, ELevelTick Type, FActorComponentTickFunction* TickSelf) {
+    Super::TickComponent(DeltaTime, Type, TickSelf);
+
     if (!this->ParentAgent->HasAuthority()) return;
 
     int StopBeyond = -1;
@@ -89,4 +89,8 @@ void AIComponent::TickComponent(float DeltaTime, ELevelTick Type, FActorComponen
 
         this->ActionStack.Push(DeferredPush);
     }
+}
+
+void UAIComponent::AIPushAction(CAction* Action) {
+    this->ActionStack.Push(Action);
 }

@@ -1,22 +1,25 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
+// Units are fully dynamic agent characters.
+
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "Components/AudioComponent.h"
 
-#include "Items/ItemActor.h"
-#include "Items/MagazineItem.h"
-#include "Items/WeaponItem.h"
-#include "Items/ArmorItem.h"
-#include "Environment/InteractiveActor.h"
-#include "Animation/UnitAnimInstance.h"
-#include "Animation/LegIKSkeletonComponent.h"
-#include "UnitSlotComponent.h"
-#include "Damagable.h"
+#include "Transient/Combat/Damagable.h"
+#include "Transient/Items/ItemActor.h"
+#include "Transient/Items/MagazineItem.h"
+#include "Transient/Items/WeaponItem.h"
+#include "Transient/Items/ArmorItem.h"
+#include "Transient/Items/Inventory/InventoryComponent.h"
+#include "Transient/Animation/UnitAnimInstance.h"
+#include "Transient/Animation/LegIKSkeletonComponent.h"
 
-#include "UnitPawn.generated.h"
+#include "InteractiveAgent.h"
+
+#include "UnitAgent.generated.h"
 
 // TODO: >>>>CONST<<< UnitInventory()
 
@@ -39,49 +42,42 @@ public:
 };
 
 UCLASS()
-class AUnitPawn : public APawn, public IItemHolder, public IDamagable {
+class AUnitAgent : public AAgentActor, public IDamagable {
 	GENERATED_BODY()
 
-// Variables.
 private:
-	// Movement.
-	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	UPROPERTY(EditDefaultsOnly, Category="Unit Movement")
 	float MoveSpeed = 200.0f;
-	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	UPROPERTY(EditDefaultsOnly, Category="Unit Movement")
 	float TurnSpeed = 20.0f;
-	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	UPROPERTY(EditDefaultsOnly, Category="Unit Movement")
 	float LookPitchSpeed = 20.0f;
-	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	UPROPERTY(EditDefaultsOnly, Category="Unit Movement")
 	float LookPitchLimit = 30.0f;
-	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	UPROPERTY(EditDefaultsOnly, Category="Unit Movement")
 	float StrafeModifier = 0.5f;
-	UPROPERTY(EditAnywhere, Category="Unit Movement")
-	float StrafeConeAngle = 0.9f; // TODO: Remove.
-	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	UPROPERTY(EditDefaultsOnly, Category="Unit Movement")
 	float JumpStrength = 300.0f;
-	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	UPROPERTY(EditDefaultsOnly, Category="Unit Movement")
 	float JumpTime = 1.0f; // TODO: Replace with proper grounded check.
-	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	UPROPERTY(EditDefaultsOnly, Category="Unit Movement")
 	float SprintModifier = 2.0f;
-	UPROPERTY(EditAnywhere, Category="Unit Movement")
+	UPROPERTY(EditDefaultsOnly, Category="Unit Movement")
 	float ExertedStaminaDrain = 100.0f;
 
-	// Stats.
-protected: // TODO: No, add methods.
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
 	float KineticHealth = 300.0f;
-	UPROPERTY(EditAnywhere, Category="Unit Stats")
+	UPROPERTY(EditDefaultsOnly, Category="Unit Stats")
 	float MaxKineticHealth = 300.0f;
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
 	float Energy = 300.0f;
-	UPROPERTY(EditAnywhere, Category="Unit Stats")
+	UPROPERTY(EditDefaultsOnly, Category="Unit Stats")
 	float MaxEnergy = 300.0f;
 	UPROPERTY(EditAnywhere, Category="Unit Stats")
 	float Stamina = 300.0f;
-	UPROPERTY(EditAnywhere, Category="Unit Stats");
+	UPROPERTY(EditDefaultsOnly, Category="Unit Stats");
 	float MaxStamina = 300.0f;
-private:
-	UPROPERTY(EditAnywhere, Category="Unit Stats");
+	UPROPERTY(EditDefaultsOnly, Category="Unit Stats");
 	float StaminaRegen = 50.0f;
 
 	// Rig-related parameters.

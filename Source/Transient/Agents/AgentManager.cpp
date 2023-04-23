@@ -4,7 +4,7 @@
 
 #include "Kismet/GameplayStatics.h"
 
-#include "Units/UnitAgent.h"
+#include "UnitAgent.h"
 
 AAgentManager* AAgentManager::AgentsGetManager(UWorld* WorldCtx) {
 	return Cast<AAIManager>(UGameplayStatics::GetActorOfClass(WorldCtx, AAgentManager::StaticClass()));

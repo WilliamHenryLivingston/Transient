@@ -10,7 +10,7 @@
 #include "Transient/MetadataActor.h"
 
 #include "AI/AINavNode.h"
-#include "Units/AIUnit.h"
+#include "AI/AIUnit.h"
 #include "AgentActor.h"
 
 #include "AgentManager.generated.h"

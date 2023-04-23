@@ -11,7 +11,7 @@
 
 #include "DetectorComponent.generated.h"
 
-UCLASS()
+UCLASS(ClassGroup=Transient, meta=BlueprintSpawnableComponent)
 class UDetectorComponent : public UAgentComponent {
     GENERATED_BODY()
 
