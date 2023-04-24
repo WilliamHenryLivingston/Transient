@@ -6,7 +6,7 @@ CUpdateStateAction::CUpdateStateAction(TAIStateKey InitKey, TAIStateVal InitValu
     this->Key = InitKey;
     this->Value = InitValue;
 
-#if DEBUG_ACTIONS
+#if DEBUG_AI
     this->DebugInfo = FString::Printf(TEXT("state update %d=%d"), this->Key, this->Value);
 #endif
 }

@@ -17,7 +17,7 @@ CUseItemAction::CUseItemAction(AItemActor* InitItem, AActor* InitUseTarget) {
     this->SetupTimer = 0.0f;
     this->UseStarted = false;
 
-#if DEBUG_ACTIONS
+#if DEBUG_AI
     FString Name = TEXT("<current>");
     if (this->Item != nullptr) Name = this->Item->GetName();
     this->DebugInfo = FString::Printf(TEXT("use %s"), *Name);

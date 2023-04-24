@@ -5,10 +5,8 @@
 #include "CoreMinimal.h"
 
 #if WITH_EDITOR
-
 #include "Components/TextRenderComponent.h"
 #include "Components/StaticMeshComponent.h"
-
 #endif
 
 #include "MetadataActor.generated.h"

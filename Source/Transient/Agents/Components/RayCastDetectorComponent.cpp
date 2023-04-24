@@ -4,8 +4,6 @@
 
 #include "Transient/Common.h"
 
-//#define DEBUG_DRAWS true
-
 TArray<AAgentActor*> URayCastDetectorComponent::DetectorTick(float DeltaTime) {
     UWorld World = this->GetWorld();
 
@@ -33,7 +31,7 @@ TArray<AAgentActor*> URayCastDetectorComponent::DetectorTick(float DeltaTime) {
 
         AAgentActor* HitAgent = Cast<AAgentActor>(DetectionHit.GetActor());
 
-        #ifdef DEBUG_DRAWS
+        #if DEBUG_DETECTION
         DrawDebugLine(
             World,
             DetectorLocation, DetectionHit.ImpactPoint,

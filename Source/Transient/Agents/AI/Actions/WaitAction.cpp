@@ -9,7 +9,7 @@ CWaitAction::CWaitAction(float Duration, bool InitScanIfIdle) {
     this->Timer = Duration;
     this->ScanIfIdle = InitScanIfIdle;
 
-#if DEBUG_ACTIONS
+#if DEBUG_AI
     this->DebugInfo = FString::Printf(TEXT("wait %.2f"), Duration);
 #endif
 }

@@ -6,8 +6,6 @@
 
 #include "Transient/Common.h"
 
-//#define DEBUG_DRAWS true
-
 void USphereDetectorComponent::BeginPlay() {
     USphereComponent* Collider = NewObject<USphereComponent>(this->GetOwner());
 	Collider->RegisterComponent();
@@ -18,6 +16,7 @@ void USphereDetectorComponent::BeginPlay() {
 	);
 	Collider->SetSphereRadius(this->DetectionRadius);
 	Collider->SetCollisionProfileName(FName("OverlapAll"));
+	Collider->SetHiddenInGame(!DEBUG_DETECTION);
 
     Collider->OnComponentBeginOverlap.AddDynamic(this, &USphereDetectorComponent::OnActorEnter);
 }

@@ -16,7 +16,7 @@ CMoveToPointAction::CMoveToPointAction(FVector InitTarget, float InitReachDistan
     this->Planned = false;
     this->Steps = TArray<FVector>();
 
-#if DEBUG_ACTIONS
+#if DEBUG_AI
     this->DebugInfo = FString::Printf(TEXT("moveto %s"), *this->Target->GetName());
 #endif
 }

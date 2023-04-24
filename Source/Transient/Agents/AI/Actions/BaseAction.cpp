@@ -16,7 +16,7 @@ CBaseAction::CBaseAction(TArray<AAINavNode*>* InitPatrolSteps) {
     this->PatrolSteps = InitPatrolSteps;
     this->CurrentPatrolStep = -1;
 
-#if DEBUG_ACTIONS
+#if DEBUG_AI
     this->DebugInfo = TEXT("base");
 #endif
 }

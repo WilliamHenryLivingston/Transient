@@ -8,10 +8,9 @@
 
 #include "CoreMinimal.h"
 
+#include "Transient/Common.h"
 #include "Transient/Agents/Units/UnitAgent.h"
 #include "Transient/Agents/AI/AIState.h"
-
-#define DEBUG_ACTIONS true
 
 class CAction;
 
@@ -53,7 +52,7 @@ private:
 
 class CAction {
 
-#if DEBUG_ACTIONS
+#if DEBUG_AI
 public:
 	FString DebugInfo;
 #endif

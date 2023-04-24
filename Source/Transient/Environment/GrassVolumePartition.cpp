@@ -7,8 +7,6 @@
 #include "../Items/ItemActor.h"
 #include "GrassVolumeActor.h"
 
-//#define DEBUG_DRAWS true
-
 UGrassVolumePartition::UGrassVolumePartition() {
 	PrimaryComponentTick.bCanEverTick = true;
 }
@@ -32,7 +30,7 @@ void UGrassVolumePartition::BeginPlay() {
 void UGrassVolumePartition::TickComponent(
     float DeltaTime, ELevelTick Type, FActorComponentTickFunction* TickSelf
 ) {
-	#ifdef DEBUG_DRAWS
+	#if DEBUG_IK
 	this->SetVisibility(this->TrackedActors.Num() > 0);
 	this->SetHiddenInGame(this->TrackedActors.Num() == 0);
 	#endif

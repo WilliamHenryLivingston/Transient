@@ -2,12 +2,6 @@
 
 #include "LegIKTrack.h"
 
-//#define DEBUG_DRAWS true
-
-#ifdef DEBUG_DRAWS
-#include "DrawDebugHelpers.h"
-#endif
-
 FLegIKTrack::FLegIKTrack() { }
 
 FLegIKTrack::FLegIKTrack(FVector InitialWorldLocation, FLegIKProfile InitProfile) {
@@ -15,11 +9,11 @@ FLegIKTrack::FLegIKTrack(FVector InitialWorldLocation, FLegIKProfile InitProfile
     this->Profile = InitProfile;
 }
 
-float FLegIKTrack::LegIKTrackStepProgress() {
+float FLegIKTrack::TrackStepProgress() {
     return FMath::Min(1.0f, this->StepTime / this->StepTimeBudget);
 }
 
-void FLegIKTrack::LegIKTrackStepTo(FVector WorldOffset, USceneComponent* Parent, float TimeBudget) {
+void FLegIKTrack::TrackStepTo(FVector WorldOffset, USceneComponent* Parent, float TimeBudget) {
     this->StepStartWorldLocation = this->CurrentWorldLocation;
     this->StepWorldLocation = WorldOffset;
     this->StepWorldLocation.Z = this->GroundHit(this->StepWorldLocation, Parent).Z;
@@ -27,7 +21,7 @@ void FLegIKTrack::LegIKTrackStepTo(FVector WorldOffset, USceneComponent* Parent,
     this->StepTime = 0.0f;
 }
 
-FVector FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneComponent* Parent, FLegIKDynamics Dynamics) {
+FVector FLegIKTrack::TrackTick(float DeltaTime, USceneComponent* Parent, FLegIKDynamics Dynamics) {
     float GroundHitZ = this->GroundHit(this->CurrentWorldLocation, Parent).Z;
 
     if (this->StepTime >= this->StepTimeBudget) {
@@ -46,7 +40,7 @@ FVector FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneComponent* Parent, FL
         this->CurrentWorldLocation.Z = GroundHitZ + (sin(Alpha * 3.14159f) * this->Profile.StepVerticalOffset); 
     }
 
-    #ifdef DEBUG_DRAWS
+    #if DEBUG_IK
     DrawDebugSphere(
         Parent->GetWorld(),
         this->StepWorldLocation,
@@ -64,7 +58,7 @@ FVector FLegIKTrack::LegIKTrackTick(float DeltaTime, USceneComponent* Parent, FL
     return this->CurrentWorldLocation;
 }
 
-FVector FLegIKTrack::GroundHit(FVector Below, USceneComponent* Parent) {
+FVector FLegIKTrack::TrackGroundHit(FVector Below, USceneComponent* Parent) {
     FVector RayEnd = Below - FVector(0.0f, 0.0f, this->Profile.GroundCastDistance);
 
     FCollisionQueryParams Params;

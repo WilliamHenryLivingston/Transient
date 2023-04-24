@@ -22,7 +22,7 @@
 #define DIRECT_ATTACK_DIST_COEF 0.5f
 
 CAttackAction::CAttackAction() {
-#if DEBUG_ACTIONS
+#if DEBUG_AI
     this->DebugInfo = TEXT("attacks");
 #endif
 }

@@ -9,7 +9,7 @@ CAttackStanceAction::CAttackStanceAction(AActor* InitTarget, float Duration, boo
 
     this->PopOutTimer = 0.0f;
 
-#if DEBUG_ACTIONS
+#if DEBUG_AI
     this->DebugInfo = FString::Printf(TEXT("attackstance %s for %.2f"), *this->Target->GetName(), this->Timer);
 #endif
 }

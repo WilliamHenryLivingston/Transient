@@ -12,7 +12,7 @@ CInteractAction::CInteractAction(AInteractiveAgent* InitTarget) {
     this->TravelStarted = false;
     this->InteractStarted = false;
 
-#if DEBUG_ACTIONS
+#if DEBUG_AI
     this->DebugInfo = FString::Printf(TEXT("interact %s"), *this->Target->GetName());
 #endif
 }

@@ -22,7 +22,7 @@ CPatrolStepAction::CPatrolStepAction(AAINavNode* InitNode) {
     this->InteractStarted = false;
     this->SubjugateStarted = false;
 
-#if DEBUG_ACTIONS
+#if DEBUG_AI
     this->DebugInfo = FString::Printf(TEXT("patrolstep %s"), *this->Node->GetName());
 #endif
 }

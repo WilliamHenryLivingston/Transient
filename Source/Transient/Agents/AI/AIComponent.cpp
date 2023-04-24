@@ -2,18 +2,18 @@
 
 #include "AIExecutor.h"
 
+#include "Transient/Common.h"
+
 #include "Actions/BaseAction.h"
 
-#define DEBUG_AI true
-
 #if DEBUG_AI
-#define DEBUG_LOG(M) if (Owner->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT(M));
-#define DEBUG_LOG_START(S) if (Owner->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, S->DebugInfo);
-#define DEBUG_LOG_END(S) if (Owner->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, S->DebugInfo);
+#define DEBUG_AI_LOG(M) if (Owner->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT(M));
+#define DEBUG_AI_LOG_START(S) if (Owner->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, S->DebugInfo);
+#define DEBUG_AI_LOG_END(S) if (Owner->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, S->DebugInfo);
 #else
-#define DEBUG_LOG(M) do {} while (false);
-#define DEBUG_LOG_START(S) do {} while (false);
-#define DEBUG_LOG_END(S) do {} while (false);
+#define DEBUG_AI_LOG(M) do {} while (false);
+#define DEBUG_AI_LOG_START(S) do {} while (false);
+#define DEBUG_AI_LOG_END(S) do {} while (false);
 #endif
 
 void UAIComponent::BeginPlay() {
@@ -50,13 +50,13 @@ void UAIComponent::TickComponent(float DeltaTime, ELevelTick Type, FActorCompone
             FActionTickResult Result = Action->ActionTick(this->ParentAgent, this->State, DeltaTime);
 
             if (Result.Finished) {
-                DEBUG_LOG_END(Action);
+                DEBUG_AI_LOG_END(Action);
 
                 this->ActionStack.Pop(false);
                 delete Action;
             }
             if (Result.PushChild != nullptr) {
-                DEBUG_LOG_START(Result.PushChild);
+                DEBUG_AI_LOG_START(Result.PushChild);
 
                 this->ActionStack.Push(Result.PushChild);
             }
@@ -77,15 +77,15 @@ void UAIComponent::TickComponent(float DeltaTime, ELevelTick Type, FActorCompone
     if (StopBeyond >= 0) {
         while (this->ActionStack.Num() - 1 > StopBeyond) {
             CAction* Action = this->ActionStack[this->ActionStack.Num() - 1];
-            DEBUG_LOG("rollback");
-            DEBUG_LOG_END(Action);
+            DEBUG_AI_LOG("rollback");
+            DEBUG_AI_LOG_END(Action);
 
             delete Action;
             this->ActionStack.Pop(false);
         }
     }
     if (DeferredPush != nullptr) {
-        DEBUG_LOG_START(DeferredPush);
+        DEBUG_AI_LOG_START(DeferredPush);
 
         this->ActionStack.Push(DeferredPush);
     }

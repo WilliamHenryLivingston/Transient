@@ -6,12 +6,6 @@
 #include "Actions/AttackAction.h"
 #include "Actions/BaseBehavior.h"
 
-//#define DEBUG_DRAWS true
-
-#define BEHAVIOR_LOG(M) if (this->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT(M));
-#define BEHAVIOR_LOG_START(S) if (this->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, S->DebugInfo);
-#define BEHAVIOR_LOG_END(S) if (this->DebugBehavior) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, S->DebugInfo);
-
 void UDetectCallback::Callback() {
     Cast<AAIUnit>(this->AI)->AIPushAttack(this->AgroTarget, true);
 }
@@ -211,52 +205,6 @@ void AAIUnit::DamagableTakeDamage_Implementation(FDamageProfile Profile, AActor*
 
     Profile.Energy *= 3.0f; // TODO: Better number.
     Super::DamagableTakeDamage_Implementation(Profile, Cause, Source);
-}
-
-AActor* AAIUnit::AICheckDetection() {
-    FVector HeadLocation = this->DetectionSourceComponent->GetComponentLocation();
-
-    AAIManager* Manager = AAIManager::AIGetManagerInstance(this->GetWorld());
-    
-    for (int i = 0; i < 5; i++) {
-        FRotator CastRotation = this->GetActorRotation();
-        CastRotation.Yaw += 15.0f * (i - 2);
-
-        #ifdef DEBUG_DRAWS
-        DrawDebugLine(
-            this->GetWorld(), 
-            HeadLocation,
-            HeadLocation + (CastRotation.RotateVector(FVector(this->DetectionDistance, 0.0f, 0.0f))),
-            FColor::Blue,
-            false, 
-            0.2f,
-            100,
-            1.0f
-        );
-        #endif
-
-        FHitResult DetectionRayHit;
-
-        FCollisionQueryParams DetectionRayParams;
-        DetectionRayParams.AddIgnoredActor(this);
-
-        this->GetWorld()->LineTraceSingleByChannel(
-            DetectionRayHit,
-            HeadLocation,
-            HeadLocation + (CastRotation.RotateVector(FVector(this->DetectionDistance, 0.0f, 0.0f))),
-            ECollisionChannel::ECC_Visibility, DetectionRayParams
-        );
-
-        AActor* AnyHitActor = DetectionRayHit.GetActor();
-        if (AnyHitActor == nullptr) continue;
-
-        AUnitPawn* AsUnit = Cast<AUnitPawn>(AnyHitActor);
-        if (AsUnit != nullptr && Manager->AIShouldDetect(this->FactionID, this->Detection, AsUnit)) {
-            return AsUnit;
-        }
-    }
-
-    return nullptr;
 }
 
 void AAIUnit::UnitDie() {

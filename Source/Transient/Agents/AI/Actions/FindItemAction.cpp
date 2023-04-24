@@ -40,7 +40,7 @@ CFindItemAction::CFindItemAction(
     this->TakeStarted = false;
     this->EquipStarted = !EquipAfter;
 
-#if DEBUG_ACTIONS
+#if DEBUG_AI
     FString Name = TEXT("worldfind <spawn>");
     if (this->Target != nullptr) Name = FString::Printf(TEXT("worldfind %s"), *this->Target->GetName());
     this->DebugInfo = Name;

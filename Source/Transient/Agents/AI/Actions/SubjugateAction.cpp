@@ -18,7 +18,7 @@ CSubjugateAction::CSubjugateAction(AAgentActor* InitTarget) {
     this->TravelStarted = false;
     this->HurtTimer = 0.0f;
 
-#if DEBUG_ACTIONS
+#if DEBUG_AI
     FString Name = TEXT("<missing>");
     if (this->Target != nullptr) Name = this->Target->GetName();
     this->DebugInfo = FString::Printf(TEXT("subjugate %s"), *Name);

@@ -28,12 +28,12 @@ private:
 public:
     FLegIKTrack();
     FLegIKTrack(FVector InitialWorldLocation, FLegIKProfile Profile);
-    float LegIKTrackStepProgress();
-    void LegIKTrackStepTo(FVector WorldOffset, USceneComponent* Parent, float TimeBudget);
-    FVector LegIKTrackTick(float DeltaTime, USceneComponent* Parent, FLegIKDynamics Dynamics);
+    float TrackStepProgress();
+    void TrackStepTo(FVector WorldOffset, USceneComponent* Parent, float TimeBudget);
+    FVector TrackTick(float DeltaTime, USceneComponent* Parent, FLegIKDynamics Dynamics);
 
 private:
-    FVector GroundHit(FVector Below, USceneComponent* Parent);
+    FVector TrackGroundHit(FVector Below, USceneComponent* Parent);
 };
 
 USTRUCT()

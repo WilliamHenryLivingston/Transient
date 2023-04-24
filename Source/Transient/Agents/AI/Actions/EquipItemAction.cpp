@@ -6,7 +6,7 @@ CEquipItemAction::CEquipItemAction(AItemActor* InitTarget) {
     this->Target = InitTarget;
     this->Started = false;
 
-#if DEBUG_ACTIONS
+#if DEBUG_AI
     FString Name = TEXT("<nothing>");
     if (this->Target != nullptr) Name = this->Target->GetName();
     this->DebugInfo = FString::Printf(TEXT("equip %s"), *Name);

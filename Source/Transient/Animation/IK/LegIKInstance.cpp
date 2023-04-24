@@ -2,12 +2,6 @@
 
 #include "LegIKInstance.h"
 
-//#define DEBUG_DRAWS true
-
-#ifdef DEBUG_DRAWS
-#include "DrawDebugHelpers.h"
-#endif
-
 void ULegIKInstance::LegIKInstanceInit(USceneComponent* Parent, FLegIKProfile InitProfile) {
     this->Profile = InitProfile;
     this->Dynamics = FLegIKDynamics();
@@ -94,7 +88,7 @@ void ULegIKInstance::LegIKInstanceTick(float RawDeltaTime, USceneComponent* Pare
             );
             bool Invalidated = DistanceToOriginalTarget > (CurrentOffsetTolerance * 2.0f);
 
-            #ifdef DEBUG_DRAWS
+            #if DEBUG_IK
             DrawDebugSphere(
                 Parent->GetWorld(),
                 ExpectedEndLocation,
@@ -128,7 +122,7 @@ void ULegIKInstance::LegIKInstanceTick(float RawDeltaTime, USceneComponent* Pare
                 StepTargetDelta
             );
 
-            #ifdef DEBUG_DRAWS
+            #if DEBUG_IK
             DrawDebugSphere(
                 Parent->GetWorld(),
                 NewWorldLocation,

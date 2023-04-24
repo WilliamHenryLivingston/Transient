@@ -6,7 +6,7 @@ CMultiAction::CMultiAction(TArray<CAction*> InitParts) {
     this->Parts = InitParts;
     this->PartIndex = 0;
 
-#if DEBUG_ACTIONS
+#if DEBUG_AI
     this->DebugInfo = FString::Printf(TEXT("multi %d"), this->Parts.Num());
 #endif
 }
