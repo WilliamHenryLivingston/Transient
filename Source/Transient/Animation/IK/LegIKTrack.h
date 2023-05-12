@@ -1,10 +1,12 @@
 // Copyright: R. Saxifrage, 2023. All rights reserved.
 
+// Leg IK tracks lerp an IK target over time in discreet steps.
+
 #pragma once
 
 #include "CoreMinimal.h"
 
-#include "LegIKProfiles.h"
+#include "Transient/Agents/UnitAgent.h"
 
 #include "LegIKTrack.generated.h"
 
@@ -12,28 +14,26 @@ USTRUCT()
 struct FLegIKTrack {
     GENERATED_BODY()
 
-// TODO: These public because lazy.
-public:
-    FLegIKProfile Profile;
+private:
+    UUnitAgent* ParentUnit;
 
+    FVector BaseLocation;
     FVector CurrentWorldLocation;
     FVector StepWorldLocation;
     FVector StepStartWorldLocation;
 
     float StepTimeBudget;
-
-private:
     float StepTime;
 
 public:
-    FLegIKTrack();
-    FLegIKTrack(FVector InitialWorldLocation, FLegIKProfile Profile);
-    float TrackStepProgress();
-    void TrackStepTo(FVector WorldOffset, USceneComponent* Parent, float TimeBudget);
-    FVector TrackTick(float DeltaTime, USceneComponent* Parent, FLegIKDynamics Dynamics);
+    FLegIKTrack(FVector InitBaseLocation, UUnitAgent* InitParent);
+    FVector TrackTick(float DeltaTime);
+    float TrackStepErrorDistance(FVector GivenVelocity);
+    FVector TrackCurrentLocation();
+    void TrackStepTo(FVector WorldOffset, float TimeBudget);
 
 private:
-    FVector TrackGroundHit(FVector Below, USceneComponent* Parent);
+    FVector TrackGroundHit(FVector Below);
 };
 
 USTRUCT()
@@ -41,7 +41,7 @@ struct FLegIKTrackGroup {
 	GENERATED_BODY()
 
 public:
-	// Field only exists to avoid *another* struct (TArrays don't nest).
+	// Field exists to avoid *another* struct defn in usage logic (TArrays don't nest).
 	TArray<FVector> CurrentWorldLocations;
 	TArray<FVector> BaseComponentLocations;
 	TArray<FLegIKTrack> Tracks;

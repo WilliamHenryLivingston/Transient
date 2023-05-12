@@ -2,15 +2,28 @@
 
 #include "LegIKTrack.h"
 
-FLegIKTrack::FLegIKTrack() { }
+FLegIKTrack::FLegIKTrack(FVector InitBaseLocation, UUnitAgent* InitParent) {
+    this->BaseLocation = InitBaseLocation;
+    this->ParentUnit = InitParent;
 
-FLegIKTrack::FLegIKTrack(FVector InitialWorldLocation, FLegIKProfile InitProfile) {
-    this->CurrentWorldLocation = InitialWorldLocation;
-    this->Profile = InitProfile;
+    this->CurrentWorldLocation = (
+        this->ParentUnit->GetActorLocation() +
+        this->ParentUnit->GetActorRotation().RotateVector(this->BaseLocation)
+    );
 }
 
-float FLegIKTrack::TrackStepProgress() {
-    return FMath::Min(1.0f, this->StepTime / this->StepTimeBudget);
+FVector FLegIKTrack::TrackCurrentLocation() { return this->CurrentWorldLocation; }
+
+float FLegIKTrack::TrackStepErrorDistance(FVector GivenVelocity) {
+    if (this->StepTime >= this->StepTimeBudget) return 0.0f;
+
+    FVector RecheckedEndLocation = (
+        this->ParentUnit->GetActorLocation() +
+        (GivenVelocity * this->StepTimeBudget * (1.0f - TrackProgress)) +
+        this->ParentUnit->GetActorRotation().RotateVector(this->BaseLocation)
+    );
+
+    return (RecheckedEndLocation - this->StepWorldLocation).Size2D();
 }
 
 void FLegIKTrack::TrackStepTo(FVector WorldOffset, USceneComponent* Parent, float TimeBudget) {
@@ -21,7 +34,7 @@ void FLegIKTrack::TrackStepTo(FVector WorldOffset, USceneComponent* Parent, floa
     this->StepTime = 0.0f;
 }
 
-FVector FLegIKTrack::TrackTick(float DeltaTime, USceneComponent* Parent, FLegIKDynamics Dynamics) {
+FVector FLegIKTrack::TrackTick(float DeltaTime, USceneComponent* Parent) {
     float GroundHitZ = this->GroundHit(this->CurrentWorldLocation, Parent).Z;
 
     if (this->StepTime >= this->StepTimeBudget) {
@@ -37,7 +50,7 @@ FVector FLegIKTrack::TrackTick(float DeltaTime, USceneComponent* Parent, FLegIKD
             this->StepWorldLocation,
             Alpha
         );
-        this->CurrentWorldLocation.Z = GroundHitZ + (sin(Alpha * 3.14159f) * this->Profile.StepVerticalOffset); 
+        this->CurrentWorldLocation.Z = GroundHitZ + (sin(Alpha * 3.14159f) * this->ParentUnit.LegStepVerticalOffset); 
     }
 
     #if DEBUG_IK
@@ -59,7 +72,7 @@ FVector FLegIKTrack::TrackTick(float DeltaTime, USceneComponent* Parent, FLegIKD
 }
 
 FVector FLegIKTrack::TrackGroundHit(FVector Below, USceneComponent* Parent) {
-    FVector RayEnd = Below - FVector(0.0f, 0.0f, this->Profile.GroundCastDistance);
+    FVector RayEnd = Below - FVector(0.0f, 0.0f, this->ParentUnit.LegGroundCastDistance);
 
     FCollisionQueryParams Params;
     Params.AddIgnoredActor(Parent->GetOwner());

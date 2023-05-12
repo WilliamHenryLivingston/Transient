@@ -25,6 +25,14 @@
 
 // TODO: Shrink significantly, lots of biped specific stuff in here.
 
+USTRUCT()
+struct FLegIKTrackGroupConfig {
+	GENERATED_BODY()
+
+public:
+	TArray<FVector> BaseComponentLocations;
+};
+
 USTRUCT() // TODO: Move.
 struct FUnitConcealment {
 	GENERATED_BODY()
@@ -44,6 +52,24 @@ public:
 UCLASS()
 class AUnitAgent : public AAgentActor, public IDamagable {
 	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditDefaultsOnly, Category="Unit IK")
+	float LegMovingOffsetTolerance = 40.0f;
+	UPROPERTY(EditDefaultsOnly, Category="Unit IK")
+	float LegRestingOffsetTolerance = 15.0f;
+	UPROPERTY(EditDefaultsOnly, Category="Unit IK")
+	float LegGroundCastDistance = 200.0f;
+	UPROPERTY(EditDefaultsOnly, Category="Unit IK")
+	float LegStepVerticalOffset = 25.0f;
+	UPROPERTY(EditDefaultsOnly, Category="Unit IK")
+	float LegStepBaseDistance = 150.0f;
+	UPROPERTY(EditDefaultsOnly, Category="Unit IK")
+	TArray<FLegIKTrackGroupConfig> LegTrackGroups;
+	UPROPERTY(EditDefaultsOnly, Category="Unit IK")
+	float BodyBaseOffset = 105.0f;
+	UPROPERTY(EditDefaultsOnly, Category="Unit IK")
+	float BodyLerpRate = 25.0f;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Unit Movement")
@@ -83,8 +109,6 @@ private:
 	// Rig-related parameters.
 	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
 	FAnimationConfig InteractAnimation;
-	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
-	TArray<FAnimationConfig> MiscArmsAnimations;
 	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")
 	float CrouchVerticalShrink = 0.6f;
 	UPROPERTY(EditDefaultsOnly, Category="Unit Rig")

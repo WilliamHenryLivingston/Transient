@@ -5,32 +5,48 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
 
-#include "LegIKInstance.h"
-
 #include "UnitAnimInstance.generated.h"
 
 UCLASS(Transient, Blueprintable, HideCategories=AnimInstance, BlueprintType)
-class UUnitAnimInstance : public ULegIKInstance {
+class UUnitAnimInstance : public UAnimInstance {
     GENERATED_BODY()
 
+// TODO: Privatize?
 public:
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
+    UPROPERTY(BlueprintReadWrite)
     EUnitAnimLegsState Script_LegsState;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
+    UPROPERTY(BlueprintReadWrite)
     EUnitAnimLegsModifier Script_LegsModifier;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
+    UPROPERTY(BlueprintReadWrite)
     EUnitAnimArmsState Script_ArmsState;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
+    UPROPERTY(BlueprintReadWrite)
     EUnitAnimArmsModifier Script_ArmsModifier;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
+    UPROPERTY(BlueprintReadWrite)
     EUnitAnimArmsInteractTarget Script_ArmsInteractTarget;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
+    UPROPERTY(BlueprintReadWrite)
     float Script_TimeDilation;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
+    UPROPERTY(BlueprintReadWrite)
     float Script_TorsoPitch;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Script Controlled")
+    UPROPERTY(BlueprintReadWrite)
     float Script_TorsoYaw;
+
+protected:
+	UPROPERTY(BlueprintReadWrite)
+	TArray<FVector> Script_IKTargets;
+
+private:
+	FLegIKProfile Profile;
+	TArray<FLegIKTrackGroup> TrackGroups;
+
+    UUnitAgent* ParentUnit;
 
 public:
 	UUnitAnimInstance();
+
+public:
+    void UnitAnimInit(UUnitAgent* InitParent, FLegIKProfile InitProfile);
+	void UnitAnimTick(float DeltaTime, USceneComponent* Parent);
+
+private:
+    FLegIKDynamics UnitAnimComputeLegDynamics();
 };
